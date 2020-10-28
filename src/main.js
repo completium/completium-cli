@@ -63,8 +63,8 @@ async function initCompletium(options) {
 }
 
 async function deploy(options) {
-  // const arl = options.file;
-  const arl = "/home/dev/archetype/archetype-lang/tests/passed/simple.arl";
+  const verbose = options.verbose;
+  const arl = options.deployfile;
   const tz_sci = getConfig(properties_account);
   const contract_name = path.basename(arl);
   const contract_script = contracts_dir + contract_name + ".tz";
@@ -73,11 +73,13 @@ async function deploy(options) {
 
   {
     const { stdout } = await execa(bin_archetype, [arl], {});
-    console.log(stdout);
+    if (verbose)
+      console.log(stdout);
 
     fs.writeFile(contract_script, stdout, function (err) {
       if (err) throw err;
-      console.log('Contract script saved!');
+      if (verbose)
+        console.log('Contract script saved!');
     });
   }
 
@@ -85,22 +87,26 @@ async function deploy(options) {
   {
     const { stdout } = await execa(bin_archetype, ['-t', 'michelson-storage', '-sci', tz_sci, arl], {});
     tzstorage = stdout;
-    console.log(tzstorage);
+    if (verbose)
+      console.log(tzstorage);
   }
 
   {
-    const { stdout } = await execa(bin_tezos,
-      ['-S', '-A', tezos_node,
-        '-P', tezos_port,
-        'originate', 'contract', contract_name,
-        'transferring', '0',
-        'from', tz_sci,
-        'running', contract_script,
-        '--init', tzstorage,
-        '--burn-cap', '20',
-        '--force',
-        '-D'
-      ], {});
+    var args = ['-S', '-A', tezos_node,
+      '-P', tezos_port,
+      'originate', 'contract', contract_name,
+      'transferring', '0',
+      'from', tz_sci,
+      'running', contract_script,
+      '--init', tzstorage,
+      '--burn-cap', '20',
+      '--force'
+    ];
+    if (options.dry) {
+      args.push('-D')
+    }
+
+    const { stdout } = await execa(bin_tezos, args, {});
     console.log(stdout);
   }
 

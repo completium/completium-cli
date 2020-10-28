@@ -5,21 +5,28 @@ import { process } from './main';
 function parseArgumentsIntoOptions(rawArgs) {
   const args = arg(
     {
-      '-y': '--yes',
-      '-a:' : '--account',
-      '-f' : '--file',
       '--init': Boolean,
-      '--deploy': Boolean,
+      '--deploy': String,
+      '--account': String,
+      '--dry': Boolean,
+      '--verbose': Boolean,
+      //
+      '-y': '--yes',
+      '-d': '--dry',
+      '-v': '--verbose',
     },
     {
       argv: rawArgs.slice(2),
     }
   );
+  // console.log(args);
   return {
-    init:    args['--init'] || false,
-    deploy:  args['--deploy'] || false,
-    account: args['--account'],
-    file:    args['--file'],
+    init:       args['--init'] || false,
+    deploy:     args['--deploy'] !== undefined,
+    deployfile: args['--deploy'],
+    account:    args['--account'],
+    dry:        args['--dry'] || false,
+    verbose:    args['--verbose'] || false,
   };
 }
 
@@ -37,6 +44,7 @@ async function promptForMissingOptions(options) {
 
 export async function cli(args) {
   let options = parseArgumentsIntoOptions(args);
+  // console.log(options);
   // options = await promptForMissingOptions(options);
   await process(options);
 }
