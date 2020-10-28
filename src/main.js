@@ -3,42 +3,73 @@ import fs from 'fs';
 import wget from 'node-wget';
 import Listr from 'listr';
 import execa from 'execa';
+import propertiesReader from 'properties-reader';
+import path from 'path';
 
-const completium_dir = '/tmp/.completium'
-const bin_dir        = completium_dir + '/bin'
-const bin_archetype  = bin_dir + '/archetype'
-const bin_tezos      = bin_dir + "/tezos-client"
+const homedir = require('os').homedir();
+const completium_dir = homedir + '/.completium'
+const config_path = completium_dir + '/config'
+const bin_dir = completium_dir + '/bin'
+const contracts_dir = completium_dir + "/contracts"
+const bin_archetype = bin_dir + '/archetype'
+const bin_tezos = bin_dir + "/tezos-client"
+
+const properties_account = "account"
+const properties_tezos_node = "tezos.node"
+const properties_tezos_port = "tezos.port"
 
 async function download(url, dest) {
   const request = wget({ url: url, dest: dest, timeout: 2000 });
   return request;
 };
 
+var config
+
+function getConfig(p) {
+  if (config === undefined) {
+    config = propertiesReader(config_path);
+  }
+  return config.get(p)
+}
+
 async function initCompletium(options) {
 
   if (!fs.existsSync(bin_dir)) {
-    fs.mkdirSync(bin_dir);
+    fs.mkdirSync(bin_dir, { recursive: true });
   }
 
-  const archetype_url   = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
+  if (!fs.existsSync(contracts_dir)) {
+    fs.mkdirSync(contracts_dir, { recursive: true });
+  }
+
+  const { promisify } = require('util');
+
+  const writeFileAsync = promisify(fs.writeFile);
+  await writeFileAsync(config_path, '');
+  var vconfig = propertiesReader(config_path);
+  vconfig.set(properties_account, 'tz1Lc2qBKEWCBeDU8npG6zCeCqpmaegRi6Jg');
+  vconfig.set(properties_tezos_node, 'testnet-tezos.giganode.io');
+  vconfig.set(properties_tezos_port, '443');
+  await vconfig.save(config_path);
+
+  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
   const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
-  const a = await download(tezosclient_url, bin_tezos);
-  const b = await download(archetype_url,   bin_archetype);
+  await download(tezosclient_url, bin_tezos);
+  await download(archetype_url, bin_archetype);
   fs.chmodSync(bin_archetype, '711');
-  fs.chmodSync(bin_tezos,     '711');
+  fs.chmodSync(bin_tezos, '711');
   console.log("Completium initialized successfully!");
   return;
 }
 
 async function deploy(options) {
-  const tz_sci = "tz1Lc2qBKEWCBeDU8npG6zCeCqpmaegRi6Jg";
   // const arl = options.file;
   const arl = "/home/dev/archetype/archetype-lang/tests/passed/simple.arl";
-  const contract_name = "simple";
-  const contracts_dir = completium_dir + "/contracts";
+  const tz_sci = getConfig(properties_account);
+  const contract_name = path.basename(arl);
   const contract_script = contracts_dir + contract_name + ".tz";
-  const tezos_node = "testnet-tezos.giganode.io";
-  const tezos_port = "443";
+  const tezos_node = getConfig(properties_tezos_node);
+  const tezos_port = getConfig(properties_tezos_port);
 
   {
     const { stdout } = await execa(bin_archetype, [arl], {});

@@ -36,6 +36,7 @@
     "listr": "^0.14.3",
     "ncp": "^2.0.0",
     "node-wget": "^0.4.3",
-    "pkg-install": "^1.0.0"
+    "pkg-install": "^1.0.0",
+    "properties-reader": "^2.1.1"
   }
 }
