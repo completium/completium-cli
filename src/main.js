@@ -18,6 +18,12 @@ const properties_account = "account"
 const properties_tezos_node = "tezos.node"
 const properties_tezos_port = "tezos.port"
 
+const properties = [
+  properties_account,
+  properties_tezos_node,
+  properties_tezos_port
+]
+
 async function download(url, dest) {
   const request = wget({ url: url, dest: dest, timeout: 2000 });
   return request;
@@ -62,6 +68,45 @@ async function initCompletium(options) {
   return;
 }
 
+// cli generate account <ACCOUNTNAME> [from faucet <FAUCETFILE>]
+async function generateAccount(options) {
+  // FIXME
+}
+
+// cli transfer <AMOUNT> from <ACCOUNTNAME> to <ACCOUNTNAME> [dry]
+async function transfer(options) {
+  const tezos_node = getConfig(properties_tezos_node);
+  const tezos_port = getConfig(properties_tezos_port);
+  const amount = options.amount;
+  const from = options.from;
+  const to = options.to;
+  const dry = options.dry;
+
+  var args = ['-S', '-A', tezos_node,
+    '-P', tezos_port,
+    'transfer', amount,
+    'from', from,
+    'to', to,
+  ];
+  if (dry) {
+    args.push('-D')
+  }
+
+  const { stdout } = await execa(bin_tezos, args, {});
+  console.log(stdout);
+}
+
+// cli remove <ACCOUNTNAME|CONTRACTNAME>
+async function removeAccount(options) {
+  // FIXME
+}
+
+// cli show account <ACCOUNTNAME> [with secret]
+async function showAccount(options) {
+  // FIXME
+}
+
+// cli deploy <FILE.arl> [as <ACCOUNTNAME>] [named <CONTRACTNAME>] [force]
 async function deploy(options) {
   const verbose = options.verbose;
   const arl = options.deployfile;
@@ -70,6 +115,7 @@ async function deploy(options) {
   const contract_script = contracts_dir + contract_name + ".tz";
   const tezos_node = getConfig(properties_tezos_node);
   const tezos_port = getConfig(properties_tezos_port);
+  const dry = options.dry;
 
   {
     const { stdout } = await execa(bin_archetype, [arl], {});
@@ -102,7 +148,7 @@ async function deploy(options) {
       '--burn-cap', '20',
       '--force'
     ];
-    if (options.dry) {
+    if (dry) {
       args.push('-D')
     }
 
@@ -113,6 +159,32 @@ async function deploy(options) {
   return;
 }
 
+// cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
+async function callContract(options) {
+  // FIXME
+}
+
+// cli show entries of <CONTRACTNAME|CONTRACTADDRESS>
+async function showEntry(options) {
+  // FIXME
+}
+
+// cli config set <property> <value>
+async function setProperty(options) {
+  const property = options.property;
+  const value = options.value;
+
+  var found = false;
+  properties.forEach(p => found |= p === property);
+  if (!found) {
+    // console.error.log('Property "' + property + '" is not found');
+    return;
+  }
+
+  var vconfig = propertiesReader(config_path);
+  vconfig.set(property, value);
+  await vconfig.save(config_path);
+}
 
 export async function process(options) {
 
@@ -126,6 +198,16 @@ export async function process(options) {
       title: 'Deployment from archetype file',
       task: () => deploy(options),
       enabled: () => options.deploy,
+    },
+    {
+      title: 'Transfer',
+      task: () => transfer(options),
+      enabled: () => options.transfer,
+    },
+    {
+      title: 'Set property value',
+      task: () => setProperty(options),
+      enabled: () => options.setProperty,
     }
   ]);
 

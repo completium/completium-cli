@@ -10,6 +10,12 @@ function parseArgumentsIntoOptions(rawArgs) {
       '--account': String,
       '--dry': Boolean,
       '--verbose': Boolean,
+      '--transfer': String,
+      '--from': String,
+      '--to': String,
+      '--set': Boolean,
+      '--property': String,
+      '--value': String,
       //
       '-y': '--yes',
       '-d': '--dry',
@@ -21,12 +27,19 @@ function parseArgumentsIntoOptions(rawArgs) {
   );
   // console.log(args);
   return {
-    init:       args['--init'] || false,
-    deploy:     args['--deploy'] !== undefined,
-    deployfile: args['--deploy'],
-    account:    args['--account'],
-    dry:        args['--dry'] || false,
-    verbose:    args['--verbose'] || false,
+    init:        args['--init'] || false,
+    deploy:      args['--deploy'] !== undefined,
+    deployfile:  args['--deploy'],
+    account:     args['--account'],
+    dry:         args['--dry'] || false,
+    verbose:     args['--verbose'] || false,
+    transfer:    args['--transfer'] !== undefined && args['--from'] !== undefined && args['--to'] !== undefined,
+    amount:      args['--transfer'],
+    from:        args['--from'],
+    to:          args['--to'],
+    setProperty: args['--set'] && args['--property'] !== undefined && args['--value'] !== undefined,
+    property:    args['--property'],
+    value:       args['--value'],
   };
 }
 
