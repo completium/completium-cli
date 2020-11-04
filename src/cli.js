@@ -16,6 +16,7 @@ function parseArgumentsIntoOptions(rawArgs) {
       '--set': Boolean,
       '--property': String,
       '--value': String,
+      '--contract': String,
       //
       '-y': '--yes',
       '-d': '--dry',
@@ -40,6 +41,7 @@ function parseArgumentsIntoOptions(rawArgs) {
     setProperty: args['--set'] && args['--property'] !== undefined && args['--value'] !== undefined,
     property:    args['--property'],
     value:       args['--value'],
+    contract:    args['--contract'],
   };
 }
 

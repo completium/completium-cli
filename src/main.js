@@ -11,7 +11,9 @@ const completium_dir = homedir + '/.completium'
 const config_path = completium_dir + '/config'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
-const bin_archetype = bin_dir + '/archetype'
+const scripts_dir = completium_dir + "/scripts"
+// const bin_archetype = bin_dir + '/archetype'
+const bin_archetype = 'archetype'
 const bin_tezos = bin_dir + "/tezos-client"
 
 const properties_account = "account"
@@ -46,6 +48,10 @@ async function initCompletium(options) {
 
   if (!fs.existsSync(contracts_dir)) {
     fs.mkdirSync(contracts_dir, { recursive: true });
+  }
+
+  if (!fs.existsSync(scripts_dir)) {
+    fs.mkdirSync(scripts_dir, { recursive: true });
   }
 
   const { promisify } = require('util');
@@ -159,6 +165,55 @@ async function deploy(options) {
   return;
 }
 
+function createScript(id, content, callback) {
+  const path = scripts_dir + '/' + id + '.json';
+  fs.writeFile(path, content, function (err) {
+    if (err) throw err;
+    callback(path);
+  });
+}
+
+function retrieveContract(contract, callback) {
+  const tezos_node = getConfig(properties_tezos_node);
+  const tezos_port = getConfig(properties_tezos_port);
+  const url = 'https://' + tezos_node + ':' + tezos_port + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
+
+  var request = require('request');
+  request(url, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      createScript(contract, body, callback);
+    }
+    else {
+      console.log("Error " + response.statusCode)
+    }
+  })
+}
+
+async function execShowEntries(path) {
+  var args = ['--show-entries', '--json', path];
+  const { stdout } = await execa(bin_archetype, args, {});
+  console.log(stdout);
+}
+
+// cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
+async function showContract(options) {
+  const contract = options.contract;
+  retrieveContract(contract, x => {
+    {
+      execShowEntries(x);
+      // var args = ['--show-entries', '--json', x];
+      // console.log(args);
+      // const subprocess = execa(bin_archetype, args, {});
+      // subprocess.stdout.pipe(process.stdout);
+
+      // (async () => {
+      //   const { stdout } = await subprocess;
+      //   console.log('child output:', stdout);
+      // })();
+    }
+  });
+}
+
 // cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
 async function callContract(options) {
   // FIXME
@@ -208,6 +263,11 @@ export async function process(options) {
       title: 'Set property value',
       task: () => setProperty(options),
       enabled: () => options.setProperty,
+    },
+    {
+      title: 'Show contract',
+      task: () => showContract(options),
+      enabled: () => options.contract !== undefined,
     }
   ]);
 
