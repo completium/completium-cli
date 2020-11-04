@@ -40,6 +40,11 @@ function getConfig(p) {
   return config.get(p)
 }
 
+async function help(options) {
+  // FIXME
+  console.log("generateAccount: help");
+}
+
 async function initCompletium(options) {
 
   if (!fs.existsSync(bin_dir)) {
@@ -77,6 +82,7 @@ async function initCompletium(options) {
 // cli generate account <ACCOUNTNAME> [from faucet <FAUCETFILE>]
 async function generateAccount(options) {
   // FIXME
+  console.log("generateAccount: TODO");
 }
 
 // cli transfer <AMOUNT> from <ACCOUNTNAME> to <ACCOUNTNAME> [dry]
@@ -102,14 +108,71 @@ async function transfer(options) {
   console.log(stdout);
 }
 
+// const tasks = new Listr([
+//   {
+//     title: 'Display help',
+//     task: () => help(options),
+//     enabled: () => options.command === "help",
+//   },
+//   {
+//     title: 'Initialize completium',
+//     task: () => initCompletium(options),
+//     enabled: () => options.command === "init",
+//   },
+//   {
+//     title: 'Generate account',
+//     task: () => generateAccount(options),
+//     enabled: () => options.command === "generate_account",
+//   },
+//   {
+//     title: 'Transfer',
+//     task: () => transfer(options),
+//     enabled: () => options.command === "transfer",
+//   },
+//   {
+//     title: 'Remove',
+//     task: () => removeAccount(options),
+//     enabled: () => options.command === "remove",
+//   },
+//   {
+//     title: 'Show account',
+//     task: () => showAccount(options),
+//     enabled: () => options.command === "show_account",
+//   },
+//   {
+//     title: 'Deployment from archetype file',
+//     task: () => deploy(options),
+//     enabled: () => options.command === "deploy",
+//   },
+//   {
+//     title: 'Set property value',
+//     task: () => configSet(options),
+//     enabled: () => options.command === "config_set",
+//   },
+//   {
+//     title: 'Set property value',
+//     task: () => configSet(options),
+//     enabled: () => options.command === "config_set",
+//   },
+//   {
+//     title: 'Show entries of a contract',
+//     task: () => showEntries(options),
+//     enabled: () => options.command === "show_entries_of",
+//   }
+// ]);
+
+// await tasks.run();
+
 // cli remove <ACCOUNTNAME|CONTRACTNAME>
 async function removeAccount(options) {
   // FIXME
+  console.log("removeAccount: TODO");
 }
 
 // cli show account <ACCOUNTNAME> [with secret]
 async function showAccount(options) {
   // FIXME
+  console.log("showAccount: TODO");
 }
 
 // cli deploy <FILE.arl> [as <ACCOUNTNAME>] [named <CONTRACTNAME>] [force]
@@ -189,43 +252,22 @@ function retrieveContract(contract, callback) {
   })
 }
 
-async function execShowEntries(path) {
-  var args = ['--show-entries', '--json', path];
-  const { stdout } = await execa(bin_archetype, args, {});
-  console.log(stdout);
-}
-
-// cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
-async function showContract(options) {
-  const contract = options.contract;
-  retrieveContract(contract, x => {
-    {
-      execShowEntries(x);
-      // var args = ['--show-entries', '--json', x];
-      // console.log(args);
-      // const subprocess = execa(bin_archetype, args, {});
-      // subprocess.stdout.pipe(process.stdout);
-
-      // (async () => {
-      //   const { stdout } = await subprocess;
-      //   console.log('child output:', stdout);
-      // })();
-    }
-  });
-}
-
 // cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
 async function callContract(options) {
   // FIXME
 }
 
-// cli show entries of <CONTRACTNAME|CONTRACTADDRESS>
-async function showEntry(options) {
-  // FIXME
+async function showEntries(options) {
+  const contract = options.contract;
+  retrieveContract(contract, x => {
+    (async () => {
+      const { stdout } = await execa(bin_archetype, ['--show-entries', '--json', x], {});
+      console.log(stdout);
+    })();
+  });
 }
 
-// cli config set <property> <value>
-async function setProperty(options) {
+async function configSet(options) {
   const property = options.property;
   const value = options.value;
 
@@ -241,37 +283,44 @@ async function setProperty(options) {
   await vconfig.save(config_path);
 }
 
+async function commandNotFound(options) {
+  console.log("commandNotFound: " + options.command);
+}
+
 export async function process(options) {
 
-  const tasks = new Listr([
-    {
-      title: 'Initialize completium',
-      task: () => initCompletium(options),
-      enabled: () => options.init,
-    },
-    {
-      title: 'Deployment from archetype file',
-      task: () => deploy(options),
-      enabled: () => options.deploy,
-    },
-    {
-      title: 'Transfer',
-      task: () => transfer(options),
-      enabled: () => options.transfer,
-    },
-    {
-      title: 'Set property value',
-      task: () => setProperty(options),
-      enabled: () => options.setProperty,
-    },
-    {
-      title: 'Show contract',
-      task: () => showContract(options),
-      enabled: () => options.contract !== undefined,
-    }
-  ]);
+  switch (options.command) {
+    case "help":
+      help(options);
+      break;
+    case "init":
+      initCompletium(options);
+      break;
+    case "generate_account":
+      generateAccount(options);
+      break;
+    case "transfer":
+      transfer(options);
+      break;
+    case "remove":
+      removeAccount(options);
+      break;
+    case "show_account":
+      showAccount(options);
+      break;
+    case "deploy":
+      deploy(options);
+      break;
+    case "config_set":
+      configSet(options);
+      break;
+    case "show_entries_of":
+      showEntries(options);
+      break;
+    default:
+      commandNotFound(options);
+  }
 
-  await tasks.run();
   // console.log('%s Project ready', chalk.green.bold('DONE'));
   return true;
 }
