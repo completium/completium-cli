@@ -103,7 +103,7 @@ async function callArchetype(options, args) {
     return stdout;
 
   } catch (error) {
-    console.log(error.shortMessage);
+    console.log(error);
     throw error;
   }
 }
