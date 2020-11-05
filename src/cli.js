@@ -26,6 +26,9 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "show" && args[3] === "account") {
     res = { command: "show_account", account: args[4] };
     nargs = args.slice(5);
+  } else if (length > 3 && args[2] === "list" && args[3] === "accounts") {
+    res = { command: "list_accounts" };
+    nargs = args.slice(4);
   } else if (length > 3 && args[2] === "deploy") {
     res = { command: "deploy", file: args[3] };
     nargs = args.slice(4);

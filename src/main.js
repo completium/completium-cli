@@ -51,6 +51,7 @@ async function help(options) {
   console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
   console.log("  remove <ACCOUNT_NAME|CONTRACT_NAME>");
   console.log("  show account <ACCOUNT_NAME> [-with--secret]");
+  console.log("  list accounts");
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--force]");
   console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
   console.log("  config set <property> <value>");
@@ -177,6 +178,13 @@ async function showAccount(options) {
   if (withSecret) {
     args.push('-S')
   }
+
+  callTezosClient(options, args);
+}
+
+// cli list accounts
+async function listAccounts(options) {
+  var args = ['list', 'known', 'addresses'];
 
   callTezosClient(options, args);
 }
@@ -356,6 +364,9 @@ export async function process(options) {
       break;
     case "show_account":
       showAccount(options);
+      break;
+    case "list_accounts":
+      listAccounts(options);
       break;
     case "deploy":
       deploy(options);
