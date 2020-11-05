@@ -5,6 +5,7 @@ import Listr from 'listr';
 import execa from 'execa';
 import propertiesReader from 'properties-reader';
 import path from 'path';
+import { rejects } from 'assert';
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -88,6 +89,22 @@ async function initCompletium(options) {
   fs.chmodSync(bin_tezos, '711');
   console.log("Completium initialized successfully!");
   return;
+}
+
+async function callArchetype(options, args) {
+  const verbose = options.verbose;
+
+  try {
+    const { stdout } = await execa(bin_archetype, args, {});
+    if (verbose) {
+      console.log(stdout);
+    }
+    return stdout;
+
+  } catch (error) {
+    console.log(error.shortMessage);
+    throw error;
+  }
 }
 
 async function callTezosClient(options, args) {
@@ -175,11 +192,9 @@ async function deploy(options) {
   const contract_script = contracts_dir + '/' + contract_name + ".tz";
 
   {
-    const { stdout } = await execa(bin_archetype, [arl], {});
-    if (verbose)
-      console.log(stdout);
+    const res = await callArchetype(options, [arl]);
 
-    fs.writeFile(contract_script, stdout, function (err) {
+    fs.writeFile(contract_script, res, function (err) {
       if (err) throw err;
       if (verbose)
         console.log('Contract script saved!');
@@ -188,8 +203,8 @@ async function deploy(options) {
 
   var tzstorage = "";
   {
-    const { stdout } = await execa(bin_archetype, ['-t', 'michelson-storage', '-sci', tz_sci, arl], {});
-    tzstorage = stdout;
+    const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', tz_sci, arl]);
+    tzstorage = res;
     if (verbose)
       console.log(tzstorage);
   }
@@ -260,7 +275,6 @@ async function callTezosTransfer(options, arg) {
 async function getArg(options, callback) {
   const contract = options.contract;
   const entry = options.entry === undefined ? 'default' : options.entry;
-  const verbose = options.verbose;
 
   retrieveContract(contract, path => {
     var args = [
@@ -272,10 +286,8 @@ async function getArg(options, callback) {
     }
 
     (async () => {
-      const { stdout } = await execa(bin_archetype, args, {});
-      if (verbose)
-        console.log(stdout);
-      callback(stdout)
+      const res = await callArchetype(options, args);
+      callback(res)
     })();
   });
 }
@@ -295,8 +307,9 @@ async function showEntries(options) {
   const contract = options.contract;
   retrieveContract(contract, x => {
     (async () => {
-      const { stdout } = await execa(bin_archetype, ['--show-entries', '--json', x], {});
-      console.log(stdout);
+      var args = ['--show-entries', '--json', x];
+      const res = await callArchetype(options, args);
+      console.log(res);
     })();
   });
 }
