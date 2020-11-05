@@ -42,7 +42,18 @@ function getConfig(p) {
 
 async function help(options) {
   // FIXME
-  console.log("generateAccount: help");
+  console.log("usage: [command] [options]")
+  console.log("command:");
+  console.log("  init")
+  console.log("  help");
+  console.log("  generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]");
+  console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
+  console.log("  remove <ACCOUNT_NAME|CONTRACT_NAME>");
+  console.log("  show account <ACCOUNT_NAME> [-with--secret]");
+  console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--force]");
+  console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
+  console.log("  config set <property> <value>");
+  console.log("  show entries of <CONTRACT_ADDRESS>");
 }
 
 async function initCompletium(options) {
@@ -79,33 +90,262 @@ async function initCompletium(options) {
   return;
 }
 
-// cli generate account <ACCOUNTNAME> [from faucet <FAUCETFILE>]
-async function generateAccount(options) {
-  // FIXME
-  console.log("generateAccount: TODO");
-}
-
-// cli transfer <AMOUNT> from <ACCOUNTNAME> to <ACCOUNTNAME> [dry]
-async function transfer(options) {
+async function callTezosClient(options, args) {
   const tezos_node = getConfig(properties_tezos_node);
   const tezos_port = getConfig(properties_tezos_port);
+
+  const dry = options.dry;
+  const force = options.force;
+
+  const verbose = options.verbose;
+
+  var args = ['-S', '-A', tezos_node, '-P', tezos_port].concat(args);
+  if (dry) {
+    args.push('-D')
+  }
+  if (force) {
+    args.push('--force')
+  }
+
+  if (verbose) {
+    console.log(bin_tezos + ' ' + args)
+  }
+  const { stdout } = await execa(bin_tezos, args, {});
+  console.log(stdout);
+}
+
+// cli generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]
+async function generateAccount(options) {
+  const account = options.account;
+  const fromFaucet = options.fromFaucet;
+
+  var args = [];
+  if (fromFaucet !== undefined) {
+    args = ['activate', 'account', account, 'with', fromFaucet];
+  } else {
+    args = ['gen', 'keys', account];
+  }
+
+  callTezosClient(options, args);
+}
+
+// cli transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>
+async function transfer(options) {
   const amount = options.amount;
   const from = options.from;
   const to = options.to;
-  const dry = options.dry;
 
-  var args = ['-S', '-A', tezos_node,
-    '-P', tezos_port,
+  var args = [
     'transfer', amount,
     'from', from,
     'to', to,
   ];
-  if (dry) {
-    args.push('-D')
+  callTezosClient(options, args);
+}
+
+// cli remove <ACCOUNT_NAME|CONTRACT_NAME>
+async function removeAccount(options) {
+  const account = options.account;
+
+  var args = ['forget', 'address', account];
+  callTezosClient(options, args);
+}
+
+// cli show account <ACCOUNT_NAME> [-with--secret]
+async function showAccount(options) {
+  const account = options.account;
+  const withSecret = options.withSecret;
+
+  var args = ['show', 'address', account];
+  if (withSecret) {
+    args.push('-S')
   }
 
-  const { stdout } = await execa(bin_tezos, args, {});
-  console.log(stdout);
+  callTezosClient(options, args);
+}
+
+// cli deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--force]
+async function deploy(options) {
+  const verbose = options.verbose;
+  const arl = options.file;
+  const as = options.as;
+  const tz_sci = as === undefined ? getConfig(properties_account) : as;
+  const named = options.named;
+  const contract_name = named === undefined ? path.basename(arl) : named;
+  const contract_script = contracts_dir + '/' + contract_name + ".tz";
+
+  {
+    const { stdout } = await execa(bin_archetype, [arl], {});
+    if (verbose)
+      console.log(stdout);
+
+    fs.writeFile(contract_script, stdout, function (err) {
+      if (err) throw err;
+      if (verbose)
+        console.log('Contract script saved!');
+    });
+  }
+
+  var tzstorage = "";
+  {
+    const { stdout } = await execa(bin_archetype, ['-t', 'michelson-storage', '-sci', tz_sci, arl], {});
+    tzstorage = stdout;
+    if (verbose)
+      console.log(tzstorage);
+  }
+
+  {
+    const amount = options.amount === undefined ? '0' : options.amount;
+    const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
+
+    const args = ['originate', 'contract', contract_name,
+      'transferring', amount,
+      'from', tz_sci,
+      'running', contract_script,
+      '--init', tzstorage,
+      '--burn-cap', burnCap];
+    callTezosClient(options, args);
+  }
+
+  return;
+}
+
+function createScript(id, content, callback) {
+  const path = scripts_dir + '/' + id + '.json';
+  fs.writeFile(path, content, function (err) {
+    if (err) throw err;
+    callback(path);
+  });
+}
+
+function retrieveContract(contract, callback) {
+  const tezos_node = getConfig(properties_tezos_node);
+  const tezos_port = getConfig(properties_tezos_port);
+  const url = 'https://' + tezos_node + ':' + tezos_port + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
+
+  var request = require('request');
+  request(url, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      createScript(contract, body, callback);
+    }
+    else {
+      console.log("Error " + response.statusCode)
+    }
+  })
+}
+
+// cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
+async function callContract(options) {
+  const account = options.account;
+  const contract = options.contract;
+  const verbose = options.verbose;
+  const entry = options.entry === undefined ? 'default' : options.entry;
+  const arg = options.with === undefined ? 'Unit' : options.with;
+
+  if (arg !== 'Unit') {
+    {
+      var args = [
+        '--expr', arg,
+        // '--type', ptype
+      ];
+      if (entry !== 'default') {
+          args.push(['--entrypoint', entry]);
+      }
+
+      const { stdout } = await execa(bin_archetype, args, {});
+      args = stdout;
+      if (verbose)
+        console.log('arg:' + stdout);
+    }
+  }
+
+  // transfer 0 from tz1Lc2qBKEWCBeDU8npG6zCeCqpmaegRi6Jg to KT1Mu6RJzLpKroggUFSCsPPJuYQTHQESVeR1 --entrypoint 'add' --arg 'Pair "tz1dZydwVDuz6SH5jCUfCQjqV8YCQimL9GCp" (Pair "M0002" (Pair 6 1608901200) )' --burn-cap 0.031 -D
+
+  const amount = options.amount === undefined ? '0' : options.amount;
+  const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
+
+  var args = [
+    'transfer', amount,
+    'from', account,
+    'to', contract,
+    '--entrypoint', entry,
+    '--arg', args,
+    '--burn-cap', burnCap
+  ];
+  callTezosClient(options, args);
+}
+
+async function showEntries(options) {
+  const contract = options.contract;
+  retrieveContract(contract, x => {
+    (async () => {
+      const { stdout } = await execa(bin_archetype, ['--show-entries', '--json', x], {});
+      console.log(stdout);
+    })();
+  });
+}
+
+async function configSet(options) {
+  const property = options.property;
+  const value = options.value;
+
+  var found = false;
+  properties.forEach(p => found |= p === property);
+  if (!found) {
+    // console.error.log('Property "' + property + '" is not found');
+    return;
+  }
+
+  var vconfig = propertiesReader(config_path);
+  vconfig.set(property, value);
+  await vconfig.save(config_path);
+}
+
+async function commandNotFound(options) {
+  console.log("commandNotFound: " + options.command);
+  help(options);
+  return 1;
+}
+
+export async function process(options) {
+
+  switch (options.command) {
+    case "help":
+      help(options);
+      break;
+    case "init":
+      initCompletium(options);
+      break;
+    case "generate_account":
+      generateAccount(options);
+      break;
+    case "transfer":
+      transfer(options);
+      break;
+    case "remove":
+      removeAccount(options);
+      break;
+    case "show_account":
+      showAccount(options);
+      break;
+    case "deploy":
+      deploy(options);
+      break;
+    case "call_contract":
+      callContract(options);
+      break;
+    case "config_set":
+      configSet(options);
+      break;
+    case "show_entries_of":
+      showEntries(options);
+      break;
+    default:
+      commandNotFound(options);
+  }
+
+  // console.log('%s Project ready', chalk.green.bold('DONE'));
+  return true;
 }
 
 // const tasks = new Listr([
@@ -162,165 +402,3 @@ async function transfer(options) {
 // ]);
 
 // await tasks.run();
-
-// cli remove <ACCOUNTNAME|CONTRACTNAME>
-async function removeAccount(options) {
-  // FIXME
-  console.log("removeAccount: TODO");
-}
-
-// cli show account <ACCOUNTNAME> [with secret]
-async function showAccount(options) {
-  // FIXME
-  console.log("showAccount: TODO");
-}
-
-// cli deploy <FILE.arl> [as <ACCOUNTNAME>] [named <CONTRACTNAME>] [force]
-async function deploy(options) {
-  const verbose = options.verbose;
-  const arl = options.deployfile;
-  const tz_sci = getConfig(properties_account);
-  const contract_name = path.basename(arl);
-  const contract_script = contracts_dir + contract_name + ".tz";
-  const tezos_node = getConfig(properties_tezos_node);
-  const tezos_port = getConfig(properties_tezos_port);
-  const dry = options.dry;
-
-  {
-    const { stdout } = await execa(bin_archetype, [arl], {});
-    if (verbose)
-      console.log(stdout);
-
-    fs.writeFile(contract_script, stdout, function (err) {
-      if (err) throw err;
-      if (verbose)
-        console.log('Contract script saved!');
-    });
-  }
-
-  var tzstorage = "";
-  {
-    const { stdout } = await execa(bin_archetype, ['-t', 'michelson-storage', '-sci', tz_sci, arl], {});
-    tzstorage = stdout;
-    if (verbose)
-      console.log(tzstorage);
-  }
-
-  {
-    var args = ['-S', '-A', tezos_node,
-      '-P', tezos_port,
-      'originate', 'contract', contract_name,
-      'transferring', '0',
-      'from', tz_sci,
-      'running', contract_script,
-      '--init', tzstorage,
-      '--burn-cap', '20',
-      '--force'
-    ];
-    if (dry) {
-      args.push('-D')
-    }
-
-    const { stdout } = await execa(bin_tezos, args, {});
-    console.log(stdout);
-  }
-
-  return;
-}
-
-function createScript(id, content, callback) {
-  const path = scripts_dir + '/' + id + '.json';
-  fs.writeFile(path, content, function (err) {
-    if (err) throw err;
-    callback(path);
-  });
-}
-
-function retrieveContract(contract, callback) {
-  const tezos_node = getConfig(properties_tezos_node);
-  const tezos_port = getConfig(properties_tezos_port);
-  const url = 'https://' + tezos_node + ':' + tezos_port + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
-
-  var request = require('request');
-  request(url, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      createScript(contract, body, callback);
-    }
-    else {
-      console.log("Error " + response.statusCode)
-    }
-  })
-}
-
-// cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
-async function callContract(options) {
-  // FIXME
-}
-
-async function showEntries(options) {
-  const contract = options.contract;
-  retrieveContract(contract, x => {
-    (async () => {
-      const { stdout } = await execa(bin_archetype, ['--show-entries', '--json', x], {});
-      console.log(stdout);
-    })();
-  });
-}
-
-async function configSet(options) {
-  const property = options.property;
-  const value = options.value;
-
-  var found = false;
-  properties.forEach(p => found |= p === property);
-  if (!found) {
-    // console.error.log('Property "' + property + '" is not found');
-    return;
-  }
-
-  var vconfig = propertiesReader(config_path);
-  vconfig.set(property, value);
-  await vconfig.save(config_path);
-}
-
-async function commandNotFound(options) {
-  console.log("commandNotFound: " + options.command);
-}
-
-export async function process(options) {
-
-  switch (options.command) {
-    case "help":
-      help(options);
-      break;
-    case "init":
-      initCompletium(options);
-      break;
-    case "generate_account":
-      generateAccount(options);
-      break;
-    case "transfer":
-      transfer(options);
-      break;
-    case "remove":
-      removeAccount(options);
-      break;
-    case "show_account":
-      showAccount(options);
-      break;
-    case "deploy":
-      deploy(options);
-      break;
-    case "config_set":
-      configSet(options);
-      break;
-    case "show_entries_of":
-      showEntries(options);
-      break;
-    default:
-      commandNotFound(options);
-  }
-
-  // console.log('%s Project ready', chalk.green.bold('DONE'));
-  return true;
-}

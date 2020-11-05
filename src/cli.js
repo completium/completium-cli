@@ -3,8 +3,6 @@ import inquirer from 'inquirer';
 import { process } from './main';
 
 function parseCommand(args) {
-  console.log('args: ' + args);
-
   const length = args.length;
 
   var res = {};
@@ -26,7 +24,7 @@ function parseCommand(args) {
     res = { command: "show_account", account: args[4] };
     nargs = args.slice(5);
   } else if (length > 3 && args[2] === "deploy") {
-    res = { command: "deploy", account: args[3] };
+    res = { command: "deploy", file: args[3] };
     nargs = args.slice(4);
   } else if (length > 5 && args[2] === "config" && args[3] === "set") {
     res = { command: "config_set", property: args[4], value: args[5] };
@@ -46,7 +44,9 @@ function parseCommand(args) {
   const options = arg(
     {
       '--dry': Boolean,
+      '--from-faucet': String,
       '--with-secret': Boolean,
+      '--amount': String,
       '--as': String,
       '--named': String,
       '--entry': String,
@@ -66,7 +66,10 @@ function parseCommand(args) {
   return {
     ...res,
     dry: options['--dry'] || false,
+    fromFaucet: options['--from-faucet'],
     withSecret: options['--with-secret'] || false,
+    amount: options['--amount'],
+    burnCap: options['--burn-cap'],
     as: options['--as'],
     named: options['--named'],
     entry: options['--entry'],
