@@ -234,45 +234,61 @@ function retrieveContract(contract, callback) {
   })
 }
 
-// cli call <CONTRACTNAME> as <ACCOUNTNAME> [entry <ENTRYNAME>] [with <ARG>] [dry]
-async function callContract(options) {
+async function callTezosTransfer(options, arg) {
   const account = options.account;
   const contract = options.contract;
-  const verbose = options.verbose;
-  const entry = options.entry === undefined ? 'default' : options.entry;
-  const arg = options.with === undefined ? 'Unit' : options.with;
-
-  if (arg !== 'Unit') {
-    {
-      var args = [
-        '--expr', arg,
-        // '--type', ptype
-      ];
-      if (entry !== 'default') {
-          args.push(['--entrypoint', entry]);
-      }
-
-      const { stdout } = await execa(bin_archetype, args, {});
-      args = stdout;
-      if (verbose)
-        console.log('arg:' + stdout);
-    }
-  }
-
-  // transfer 0 from tz1Lc2qBKEWCBeDU8npG6zCeCqpmaegRi6Jg to KT1Mu6RJzLpKroggUFSCsPPJuYQTHQESVeR1 --entrypoint 'add' --arg 'Pair "tz1dZydwVDuz6SH5jCUfCQjqV8YCQimL9GCp" (Pair "M0002" (Pair 6 1608901200) )' --burn-cap 0.031 -D
+  var entry = options.entry === undefined ? 'default' : options.entry;
 
   const amount = options.amount === undefined ? '0' : options.amount;
   const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
+
+  if (entry !== undefined && entry.startsWith('%')) {
+    entry = entry.substring(1);
+  }
 
   var args = [
     'transfer', amount,
     'from', account,
     'to', contract,
     '--entrypoint', entry,
-    '--arg', args,
+    '--arg', arg,
     '--burn-cap', burnCap
   ];
   callTezosClient(options, args);
+}
+
+async function getArg(options, callback) {
+  const contract = options.contract;
+  const entry = options.entry === undefined ? 'default' : options.entry;
+  const verbose = options.verbose;
+
+  retrieveContract(contract, path => {
+    var args = [
+      '--expr', options.with,
+      '--with-contract', path
+    ];
+    if (entry !== 'default') {
+      args.push('--entrypoint', entry);
+    }
+
+    (async () => {
+      const { stdout } = await execa(bin_archetype, args, {});
+      if (verbose)
+        console.log(stdout);
+      callback(stdout)
+    })();
+  });
+}
+
+// cli call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]
+async function callContract(options) {
+  const arg = options.with === undefined ? 'Unit' : options.with;
+
+  if (arg !== 'Unit') {
+    getArg(options, arg => { callTezosTransfer(options, arg) });
+  } else {
+    callTezosTransfer(options, arg)
+  }
 }
 
 async function showEntries(options) {
