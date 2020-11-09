@@ -54,6 +54,7 @@ async function help(options) {
   console.log("  list accounts");
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--force]");
   console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
+  console.log("  generate json <FILE.arl>");
   console.log("  config set <property> <value>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
 }
@@ -311,6 +312,14 @@ async function callContract(options) {
   }
 }
 
+async function generateJson(options) {
+  const x = options.path;
+
+  var args = ['--json', '--only-code', x];
+  const res = await callArchetype(options, args);
+  console.log(res);
+}
+
 async function showEntries(options) {
   const contract = options.contract;
   retrieveContract(contract, x => {
@@ -373,6 +382,9 @@ export async function process(options) {
       break;
     case "call_contract":
       callContract(options);
+      break;
+    case "generate_json":
+      generateJson(options);
       break;
     case "config_set":
       configSet(options);

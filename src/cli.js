@@ -41,6 +41,9 @@ function parseCommand(args) {
   } else if (length > 5 && args[2] === "show" && args[3] === "entries" && args[4] === "of") {
     res = { command: "show_entries_of", contract: args[5] };
     nargs = args.slice(6);
+  } else if (length > 4 && args[2] === "generate" && args[3] === "json") {
+    res = { command: "generate_json", path: args[4] };
+    nargs = args.slice(5);
   } else {
     console.log("command not found");
   }
