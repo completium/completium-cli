@@ -22,6 +22,15 @@ const properties_account = "account"
 const properties_tezos_node = "tezos.node"
 const properties_tezos_port = "tezos.port"
 
+const properties_network = "tezos.network"
+const properties_networks = "tezos.networks"
+
+const properties_node_main = "node.main"
+const properties_node_carthage = "node.carthage"
+const properties_node_delphi = "node.delphi"
+const properties_node_edo = "node.edo"
+
+
 const properties = [
   properties_account,
   properties_tezos_node,
@@ -58,6 +67,8 @@ async function help(options) {
   console.log("  generate json <FILE.arl>");
   console.log("  config set <property> <value>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
+  console.log("  show network");
+  console.log("  choose network");
 }
 
 async function initCompletium(options) {
@@ -80,8 +91,14 @@ async function initCompletium(options) {
   await writeFileAsync(config_path, '');
   var vconfig = propertiesReader(config_path);
   vconfig.set(properties_account, 'tz1Lc2qBKEWCBeDU8npG6zCeCqpmaegRi6Jg');
-  vconfig.set(properties_tezos_node, 'testnet-tezos.giganode.io');
+  vconfig.set(properties_tezos_node, 'delphinet-tezos.giganode.io');
   vconfig.set(properties_tezos_port, '443');
+  vconfig.set(properties_network, 'delphi');
+  vconfig.set(properties_networks, 'main,carthage,delphi,edo');
+  vconfig.set(properties_node_main, 'mainnet-tezos.giganode.io');
+  vconfig.set(properties_node_carthage, 'testnet-tezos.giganode.io');
+  vconfig.set(properties_node_delphi, 'delphinet-tezos.giganode.io');
+  vconfig.set(properties_node_edo, 'edonet-tezos.giganode.io');
   await vconfig.save(config_path);
 
   const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
@@ -332,6 +349,34 @@ async function showEntries(options) {
   });
 }
 
+async function showNetwork(options) {
+  const network = getConfig(properties_network);
+  console.log("Current network: " + network);
+}
+
+async function chooseNetwork(options) {
+  showNetwork(options);
+
+  const networks = getConfig(properties_networks).split(',').map(x => x.trim());
+
+  const { Select } = require('enquirer');
+
+  const prompt = new Select({
+    name: 'color',
+    message: 'Choose a network',
+    choices: networks,
+  });
+
+  prompt.run()
+    .then(answer => {
+      var vconfig = propertiesReader(config_path);
+      vconfig.set(properties_network, answer);
+      vconfig.set(properties_tezos_node, getConfig("node." + answer));
+      vconfig.save(config_path);
+    })
+    .catch(console.error);
+}
+
 async function configSet(options) {
   const property = options.property;
   const value = options.value;
@@ -392,6 +437,12 @@ export async function process(options) {
       break;
     case "show_entries_of":
       showEntries(options);
+      break;
+    case "choose_network":
+      chooseNetwork(options);
+      break;
+    case "show_network":
+      showNetwork(options);
       break;
     default:
       commandNotFound(options);
