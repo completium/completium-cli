@@ -44,11 +44,11 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "generate" && args[3] === "json") {
     res = { command: "generate_json", path: args[4] };
     nargs = args.slice(5);
-  } else if (length > 3 && args[2] === "choose" && args[3] === "network") {
-    res = { command: "choose_network" };
-    nargs = args.slice(4);
   } else if (length > 3 && args[2] === "show" && args[3] === "network") {
     res = { command: "show_network" };
+    nargs = args.slice(4);
+  } else if (length > 3 && args[2] === "switch" && args[3] === "network") {
+    res = { command: "switch_network" };
     nargs = args.slice(4);
   } else {
     console.log("command not found");

@@ -68,7 +68,7 @@ async function help(options) {
   console.log("  config set <property> <value>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
   console.log("  show network");
-  console.log("  choose network");
+  console.log("  switch network");
 }
 
 async function initCompletium(options) {
@@ -354,7 +354,7 @@ async function showNetwork(options) {
   console.log("Current network: " + network);
 }
 
-async function chooseNetwork(options) {
+async function switchNetwork(options) {
   showNetwork(options);
 
   const networks = getConfig(properties_networks).split(',').map(x => x.trim());
@@ -363,7 +363,7 @@ async function chooseNetwork(options) {
 
   const prompt = new Select({
     name: 'color',
-    message: 'Choose a network',
+    message: 'Switch network',
     choices: networks,
   });
 
@@ -438,11 +438,11 @@ export async function process(options) {
     case "show_entries_of":
       showEntries(options);
       break;
-    case "choose_network":
-      chooseNetwork(options);
-      break;
     case "show_network":
       showNetwork(options);
+      break;
+    case "switch_network":
+      switchNetwork(options);
       break;
     default:
       commandNotFound(options);
