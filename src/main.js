@@ -15,7 +15,8 @@ const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
 // const bin_archetype = bin_dir + '/archetype'
 const bin_archetype = 'archetype'
-const bin_tezos = bin_dir + "/tezos-client"
+//const bin_tezos = bin_dir + "/tezos-client"
+const bin_tezos = "tezos-client"
 
 const properties_account = "account"
 const properties_tezos_node = "tezos.node"
@@ -150,7 +151,7 @@ async function generateAccount(options) {
 
 // cli transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>
 async function transfer(options) {
-  const amount = options.amount;
+  const amount = options.vamount;
   const from = options.from;
   const to = options.to;
 
