@@ -9,6 +9,8 @@ import { rejects } from 'assert';
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
+const tezos_client_dir = homedir + '/.tezos-client'
+const public_key_hashs_path = tezos_client_dir + '/public_key_hashs'
 const config_path = completium_dir + '/config'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
@@ -57,7 +59,6 @@ async function help(options) {
   console.log("  generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]");
   console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
   console.log("  remove <ACCOUNT_NAME|CONTRACT_NAME>");
-  console.log("  show account <ACCOUNT_NAME> [-with--secret]");
   console.log("  list accounts");
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--force]");
   console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
@@ -66,6 +67,8 @@ async function help(options) {
   console.log("  show entries of <CONTRACT_ADDRESS>");
   console.log("  show network");
   console.log("  switch network");
+  console.log("  show account");
+  console.log("  switch account");
 }
 
 function isNull(str) {
@@ -183,16 +186,16 @@ async function transfer(options) {
     'to', to,
   ];
   callTezosClient(options, args)
-  .then(
-    x => {
-      const account = getConfig(properties_account);
-      if (isNull(account)) {
+    .then(
+      x => {
+        const account = getConfig(properties_account);
+        if (isNull(account)) {
           var vconfig = propertiesReader(config_path);
           vconfig.set(properties_account, account);
           vconfig.save(config_path);
+        }
       }
-    }
-  );
+    );
 }
 
 // cli remove <ACCOUNT_NAME|CONTRACT_NAME>
@@ -200,19 +203,6 @@ async function removeAccount(options) {
   const account = options.account;
 
   var args = ['forget', 'address', account];
-  callTezosClient(options, args);
-}
-
-// cli show account <ACCOUNT_NAME> [-with--secret]
-async function showAccount(options) {
-  const account = options.account;
-  const withSecret = options.withSecret;
-
-  var args = ['show', 'address', account];
-  if (withSecret) {
-    args.push('-S')
-  }
-
   callTezosClient(options, args);
 }
 
@@ -277,9 +267,8 @@ function createScript(id, content, callback) {
 }
 
 function retrieveContract(contract, callback) {
-  const tezos_node = getConfig(properties_tezos_node);
-  const tezos_port = getConfig(properties_tezos_port);
-  const url = 'https://' + tezos_node + ':' + tezos_port + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
+  const tezos_endpoint = getConfig(properties_tezos_endpoint);
+  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
 
   var request = require('request');
   request(url, function (error, response, body) {
@@ -395,6 +384,44 @@ async function switchNetwork(options) {
     .catch(console.error);
 }
 
+async function showAccount(options) {
+  const value = getConfig(properties_account);
+
+  if (isNull(value)) {
+    console.log("No account is set");
+  } else {
+    console.log("Current account: " + value);
+  }
+}
+
+async function switchAccount(options) {
+  showAccount(options);
+
+  const keyHashs = JSON.parse(fs.readFileSync(public_key_hashs_path, 'utf8'));
+  const answers  = keyHashs.map(x => { return `${x.name.padEnd(60)} ${x.value}` });
+  const answers2 = keyHashs.map(x => { return `${x.name.padEnd(60)} ${x.value}` });
+  const values   = keyHashs.map(x => { return x.value });
+
+  const { Select } = require('enquirer');
+
+  const prompt = new Select({
+    name: 'color',
+    message: 'Switch account',
+    choices: answers,
+  });
+
+  prompt.run()
+    .then(answer => {
+      console.log(answers2);
+      console.log(answer);
+      var i = answers2.indexOf(answer);
+      console.log(i);
+      const value = values[i];
+      console.log(value);
+    })
+    .catch(console.error);
+}
+
 async function configSet(options) {
   const property = options.property;
   const value = options.value;
@@ -461,6 +488,12 @@ export async function process(options) {
       break;
     case "switch_network":
       switchNetwork(options);
+      break;
+    case "show_account":
+      showAccount(options);
+      break;
+    case "switch_account":
+      switchAccount(options);
       break;
     default:
       commandNotFound(options);
