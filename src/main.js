@@ -19,22 +19,19 @@ const bin_archetype = 'archetype'
 const bin_tezos = "tezos-client"
 
 const properties_account = "account"
-const properties_tezos_node = "tezos.node"
-const properties_tezos_port = "tezos.port"
+const properties_tezos_endpoint = "tezos.endpoint"
 
 const properties_network = "tezos.network"
 const properties_networks = "tezos.networks"
 
-const properties_node_main = "node.main"
-const properties_node_carthage = "node.carthage"
-const properties_node_delphi = "node.delphi"
-const properties_node_edo = "node.edo"
+const properties_endpoint_main = "endpoint.main"
+const properties_endpoint_delphi = "endpoint.delphi"
+const properties_endpoint_edo = "endpoint.edo"
 
 
 const properties = [
   properties_account,
-  properties_tezos_node,
-  properties_tezos_port
+  properties_tezos_endpoint
 ]
 
 async function download(url, dest) {
@@ -71,6 +68,18 @@ async function help(options) {
   console.log("  switch network");
 }
 
+function isNull(str) {
+  return str === undefined || str === null || str === "";
+}
+
+function getAccount(forceAccount) {
+  const account = getConfig(properties_account);
+  if (isNull(forceAccount) && isNull(account)) {
+    console.log("Cannot exectute this command, please generate an account first.");
+  }
+  return isNull(forceAccount) ? account : forceAccount;
+}
+
 async function initCompletium(options) {
 
   if (!fs.existsSync(bin_dir)) {
@@ -90,23 +99,20 @@ async function initCompletium(options) {
   const writeFileAsync = promisify(fs.writeFile);
   await writeFileAsync(config_path, '');
   var vconfig = propertiesReader(config_path);
-  vconfig.set(properties_account, 'tz1Lc2qBKEWCBeDU8npG6zCeCqpmaegRi6Jg');
-  vconfig.set(properties_tezos_node, 'delphinet-tezos.giganode.io');
-  vconfig.set(properties_tezos_port, '443');
+  vconfig.set(properties_tezos_endpoint, 'https://delphinet-tezos.giganode.io:443');
   vconfig.set(properties_network, 'delphi');
-  vconfig.set(properties_networks, 'main,carthage,delphi,edo');
-  vconfig.set(properties_node_main, 'mainnet-tezos.giganode.io');
-  vconfig.set(properties_node_carthage, 'testnet-tezos.giganode.io');
-  vconfig.set(properties_node_delphi, 'delphinet-tezos.giganode.io');
-  vconfig.set(properties_node_edo, 'edonet-tezos.giganode.io');
+  vconfig.set(properties_networks, 'main,delphi,edo');
+  vconfig.set(properties_endpoint_main, 'https://mainnet-tezos.giganode.io:443');
+  vconfig.set(properties_endpoint_delphi, 'https://delphinet-tezos.giganode.io:443');
+  vconfig.set(properties_endpoint_edo, 'https://edonet-tezos.giganode.io:443');
   await vconfig.save(config_path);
 
-  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
-  const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
-  await download(tezosclient_url, bin_tezos);
-  await download(archetype_url, bin_archetype);
-  fs.chmodSync(bin_archetype, '711');
-  fs.chmodSync(bin_tezos, '711');
+  // const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
+  // const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
+  // await download(tezosclient_url, bin_tezos);
+  // await download(archetype_url, bin_archetype);
+  // fs.chmodSync(bin_archetype, '711');
+  // fs.chmodSync(bin_tezos, '711');
   console.log("Completium initialized successfully!");
   return;
 }
@@ -128,15 +134,14 @@ async function callArchetype(options, args) {
 }
 
 async function callTezosClient(options, args) {
-  const tezos_node = getConfig(properties_tezos_node);
-  const tezos_port = getConfig(properties_tezos_port);
+  const tezos_endpoint = getConfig(properties_tezos_endpoint);
 
   const dry = options.dry;
   const force = options.force;
 
   const verbose = options.verbose;
 
-  var args = ['-S', '-A', tezos_node, '-P', tezos_port].concat(args);
+  var args = ['--endpoint', tezos_endpoint].concat(args);
   if (dry) {
     args.push('-D')
   }
@@ -177,7 +182,17 @@ async function transfer(options) {
     'from', from,
     'to', to,
   ];
-  callTezosClient(options, args);
+  callTezosClient(options, args)
+  .then(
+    x => {
+      const account = getConfig(properties_account);
+      if (isNull(account)) {
+          var vconfig = propertiesReader(config_path);
+          vconfig.set(properties_account, account);
+          vconfig.save(config_path);
+      }
+    }
+  );
 }
 
 // cli remove <ACCOUNT_NAME|CONTRACT_NAME>
@@ -213,42 +228,43 @@ async function deploy(options) {
   const verbose = options.verbose;
   const arl = options.file;
   const as = options.as;
-  const tz_sci = as === undefined ? getConfig(properties_account) : as;
-  const named = options.named;
-  const contract_name = named === undefined ? path.basename(arl) : named;
-  const contract_script = contracts_dir + '/' + contract_name + ".tz";
+  const tz_sci = getAccount(as);
+  if (!isNull(tz_sci)) {
+    const named = options.named;
+    const contract_name = named === undefined ? path.basename(arl) : named;
+    const contract_script = contracts_dir + '/' + contract_name + ".tz";
 
-  {
-    const res = await callArchetype(options, [arl]);
+    {
+      const res = await callArchetype(options, [arl]);
 
-    fs.writeFile(contract_script, res, function (err) {
-      if (err) throw err;
+      fs.writeFile(contract_script, res, function (err) {
+        if (err) throw err;
+        if (verbose)
+          console.log('Contract script saved!');
+      });
+    }
+
+    var tzstorage = "";
+    {
+      const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', tz_sci, arl]);
+      tzstorage = res;
       if (verbose)
-        console.log('Contract script saved!');
-    });
+        console.log(tzstorage);
+    }
+
+    {
+      const amount = options.amount === undefined ? '0' : options.amount;
+      const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
+
+      const args = ['originate', 'contract', contract_name,
+        'transferring', amount,
+        'from', tz_sci,
+        'running', contract_script,
+        '--init', tzstorage,
+        '--burn-cap', burnCap];
+      callTezosClient(options, args);
+    }
   }
-
-  var tzstorage = "";
-  {
-    const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', tz_sci, arl]);
-    tzstorage = res;
-    if (verbose)
-      console.log(tzstorage);
-  }
-
-  {
-    const amount = options.amount === undefined ? '0' : options.amount;
-    const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
-
-    const args = ['originate', 'contract', contract_name,
-      'transferring', amount,
-      'from', tz_sci,
-      'running', contract_script,
-      '--init', tzstorage,
-      '--burn-cap', burnCap];
-    callTezosClient(options, args);
-  }
-
   return;
 }
 
@@ -277,26 +293,28 @@ function retrieveContract(contract, callback) {
 }
 
 async function callTezosTransfer(options, arg) {
-  const account = options.account;
-  const contract = options.contract;
-  var entry = options.entry === undefined ? 'default' : options.entry;
+  const account = getAccount(options.account);
+  if (!isNull(account)) {
+    const contract = options.contract;
+    var entry = options.entry === undefined ? 'default' : options.entry;
 
-  const amount = options.amount === undefined ? '0' : options.amount;
-  const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
+    const amount = options.amount === undefined ? '0' : options.amount;
+    const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
 
-  if (entry !== undefined && entry.startsWith('%')) {
-    entry = entry.substring(1);
+    if (entry !== undefined && entry.startsWith('%')) {
+      entry = entry.substring(1);
+    }
+
+    var args = [
+      'transfer', amount,
+      'from', account,
+      'to', contract,
+      '--entrypoint', entry,
+      '--arg', arg,
+      '--burn-cap', burnCap
+    ];
+    callTezosClient(options, args);
   }
-
-  var args = [
-    'transfer', amount,
-    'from', account,
-    'to', contract,
-    '--entrypoint', entry,
-    '--arg', arg,
-    '--burn-cap', burnCap
-  ];
-  callTezosClient(options, args);
 }
 
 async function getArg(options, callback) {
