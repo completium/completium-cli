@@ -180,6 +180,25 @@ async function generateAccount(options) {
   callTezosClient(options, args);
 }
 
+function getContracts() {
+  return JSON.parse(fs.readFileSync(public_contracts_path, 'utf8'));
+}
+
+function getContract(id) {
+  if (id.startsWith("KT1")) {
+    return id;
+  } else {
+    var value = '';
+    const contracts = getContracts();
+    // console.log(contracts);
+    contracts.forEach(x => { if (id === x.name) { value = x.value } })
+    if (value === '') {
+      console.log(`${id} contract is not found.`)
+    }
+    return value;
+  }
+}
+
 // cli transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>
 async function transfer(options) {
   const amount = options.vamount;
@@ -189,7 +208,7 @@ async function transfer(options) {
   var args = [
     'transfer', amount,
     'from', from,
-    'to', to,
+    'to', getContract(to),
   ];
   callTezosClient(options, args)
     .then(
@@ -298,7 +317,7 @@ async function callTezosTransfer(options, arg) {
     var args = [
       'transfer', amount,
       'from', account,
-      'to', contract,
+      'to', getContract(contract),
       '--entrypoint', entry,
       '--arg', arg,
       '--burn-cap', burnCap
@@ -308,7 +327,7 @@ async function callTezosTransfer(options, arg) {
 }
 
 async function getArg(options, callback) {
-  const contract = options.contract;
+  const contract = getContract(options.contract);
   const entry = options.entry === undefined ? 'default' : options.entry;
 
   retrieveContract(contract, path => {
@@ -368,10 +387,10 @@ async function switchEndpoint(options) {
 
   var config = getConfig();
 
-  const answers = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
-  const answers2 = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
-  const networks = config.tezos.list.map(x => {return x.network});
-  const endpoints = config.tezos.list.map(x => {return x.endpoint});
+  const answers   = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
+  const answers2  = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
+  const networks  = config.tezos.list.map(x => { return x.network });
+  const endpoints = config.tezos.list.map(x => { return x.endpoint });
 
   const { Select } = require('enquirer');
 
@@ -386,7 +405,7 @@ async function switchEndpoint(options) {
       var i = answers2.indexOf(answer);
 
       const config = getConfig();
-      config.tezos.network  = networks[i];
+      config.tezos.network = networks[i];
       config.tezos.endpoint = endpoints[i];
       saveConfig(config);
     })
@@ -445,7 +464,6 @@ async function commandNotFound(options) {
 }
 
 export async function process(options) {
-
   switch (options.command) {
     case "help":
       help(options);
