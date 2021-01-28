@@ -11,7 +11,8 @@ const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
 const tezos_client_dir = homedir + '/.tezos-client'
 const public_key_hashs_path = tezos_client_dir + '/public_key_hashs'
-const config_path = completium_dir + '/config'
+const public_contracts_path = tezos_client_dir + '/contracts'
+const config_path = completium_dir + '/config.json'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
@@ -20,34 +21,22 @@ const bin_archetype = 'archetype'
 //const bin_tezos = bin_dir + "/tezos-client"
 const bin_tezos = "tezos-client"
 
-const properties_account = "account"
-const properties_tezos_endpoint = "tezos.endpoint"
-
-const properties_network = "tezos.network"
-const properties_networks = "tezos.networks"
-
-const properties_endpoint_main = "endpoint.main"
-const properties_endpoint_delphi = "endpoint.delphi"
-const properties_endpoint_edo = "endpoint.edo"
-
-
-const properties = [
-  properties_account,
-  properties_tezos_endpoint
-]
 
 async function download(url, dest) {
   const request = wget({ url: url, dest: dest, timeout: 2000 });
   return request;
 };
 
-var config
+function getConfig() {
+  return JSON.parse(fs.readFileSync(config_path, 'utf8'));
+}
 
-function getConfig(p) {
-  if (config === undefined) {
-    config = propertiesReader(config_path);
-  }
-  return config.get(p)
+function saveConfig(config) {
+  const content = JSON.stringify(config);
+  fs.writeFile(config_path, content, function (err) {
+    if (err) return console.log(err);
+    console.log("Configuration file is updated");
+  });
 }
 
 async function help(options) {
@@ -59,14 +48,12 @@ async function help(options) {
   console.log("  generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]");
   console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
   console.log("  remove <ACCOUNT_NAME|CONTRACT_NAME>");
-  console.log("  list accounts");
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--force]");
   console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
   console.log("  generate json <FILE.arl>");
-  console.log("  config set <property> <value>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
-  console.log("  show network");
-  console.log("  switch network");
+  console.log("  show endpoint");
+  console.log("  switch endpoint");
   console.log("  show account");
   console.log("  switch account");
 }
@@ -76,7 +63,8 @@ function isNull(str) {
 }
 
 function getAccount(forceAccount) {
-  const account = getConfig(properties_account);
+  const config = getConfig();
+  const account = config.account;
   if (isNull(forceAccount) && isNull(account)) {
     console.log("Cannot exectute this command, please generate an account first.");
   }
@@ -97,18 +85,35 @@ async function initCompletium(options) {
     fs.mkdirSync(scripts_dir, { recursive: true });
   }
 
-  const { promisify } = require('util');
+  // const { promisify } = require('util');
 
-  const writeFileAsync = promisify(fs.writeFile);
-  await writeFileAsync(config_path, '');
-  var vconfig = propertiesReader(config_path);
-  vconfig.set(properties_tezos_endpoint, 'https://delphinet-tezos.giganode.io:443');
-  vconfig.set(properties_network, 'delphi');
-  vconfig.set(properties_networks, 'main,delphi,edo');
-  vconfig.set(properties_endpoint_main, 'https://mainnet-tezos.giganode.io:443');
-  vconfig.set(properties_endpoint_delphi, 'https://delphinet-tezos.giganode.io:443');
-  vconfig.set(properties_endpoint_edo, 'https://edonet-tezos.giganode.io:443');
-  await vconfig.save(config_path);
+  const config = {
+    account: '',
+    tezos: {
+      network: 'delphi',
+      endpoint: 'https://delphinet-tezos.giganode.io:443',
+      list: [
+        {
+          network: 'main',
+          endpoint: 'https://mainnet-tezos.giganode.io:443'
+        },
+        {
+          network: 'delphi',
+          endpoint: 'https://delphinet-tezos.giganode.io:443'
+        },
+        {
+          network: 'edo',
+          endpoint: 'https://edonet-tezos.giganode.io:443'
+        }
+      ]
+    }
+  };
+
+  const content = JSON.stringify(config);
+  fs.writeFile(config_path, content, function (err) {
+    if (err) return console.log(err);
+    console.log("Completium initialized successfully!");
+  });
 
   // const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
   // const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
@@ -116,7 +121,7 @@ async function initCompletium(options) {
   // await download(archetype_url, bin_archetype);
   // fs.chmodSync(bin_archetype, '711');
   // fs.chmodSync(bin_tezos, '711');
-  console.log("Completium initialized successfully!");
+
   return;
 }
 
@@ -137,7 +142,8 @@ async function callArchetype(options, args) {
 }
 
 async function callTezosClient(options, args) {
-  const tezos_endpoint = getConfig(properties_tezos_endpoint);
+  const config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
 
   const dry = options.dry;
   const force = options.force;
@@ -188,7 +194,8 @@ async function transfer(options) {
   callTezosClient(options, args)
     .then(
       x => {
-        const account = getConfig(properties_account);
+        var config = getConfig();
+        const account = config.account;
         if (isNull(account)) {
           var vconfig = propertiesReader(config_path);
           vconfig.set(properties_account, account);
@@ -203,13 +210,6 @@ async function removeAccount(options) {
   const account = options.account;
 
   var args = ['forget', 'address', account];
-  callTezosClient(options, args);
-}
-
-// cli list accounts
-async function listAccounts(options) {
-  var args = ['list', 'known', 'addresses'];
-
   callTezosClient(options, args);
 }
 
@@ -267,7 +267,8 @@ function createScript(id, content, callback) {
 }
 
 function retrieveContract(contract, callback) {
-  const tezos_endpoint = getConfig(properties_tezos_endpoint);
+  var config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
   const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
 
   var request = require('request');
@@ -356,51 +357,67 @@ async function showEntries(options) {
   });
 }
 
-async function showNetwork(options) {
-  const network = getConfig(properties_network);
-  console.log("Current network: " + network);
+async function showEndpoint(options) {
+  var config = getConfig();
+  console.log("Current network: " + config.tezos.network);
+  console.log("Current endpoint: " + config.tezos.endpoint);
 }
 
-async function switchNetwork(options) {
-  showNetwork(options);
+async function switchEndpoint(options) {
+  showEndpoint(options);
 
-  const networks = getConfig(properties_networks).split(',').map(x => x.trim());
+  var config = getConfig();
+
+  const answers = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
+  const answers2 = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
+  const networks = config.tezos.list.map(x => {return x.network});
+  const endpoints = config.tezos.list.map(x => {return x.endpoint});
 
   const { Select } = require('enquirer');
 
   const prompt = new Select({
     name: 'color',
-    message: 'Switch network',
-    choices: networks,
+    message: 'Switch endpoint',
+    choices: answers,
   });
 
   prompt.run()
     .then(answer => {
-      var vconfig = propertiesReader(config_path);
-      vconfig.set(properties_network, answer);
-      vconfig.set(properties_tezos_node, getConfig("node." + answer));
-      vconfig.save(config_path);
+      var i = answers2.indexOf(answer);
+
+      const config = getConfig();
+      config.tezos.network  = networks[i];
+      config.tezos.endpoint = endpoints[i];
+      saveConfig(config);
     })
     .catch(console.error);
 }
 
+function getKeyHashs() {
+  return JSON.parse(fs.readFileSync(public_key_hashs_path, 'utf8'));
+}
+
 async function showAccount(options) {
-  const value = getConfig(properties_account);
+  const config = getConfig();
+  const value = config.account;
 
   if (isNull(value)) {
     console.log("No account is set");
   } else {
-    console.log("Current account: " + value);
+    const keyHashs = getKeyHashs();
+    var name = '';
+    keyHashs.forEach(x => { if (value === x.value) { name = x.name } })
+    console.log(`Current account: ${name} ${value}`);
   }
 }
 
 async function switchAccount(options) {
   showAccount(options);
 
-  const keyHashs = JSON.parse(fs.readFileSync(public_key_hashs_path, 'utf8'));
-  const answers  = keyHashs.map(x => { return `${x.name.padEnd(60)} ${x.value}` });
+  const keyHashs = getKeyHashs();
+  const answers = keyHashs.map(x => { return `${x.name.padEnd(60)} ${x.value}` });
   const answers2 = keyHashs.map(x => { return `${x.name.padEnd(60)} ${x.value}` });
-  const values   = keyHashs.map(x => { return x.value });
+  const values = keyHashs.map(x => { return x.value });
 
   const { Select } = require('enquirer');
 
@@ -412,30 +429,13 @@ async function switchAccount(options) {
 
   prompt.run()
     .then(answer => {
-      console.log(answers2);
-      console.log(answer);
       var i = answers2.indexOf(answer);
-      console.log(i);
       const value = values[i];
-      console.log(value);
+      const config = getConfig();
+      config.account = value;
+      saveConfig(config);
     })
     .catch(console.error);
-}
-
-async function configSet(options) {
-  const property = options.property;
-  const value = options.value;
-
-  var found = false;
-  properties.forEach(p => found |= p === property);
-  if (!found) {
-    // console.error.log('Property "' + property + '" is not found');
-    return;
-  }
-
-  var vconfig = propertiesReader(config_path);
-  vconfig.set(property, value);
-  await vconfig.save(config_path);
 }
 
 async function commandNotFound(options) {
@@ -465,9 +465,6 @@ export async function process(options) {
     case "show_account":
       showAccount(options);
       break;
-    case "list_accounts":
-      listAccounts(options);
-      break;
     case "deploy":
       deploy(options);
       break;
@@ -483,11 +480,11 @@ export async function process(options) {
     case "show_entries_of":
       showEntries(options);
       break;
-    case "show_network":
-      showNetwork(options);
+    case "show_endpoint":
+      showEndpoint(options);
       break;
-    case "switch_network":
-      switchNetwork(options);
+    case "switch_endpoint":
+      switchEndpoint(options);
       break;
     case "show_account":
       showAccount(options);

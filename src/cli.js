@@ -23,15 +23,9 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "remove") {
     res = { command: "remove", account: args[3] };
     nargs = args.slice(4);
-  } else if (length > 3 && args[2] === "list" && args[3] === "accounts") {
-    res = { command: "list_accounts" };
-    nargs = args.slice(4);
   } else if (length > 3 && args[2] === "deploy") {
     res = { command: "deploy", file: args[3] };
     nargs = args.slice(4);
-  } else if (length > 5 && args[2] === "config" && args[3] === "set") {
-    res = { command: "config_set", property: args[4], value: args[5] };
-    nargs = args.slice(6);
   } else if (length > 4 && args[2] === "call" && args[4] === "as") {
     res = { command: "call_contract", contract: args[3], account: args[5] };
     nargs = args.slice(5);
@@ -41,11 +35,11 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "generate" && args[3] === "json") {
     res = { command: "generate_json", path: args[4] };
     nargs = args.slice(5);
-  } else if (length > 3 && args[2] === "show" && args[3] === "network") {
-    res = { command: "show_network" };
+  } else if (length > 3 && args[2] === "show" && args[3] === "endpoint") {
+    res = { command: "show_endpoint" };
     nargs = args.slice(4);
-  } else if (length > 3 && args[2] === "switch" && args[3] === "network") {
-    res = { command: "switch_network" };
+  } else if (length > 3 && args[2] === "switch" && args[3] === "endpoint") {
+    res = { command: "switch_endpoint" };
     nargs = args.slice(4);
   } else if (length > 3 && args[2] === "show" && args[3] === "account") {
     res = { command: "show_account" };
