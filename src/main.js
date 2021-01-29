@@ -51,6 +51,7 @@ async function help(options) {
   console.log("  show endpoint");
   console.log("  switch endpoint");
   console.log("  show account");
+  console.log("  set account <ACCOUNT_NAME>");
   console.log("  switch account");
 }
 
@@ -460,6 +461,26 @@ async function switchAccount(options) {
     .catch(console.error);
 }
 
+async function setAccount(options) {
+  const account = options.account;
+  const keyHashs = getKeyHashs();
+  var value = "";
+  keyHashs.forEach(x => {
+    if (x.value === account) {
+      value = x.value;
+    } else if (x.name === account && isNull(value)) {
+      value = x.value;
+    }
+  });
+  if (isNull(value)) {
+    console.log(`${account} is not found`)
+  } else {
+    const config = getConfig();
+    config.account = value;
+    saveConfig(config);
+  }
+}
+
 async function commandNotFound(options) {
   console.log("commandNotFound: " + options.command);
   help(options);
@@ -515,6 +536,9 @@ export async function process(options) {
       break;
     case "switch_account":
       switchAccount(options);
+      break;
+    case "set_account":
+      setAccount(options);
       break;
     default:
       commandNotFound(options);

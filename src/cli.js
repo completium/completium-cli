@@ -50,6 +50,9 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "switch" && args[3] === "account") {
     res = { command: "switch_account" };
     nargs = args.slice(4);
+  } else if (length > 4 && args[2] === "set" && args[3] === "account") {
+    res = { command: "set_account", account: args[4] };
+    nargs = args.slice(5);
   } else {
     console.log("command not found");
   }
