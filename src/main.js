@@ -3,7 +3,6 @@ import fs from 'fs';
 import wget from 'node-wget';
 import Listr from 'listr';
 import execa from 'execa';
-import propertiesReader from 'properties-reader';
 import path from 'path';
 import { rejects } from 'assert';
 
@@ -16,10 +15,6 @@ const config_path = completium_dir + '/config.json'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
-// const bin_archetype = bin_dir + '/archetype'
-const bin_archetype = 'archetype'
-//const bin_tezos = bin_dir + "/tezos-client"
-const bin_tezos = "tezos-client"
 
 
 async function download(url, dest) {
@@ -45,6 +40,7 @@ async function help(options) {
   console.log("command:");
   console.log("  init")
   console.log("  help");
+  console.log("  update binaries");
   console.log("  generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]");
   console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
   console.log("  remove <ACCOUNT_NAME|CONTRACT_NAME>");
@@ -89,6 +85,10 @@ async function initCompletium(options) {
 
   const config = {
     account: '',
+    bin: {
+      archetype: 'archetype',
+      tezosclient: 'tezos-client'
+    },
     tezos: {
       network: 'delphi',
       endpoint: 'https://delphinet-tezos.giganode.io:443',
@@ -114,22 +114,30 @@ async function initCompletium(options) {
     if (err) return console.log(err);
     console.log("Completium initialized successfully!");
   });
+}
 
-  // const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
-  // const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
-  // await download(tezosclient_url, bin_tezos);
-  // await download(archetype_url, bin_archetype);
-  // fs.chmodSync(bin_archetype, '711');
-  // fs.chmodSync(bin_tezos, '711');
-
-  return;
+async function updateBinaries(options) {
+  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
+  const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
+  const path_tezosclient = bin_dir + '/tezos-client';
+  const path_archetype = bin_dir + '/archetype';
+  await download(tezosclient_url, path_tezosclient);
+  await download(archetype_url, path_archetype);
+  fs.chmodSync(path_tezosclient, '711');
+  fs.chmodSync(path_archetype, '711');
+  const config = getConfig();
+  config.bin.tezosclient = path_tezosclient;
+  config.bin.archetype = path_archetype;
+  saveConfig(config);
+  console.log(`Binaries is updated`);
 }
 
 async function callArchetype(options, args) {
+  const config = getConfig();
   const verbose = options.verbose;
 
   try {
-    const { stdout } = await execa(bin_archetype, args, {});
+    const { stdout } = await execa(config.bin.archetype, args, {});
     if (verbose) {
       console.log(stdout);
     }
@@ -143,6 +151,7 @@ async function callArchetype(options, args) {
 
 async function callTezosClient(options, args) {
   const config = getConfig();
+  const bin_tezos = config.bin.tezosclient;
   const tezos_endpoint = config.tezos.endpoint;
 
   const dry = options.dry;
@@ -213,13 +222,7 @@ async function transfer(options) {
   callTezosClient(options, args)
     .then(
       x => {
-        var config = getConfig();
-        const account = config.account;
-        if (isNull(account)) {
-          var vconfig = propertiesReader(config_path);
-          vconfig.set(properties_account, account);
-          vconfig.save(config_path);
-        }
+
       }
     );
 }
@@ -387,9 +390,9 @@ async function switchEndpoint(options) {
 
   var config = getConfig();
 
-  const answers   = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
-  const answers2  = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
-  const networks  = config.tezos.list.map(x => { return x.network });
+  const answers = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
+  const answers2 = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
+  const networks = config.tezos.list.map(x => { return x.network });
   const endpoints = config.tezos.list.map(x => { return x.endpoint });
 
   const { Select } = require('enquirer');
@@ -470,6 +473,9 @@ export async function process(options) {
       break;
     case "init":
       initCompletium(options);
+      break;
+    case "update_binaries":
+      updateBinaries(options);
       break;
     case "generate_account":
       generateAccount(options);

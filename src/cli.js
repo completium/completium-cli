@@ -14,6 +14,9 @@ function parseCommand(args) {
   } else if (length > 2 && args[2] === "init") {
     res = { command: "init" };
     nargs = args.slice(3);
+  } else if (length > 3 && args[2] === "update" && args[3] === "binaries") {
+    res = { command: "update_binaries" };
+    nargs = args.slice(4);
   } else if (length > 4 && args[2] === "generate" && args[3] === "account") {
     res = { command: "generate_account", account: args[4] };
     nargs = args.slice(5);
