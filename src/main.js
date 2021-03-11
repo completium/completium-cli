@@ -44,7 +44,7 @@ async function help(options) {
   console.log("  generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]");
   console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
   console.log("  remove <ACCOUNT_NAME|CONTRACT_NAME>");
-  console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--force]");
+  console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--init <PARAMETERS>] [--force]");
   console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
   console.log("  generate json <FILE.arl>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
@@ -137,6 +137,12 @@ async function updateBinaries(options) {
 async function callArchetype(options, args) {
   const config = getConfig();
   const verbose = options.verbose;
+  const init = options.init;
+
+  if (init !== undefined) {
+    args.push('--init');
+    args.push(init)
+  }
 
   try {
     const { stdout } = await execa(config.bin.archetype, args, {});

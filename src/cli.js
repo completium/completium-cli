@@ -74,6 +74,7 @@ function parseCommand(args) {
       '--with': String,
       '--force': Boolean,
       '--verbose': Boolean,
+      '--init': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -97,6 +98,7 @@ function parseCommand(args) {
     with: options['--with'],
     force: options['--force'] || false,
     verbose: options['--verbose'] || false,
+    init: options['--init'],
   }
 }
 
