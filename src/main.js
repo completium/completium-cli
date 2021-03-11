@@ -53,6 +53,7 @@ async function help(options) {
   console.log("  show account");
   console.log("  set account <ACCOUNT_NAME>");
   console.log("  switch account");
+  console.log("  show contract <CONTRACT_ID>");
 }
 
 function isNull(str) {
@@ -481,6 +482,13 @@ async function setAccount(options) {
   }
 }
 
+async function showContract(options) {
+  const contract = options.contract;
+
+  var args = ['show', 'known', 'contract', contract];
+  callTezosClient(options, args);
+}
+
 async function commandNotFound(options) {
   console.log("commandNotFound: " + options.command);
   help(options);
@@ -539,6 +547,9 @@ export async function process(options) {
       break;
     case "set_account":
       setAccount(options);
+      break;
+    case "show_contract":
+      showContract(options);
       break;
     default:
       commandNotFound(options);
