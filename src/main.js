@@ -100,12 +100,12 @@ async function initCompletium(options) {
           endpoint: 'https://mainnet-tezos.giganode.io:443'
         },
         {
-          network: 'delphi',
-          endpoint: 'https://delphinet-tezos.giganode.io:443'
-        },
-        {
           network: 'edo',
           endpoint: 'https://edonet-tezos.giganode.io:443'
+        },
+        {
+          network: 'florence',
+          endpoint: 'https://florence-tezos.giganode.io:443'
         }
       ]
     }
