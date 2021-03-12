@@ -92,8 +92,8 @@ async function initCompletium(options) {
       tezosclient: 'tezos-client'
     },
     tezos: {
-      network: 'delphi',
-      endpoint: 'https://delphinet-tezos.giganode.io:443',
+      network: 'edo',
+      endpoint: 'https://edonet-tezos.giganode.io:443',
       list: [
         {
           network: 'main',
