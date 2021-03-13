@@ -43,7 +43,8 @@ async function help(options) {
   console.log("  update binaries");
   console.log("  generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]");
   console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
-  console.log("  remove <ACCOUNT_NAME|CONTRACT_NAME>");
+  console.log("  remove account <ACCOUNT_NAME>");
+  console.log("  remove contract <CONTRACT_NAME>");
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--init <PARAMETERS>] [--force]");
   console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
   console.log("  generate json <FILE.arl>");
@@ -119,7 +120,7 @@ async function initCompletium(options) {
 }
 
 async function updateBinaries(options) {
-  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.1/archetype-x64-linux";
+  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.2/archetype-x64-linux";
   const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
   const path_tezosclient = bin_dir + '/tezos-client';
   const path_archetype = bin_dir + '/archetype';
@@ -240,6 +241,14 @@ async function removeAccount(options) {
   const account = options.account;
 
   var args = ['forget', 'address', account];
+  callTezosClient(options, args);
+}
+
+// cli remove contract <ACCOUNT_NAME|CONTRACT_NAME>
+async function removeContract(options) {
+  const account = options.account;
+
+  var args = ['forget', 'contract', account];
   callTezosClient(options, args);
 }
 
@@ -518,8 +527,11 @@ export async function process(options) {
     case "transfer":
       transfer(options);
       break;
-    case "remove":
+    case "remove_account":
       removeAccount(options);
+      break;
+    case "remove_contract":
+      removeContract(options);
       break;
     case "show_account":
       showAccount(options);

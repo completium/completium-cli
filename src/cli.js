@@ -23,9 +23,12 @@ function parseCommand(args) {
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
     res = { command: "transfer", vamount: args[3], from: args[5], to: args[7] };
     nargs = args.slice(8);
-  } else if (length > 3 && args[2] === "remove") {
-    res = { command: "remove", account: args[3] };
-    nargs = args.slice(4);
+  } else if (length > 3 && args[2] === "remove" && args[3] === "account") {
+    res = { command: "remove_account", account: args[4] };
+    nargs = args.slice(5);
+  } else if (length > 3 && args[2] === "remove" && args[3] === "contract") {
+    res = { command: "remove_contract", account: args[4] };
+    nargs = args.slice(5);
   } else if (length > 3 && args[2] === "deploy") {
     res = { command: "deploy", file: args[3] };
     nargs = args.slice(4);
