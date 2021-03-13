@@ -55,6 +55,7 @@ async function help(options) {
   console.log("  set account <ACCOUNT_NAME>");
   console.log("  switch account");
   console.log("  show contract <CONTRACT_ID>");
+  console.log("  show url <CONTRACT_ID>");
 }
 
 function isNull(str) {
@@ -158,7 +159,7 @@ async function callArchetype(options, args) {
   }
 }
 
-async function callTezosClient(options, args) {
+async function callTezosClient(options, args, callback) {
   const config = getConfig();
   const bin_tezos = config.bin.tezosclient;
   const tezos_endpoint = config.tezos.endpoint;
@@ -180,7 +181,12 @@ async function callTezosClient(options, args) {
     console.log(bin_tezos + ' ' + args)
   }
   const { stdout } = await execa(bin_tezos, args, {});
-  console.log(stdout);
+
+  if (callback !== undefined) {
+    callback(stdout);
+  } else {
+    console.log(stdout);
+  }
 }
 
 // cli generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]
@@ -291,7 +297,8 @@ async function deploy(options) {
         'running', contract_script,
         '--init', tzstorage,
         '--burn-cap', burnCap];
-      callTezosClient(options, args);
+      await callTezosClient(options, args);
+      showUrl({'contract': contract_name})
     }
   }
   return;
@@ -497,11 +504,32 @@ async function setAccount(options) {
   }
 }
 
-async function showContract(options) {
+async function getContractAddress(options) {
   const contract = options.contract;
 
   var args = ['show', 'known', 'contract', contract];
-  callTezosClient(options, args);
+  var res = "";
+  await callTezosClient(options, args, addr => { res = addr.trim() });
+  return res;
+}
+
+async function showContract(options) {
+  const address = await getContractAddress(options);
+  console.log(address);
+}
+
+async function showUrl(options) {
+  const config = getConfig();
+  const address = await getContractAddress(options);
+
+  var l = "";
+  switch (config.tezos.network) {
+    case "main":     { l = "mainnet";  break; }
+    case "edo":      { l = "edo2net";  break; }
+    case "florence": { l = "florence"; break; }
+    default: break;
+  }
+  console.log("https://better-call.dev/" + l + "/" + address);
 }
 
 async function commandNotFound(options) {
@@ -568,6 +596,9 @@ export async function process(options) {
       break;
     case "show_contract":
       showContract(options);
+      break;
+    case "show_url":
+      showUrl(options);
       break;
     default:
       commandNotFound(options);

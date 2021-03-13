@@ -59,6 +59,9 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
     res = { command: "show_contract", contract: args[4] };
     nargs = args.slice(5);
+  } else if (length > 4 && args[2] === "show" && args[3] === "url") {
+    res = { command: "show_url", contract: args[4] };
+    nargs = args.slice(5);
   } else {
     console.log("command not found");
   }
