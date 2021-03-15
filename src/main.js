@@ -1,10 +1,7 @@
-import chalk from 'chalk';
 import fs from 'fs';
 import wget from 'node-wget';
-import Listr from 'listr';
 import execa from 'execa';
 import path from 'path';
-import { rejects } from 'assert';
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -298,7 +295,9 @@ async function deploy(options) {
         '--init', tzstorage,
         '--burn-cap', burnCap];
       await callTezosClient(options, args);
-      showUrl({'contract': contract_name})
+      if (!options.dry) {
+        showUrl({'contract': contract_name})
+      }
     }
   }
   return;
