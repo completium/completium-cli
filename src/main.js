@@ -92,11 +92,11 @@ async function initCompletium(options) {
     },
     tezos: {
       network: 'edo',
-      endpoint: 'https://edonet-tezos.giganode.io:443',
+      endpoint: 'https://edonet.smartpy.io',
       list: [
         {
           network: 'main',
-          endpoint: 'https://mainnet-tezos.giganode.io:443'
+          endpoint: 'https://mainnet-tezos.giganode.io'
         },
         {
           network: 'main',
@@ -112,27 +112,11 @@ async function initCompletium(options) {
         },
         {
           network: 'edo',
-          endpoint: 'https://edonet-tezos.giganode.io:443'
+          endpoint: 'https://edonet-tezos.giganode.io'
         },
         {
           network: 'edo',
           endpoint: 'https://edonet.smartpy.io'
-        },
-        {
-          network: 'edo',
-          endpoint: 'https://rpczero.tzbeta.net'
-        },
-        {
-          network: 'edo',
-          endpoint: 'https://api.tez.ie/rpc/edonet'
-        },
-        {
-          network: 'florence',
-          endpoint: 'https://florence-tezos.giganode.io:443'
-        },
-        {
-          network: 'florence',
-          endpoint: 'https://api.tez.ie/rpc/florencenet'
         }
       ]
     }
