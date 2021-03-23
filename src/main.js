@@ -43,7 +43,7 @@ async function help(options) {
   console.log("  remove account <ACCOUNT_NAME>");
   console.log("  remove contract <CONTRACT_NAME>");
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--init <PARAMETERS>] [--force]");
-  console.log("  call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
+  console.log("  call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
   console.log("  generate json <FILE.arl>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
   console.log("  show endpoint");
@@ -99,12 +99,40 @@ async function initCompletium(options) {
           endpoint: 'https://mainnet-tezos.giganode.io:443'
         },
         {
+          network: 'main',
+          endpoint: 'https://mainnet.smartpy.io'
+        },
+        {
+          network: 'main',
+          endpoint: 'https://rpc.tzbeta.net'
+        },
+        {
+          network: 'main',
+          endpoint: 'https://api.tez.ie/rpc/mainnet'
+        },
+        {
           network: 'edo',
           endpoint: 'https://edonet-tezos.giganode.io:443'
         },
         {
+          network: 'edo',
+          endpoint: 'https://edonet.smartpy.io'
+        },
+        {
+          network: 'edo',
+          endpoint: 'https://rpczero.tzbeta.net'
+        },
+        {
+          network: 'edo',
+          endpoint: 'https://api.tez.ie/rpc/edonet'
+        },
+        {
           network: 'florence',
           endpoint: 'https://florence-tezos.giganode.io:443'
+        },
+        {
+          network: 'florence',
+          endpoint: 'https://api.tez.ie/rpc/florencenet'
         }
       ]
     }
@@ -328,7 +356,9 @@ function retrieveContract(contract, callback) {
 }
 
 async function callTezosTransfer(options, arg) {
-  const account = getAccount(options.account);
+  const as = options.as;
+  const account = getAccount(as);
+
   if (!isNull(account)) {
     const contract = options.contract;
     var entry = options.entry === undefined ? 'default' : options.entry;

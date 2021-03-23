@@ -32,9 +32,9 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "deploy") {
     res = { command: "deploy", file: args[3] };
     nargs = args.slice(4);
-  } else if (length > 4 && args[2] === "call" && args[4] === "as") {
-    res = { command: "call_contract", contract: args[3], account: args[5] };
-    nargs = args.slice(5);
+  } else if (length > 3 && args[2] === "call") {
+    res = { command: "call_contract", contract: args[3] };
+    nargs = args.slice(4);
   } else if (length > 5 && args[2] === "show" && args[3] === "entries" && args[4] === "of") {
     res = { command: "show_entries_of", contract: args[5] };
     nargs = args.slice(6);
