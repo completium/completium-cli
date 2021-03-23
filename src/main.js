@@ -368,7 +368,7 @@ async function callTezosTransfer(options, arg) {
 
 async function getArg(options, callback) {
   const contract = getContract(options.contract);
-  const entry = options.entry === undefined ? 'default' : options.entry;
+  var entry = options.entry === undefined ? 'default' : options.entry;
 
   retrieveContract(contract, path => {
     var args = [
@@ -376,6 +376,9 @@ async function getArg(options, callback) {
       '--with-contract', path
     ];
     if (entry !== 'default') {
+      if (entry.charAt(0) !== '%') {
+        entry = "%" + entry;
+      }
       args.push('--entrypoint', entry);
     }
 
