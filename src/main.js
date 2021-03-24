@@ -1,14 +1,16 @@
-import fs from 'fs';
+import fs, { exists } from 'fs';
 import wget from 'node-wget';
 import execa from 'execa';
 import path from 'path';
+import { TezosToolkit } from '@taquito/taquito';
+import { InMemorySigner, importKey } from '@taquito/signer';
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
-const tezos_client_dir = homedir + '/.tezos-client'
-const public_key_hashs_path = tezos_client_dir + '/public_key_hashs'
-const public_contracts_path = tezos_client_dir + '/contracts'
+// const public_contracts_path = tezos_client_dir + '/contracts'
 const config_path = completium_dir + '/config.json'
+const accounts_path = completium_dir + '/accounts.json'
+const contracts_path = completium_dir + '/contracts.json'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
@@ -23,12 +25,49 @@ function getConfig() {
   return JSON.parse(fs.readFileSync(config_path, 'utf8'));
 }
 
+function getTezos() {
+  const config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
+  const tezos = new TezosToolkit(tezos_endpoint);
+  tezos.setProvider({
+    signer: new InMemorySigner('edsk3BksmijaVkBoi485CHA7X9pDfexAwSWiQum6WAHNaLot2SXfyW'),
+  });
+  return tezos;
+}
+
 function saveConfig(config) {
   const content = JSON.stringify(config);
   fs.writeFile(config_path, content, function (err) {
     if (err) return console.log(err);
     console.log("Configuration file is updated");
   });
+}
+
+function saveFile(path, c) {
+  const content = JSON.stringify(c);
+  console.log(content);
+  fs.writeFile(path, content, function (err) {
+    if (err) return console.log(err);
+  });
+}
+
+function getContracts() {
+  if (!fs.existsSync(contracts_path)) {
+    saveFile(contracts_path, { contracts: [] });
+  }
+  var res = JSON.parse(fs.readFileSync(contracts_path, 'utf8'));
+  return res;
+}
+
+function saveContract(c) {
+  var obj = getContracts();
+  obj.contracts.push(c);
+  saveFile(contracts_path, obj);
+}
+
+function getContract(name) {
+  var obj = getContracts();
+  return obj.contracts.find(x => x.name === name);
 }
 
 async function help(options) {
@@ -82,41 +121,36 @@ async function initCompletium(options) {
     fs.mkdirSync(scripts_dir, { recursive: true });
   }
 
-  // const { promisify } = require('util');
-
   const config = {
     account: '',
     bin: {
-      archetype: 'archetype',
-      tezosclient: 'tezos-client'
+      archetype: 'archetype'
     },
     tezos: {
       network: 'edo',
-      endpoint: 'https://edonet.smartpy.io',
       list: [
         {
           network: 'main',
-          endpoint: 'https://mainnet-tezos.giganode.io'
-        },
-        {
-          network: 'main',
-          endpoint: 'https://mainnet.smartpy.io'
-        },
-        {
-          network: 'main',
-          endpoint: 'https://rpc.tzbeta.net'
-        },
-        {
-          network: 'main',
-          endpoint: 'https://api.tez.ie/rpc/mainnet'
+          bcd_url: "https://better-call.dev/main/$address",
+          endpoints: [
+            'https://mainnet-tezos.giganode.io',
+            'https://mainnet.smartpy.io',
+            'https://rpc.tzbeta.net',
+            'https://api.tez.ie/rpc/mainnet'
+          ]
         },
         {
           network: 'edo',
-          endpoint: 'https://edonet-tezos.giganode.io'
+          bcd_url: "https://better-call.dev/edo2net/$address",
+          endpoints: [
+            'https://edonet-tezos.giganode.io',
+            'https://edonet.smartpy.io'
+          ]
         },
         {
-          network: 'edo',
-          endpoint: 'https://edonet.smartpy.io'
+          network: 'florence',
+          bcd_url: "https://better-call.dev/florence/$address",
+          endpoints: []
         }
       ]
     }
@@ -168,35 +202,35 @@ async function callArchetype(options, args) {
   }
 }
 
-async function callTezosClient(options, args, callback) {
-  const config = getConfig();
-  const bin_tezos = config.bin.tezosclient;
-  const tezos_endpoint = config.tezos.endpoint;
+// async function callTezosClient(options, args, callback) {
+//   const config = getConfig();
+//   const bin_tezos = config.bin.tezosclient;
+//   const tezos_endpoint = config.tezos.endpoint;
 
-  const dry = options.dry;
-  const force = options.force;
+//   const dry = options.dry;
+//   const force = options.force;
 
-  const verbose = options.verbose;
+//   const verbose = options.verbose;
 
-  var args = ['--endpoint', tezos_endpoint].concat(args);
-  if (dry) {
-    args.push('-D')
-  }
-  if (force) {
-    args.push('--force')
-  }
+//   var args = ['--endpoint', tezos_endpoint].concat(args);
+//   if (dry) {
+//     args.push('-D')
+//   }
+//   if (force) {
+//     args.push('--force')
+//   }
 
-  if (verbose) {
-    console.log(bin_tezos + ' ' + args)
-  }
-  const { stdout } = await execa(bin_tezos, args, {});
+//   if (verbose) {
+//     console.log(bin_tezos + ' ' + args)
+//   }
+//   const { stdout } = await execa(bin_tezos, args, {});
 
-  if (callback !== undefined) {
-    callback(stdout);
-  } else {
-    console.log(stdout);
-  }
-}
+//   if (callback !== undefined) {
+//     callback(stdout);
+//   } else {
+//     console.log(stdout);
+//   }
+// }
 
 // cli generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]
 async function generateAccount(options) {
@@ -213,24 +247,24 @@ async function generateAccount(options) {
   callTezosClient(options, args);
 }
 
-function getContracts() {
-  return JSON.parse(fs.readFileSync(public_contracts_path, 'utf8'));
-}
+// function getContracts() {
+//   return JSON.parse(fs.readFileSync(public_contracts_path, 'utf8'));
+// }
 
-function getContract(id) {
-  if (id.startsWith("KT1")) {
-    return id;
-  } else {
-    var value = '';
-    const contracts = getContracts();
-    // console.log(contracts);
-    contracts.forEach(x => { if (id === x.name) { value = x.value } })
-    if (value === '') {
-      console.log(`${id} contract is not found.`)
-    }
-    return value;
-  }
-}
+// function getContract(id) {
+//   if (id.startsWith("KT1")) {
+//     return id;
+//   } else {
+//     var value = '';
+//     const contracts = getContracts();
+//     // console.log(contracts);
+//     contracts.forEach(x => { if (id === x.name) { value = x.value } })
+//     if (value === '') {
+//       console.log(`${id} contract is not found.`)
+//     }
+//     return value;
+//   }
+// }
 
 // cli transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>
 async function transfer(options) {
@@ -272,45 +306,54 @@ async function deploy(options) {
   const verbose = options.verbose;
   const arl = options.file;
   const as = options.as;
-  const tz_sci = getAccount(as);
-  if (!isNull(tz_sci)) {
-    const named = options.named;
-    const contract_name = named === undefined ? path.basename(arl) : named;
-    const contract_script = contracts_dir + '/' + contract_name + ".tz";
+  // const tz_sci = getAccount(as);
+  const tz_sci = "tz1";
+  // if (!isNull(tz_sci)) {
+  const named = options.named;
+  const contract_name = named === undefined ? path.basename(arl) : named;
+  const config = getConfig();
+  var a = getContract(contract_name);
+  if (a != null) {
+    console.log(`${contract_name} already exists.`);
+    return;
+  }
+  const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
 
-    {
-      const res = await callArchetype(options, [arl]);
+  {
+    const res = await callArchetype(options, ['-t', 'javascript', arl]);
 
-      fs.writeFile(contract_script, res, function (err) {
-        if (err) throw err;
-        if (verbose)
-          console.log('Contract script saved!');
-      });
-    }
-
-    var tzstorage = "";
-    {
-      const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', tz_sci, arl]);
-      tzstorage = res;
+    fs.writeFile(contract_script, res, function (err) {
+      if (err) throw err;
       if (verbose)
-        console.log(tzstorage);
-    }
+        console.log('Contract js script saved!');
+    });
+  }
 
-    {
-      const amount = options.amount === undefined ? '0' : options.amount;
-      const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
+  var tzstorage = "";
+  {
+    const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', tz_sci, arl]);
+    tzstorage = res;
+    if (verbose)
+      console.log(tzstorage);
+  }
 
-      const args = ['originate', 'contract', contract_name,
-        'transferring', amount,
-        'from', tz_sci,
-        'running', contract_script,
-        '--init', tzstorage,
-        '--burn-cap', burnCap];
-      await callTezosClient(options, args);
-      if (!options.dry) {
-        showUrl({'contract': contract_name})
-      }
-    }
+  {
+    const tezos = getTezos();
+    var c = require(contract_script);
+    tezos.contract
+      .originate({
+        code: c.code,
+        init: c.getStorage()
+      })
+      .then((originationOp) => {
+        console.log(`Waiting for confirmation of origination for ${originationOp.contractAddress} ...`);
+        return originationOp.contract();
+      })
+      .then((contract) => {
+        console.log(`Origination completed for ${contract.address}.`);
+        saveContract({ name: contract_name, address: contract.address, network: config.tezos.network });
+      })
+      .catch((error) => console.log(`Error: ${JSON.stringify(error, null, 2)}`));
   }
   return;
 }
@@ -540,8 +583,8 @@ async function showUrl(options) {
 
   var l = "";
   switch (config.tezos.network) {
-    case "main":     { l = "mainnet";  break; }
-    case "edo":      { l = "edo2net";  break; }
+    case "main": { l = "mainnet"; break; }
+    case "edo": { l = "edo2net"; break; }
     case "florence": { l = "florence"; break; }
     default: break;
   }
