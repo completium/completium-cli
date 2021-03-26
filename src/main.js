@@ -29,20 +29,18 @@ function getConfig() {
   return (loadJS(config_path));
 }
 
-function saveConfig(config) {
-  const content = JSON.stringify(config);
-  fs.writeFile(config_path, content, function (err) {
+function saveFile(path, c, callback) {
+  const content = JSON.stringify(c, null, 2);
+  fs.writeFile(path, content, function (err) {
     if (err) return console.log(err);
-    console.log("Configuration file is updated");
+    if (callback !== undefined) {
+      callback();
+    }
   });
 }
 
-function saveFile(path, c) {
-  const content = JSON.stringify(c, null, 2);
-  console.log(content);
-  fs.writeFile(path, content, function (err) {
-    if (err) return console.log(err);
-  });
+function saveConfig(config, callback) {
+  saveFile(config_path, config, callback);
 }
 
 function getContracts() {
@@ -116,21 +114,31 @@ async function help(options) {
   console.log("  init")
   console.log("  help");
   console.log("  update binaries");
-  console.log("  generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]");
-  console.log("  transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
-  console.log("  remove account <ACCOUNT_NAME>");
-  console.log("  remove contract <CONTRACT_NAME>");
+
+  console.log("  show endpoint");
+  console.log("  switch endpoint");
+  console.log("  add endpoint (main|edo|florence) <ENDPOINT_URL>");
+  console.log("  remove endpoint [<ENDPOINT_URL>]");
+
+  console.log("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS>");
+  console.log("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS>");
+  console.log("  import mnemonic <MNEMONIC> as <ACCOUNT_ALIAS>");
+
+  console.log("  show account");
+  console.log("  set account <ACCOUNT_ALIAS>");
+  console.log("  switch account");
+  console.log("  remove account <ACCOUNT_ALIAS>");
+
+  console.log("  transfer <AMOUNT> (tez|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
+
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--init <PARAMETERS>] [--force]");
   console.log("  call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
   console.log("  generate json <FILE.arl>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
-  console.log("  show endpoint");
-  console.log("  switch endpoint");
-  console.log("  show account");
-  console.log("  set account <ACCOUNT_NAME>");
-  console.log("  switch account");
-  console.log("  show contract <CONTRACT_ID>");
-  console.log("  show url <CONTRACT_ID>");
+
+  console.log("  show contract <CONTRACT_NAME>");
+  console.log("  remove contract <CONTRACT_NAME>");
+  console.log("  show url <CONTRACT_NAME>");
 }
 
 function isNull(str) {
@@ -158,6 +166,7 @@ async function initCompletium(options) {
     },
     tezos: {
       network: 'edo',
+      endpoint: 'https://edonet-tezos.giganode.io',
       list: [
         {
           network: 'main',
@@ -185,12 +194,7 @@ async function initCompletium(options) {
       ]
     }
   };
-
-  const content = JSON.stringify(config);
-  fs.writeFile(config_path, content, function (err) {
-    if (err) return console.log(err);
-    console.log("Completium initialized successfully!");
-  });
+  saveFile(config_path, config, (x => { console.log("Completium initialized successfully!") }));
 }
 
 async function updateBinaries(options) {
@@ -513,26 +517,38 @@ async function switchEndpoint(options) {
 
   var config = getConfig();
 
-  const answers = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
-  const answers2 = config.tezos.list.map(x => { return `${x.network.padEnd(10)} ${x.endpoint}` });
-  const networks = config.tezos.list.map(x => { return x.network });
-  const endpoints = config.tezos.list.map(x => { return x.endpoint });
+  var res = {
+    answers: [],
+    indexes: [],
+    networks: [],
+    endpoints: []
+  };
+
+  config.tezos.list.forEach(x => {
+    const network = x.network;
+    console.log(x.endpoints);
+    x.endpoints.forEach(y => {
+      res.answers.push(`${network.padEnd(10)} ${y}`),
+      res.indexes.push(`${network.padEnd(10)} ${y}`),
+      res.networks.push(network);
+      res.endpoints.push(y);
+    });
+  });
 
   const { Select } = require('enquirer');
 
   const prompt = new Select({
     name: 'color',
     message: 'Switch endpoint',
-    choices: answers,
+    choices: res.answers,
   });
 
   prompt.run()
     .then(answer => {
-      var i = answers2.indexOf(answer);
-
+      var i = res.indexes.indexOf(answer);
       const config = getConfig();
-      config.tezos.network = networks[i];
-      config.tezos.endpoint = endpoints[i];
+      config.tezos.network = res.networks[i];
+      config.tezos.endpoint = res.endpoints[i];
       saveConfig(config);
     })
     .catch(console.error);

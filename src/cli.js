@@ -94,7 +94,6 @@ function parseCommand(args) {
   return {
     ...res,
     dry: options['--dry'] || false,
-    fromFaucet: options['--from-faucet'],
     withSecret: options['--with-secret'] || false,
     amount: options['--amount'],
     burnCap: options['--burn-cap'],
