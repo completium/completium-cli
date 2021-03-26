@@ -21,18 +21,12 @@ async function download(url, dest) {
   return request;
 };
 
-function getConfig() {
-  return JSON.parse(fs.readFileSync(config_path, 'utf8'));
+function loadJS(path) {
+  return JSON.parse(fs.readFileSync(path, 'utf8'));
 }
 
-function getTezos() {
-  const config = getConfig();
-  const tezos_endpoint = config.tezos.endpoint;
-  const tezos = new TezosToolkit(tezos_endpoint);
-  tezos.setProvider({
-    signer: new InMemorySigner('edsk3BksmijaVkBoi485CHA7X9pDfexAwSWiQum6WAHNaLot2SXfyW'),
-  });
-  return tezos;
+function getConfig() {
+  return (loadJS(config_path));
 }
 
 function saveConfig(config) {
@@ -44,7 +38,7 @@ function saveConfig(config) {
 }
 
 function saveFile(path, c) {
-  const content = JSON.stringify(c);
+  const content = JSON.stringify(c, null, 2);
   console.log(content);
   fs.writeFile(path, content, function (err) {
     if (err) return console.log(err);
@@ -70,8 +64,53 @@ function getContract(name) {
   return obj.contracts.find(x => x.name === name);
 }
 
+function getAccounts() {
+  if (!fs.existsSync(accounts_path)) {
+    saveFile(accounts_path, { accounts: [] });
+  }
+  var res = JSON.parse(fs.readFileSync(accounts_path, 'utf8'));
+  return res;
+}
+
+function saveAccount(c) {
+  var obj = getAccounts();
+  obj.accounts.push(c);
+  saveFile(accounts_path, obj);
+}
+
+function getAccount(name) {
+  var obj = getAccounts();
+  return obj.accounts.find(x => x.name === name);
+}
+
+function getSigner(forceAccount) {
+  const config = getConfig();
+  const account = config.account;
+  if (isNull(forceAccount) && isNull(account)) {
+    console.log("Cannot exectute this command, please generate an account first.");
+    return null;
+  }
+  var a = isNull(forceAccount) ? account : forceAccount;
+  var ac = getAccount(a);
+  if (isNull(ac)) {
+    console.log(`${account} is not found.`);
+    return null;
+  }
+  return {
+    signer: new InMemorySigner(ac.key.value)
+  }
+}
+
+function getTezos(forceAccount) {
+  const config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
+  const tezos = new TezosToolkit(tezos_endpoint);
+  var signer = getSigner(forceAccount);
+  tezos.setProvider(signer);
+  return tezos;
+}
+
 async function help(options) {
-  // FIXME
   console.log("usage: [command] [options]")
   console.log("command:");
   console.log("  init")
@@ -96,15 +135,6 @@ async function help(options) {
 
 function isNull(str) {
   return str === undefined || str === null || str === "";
-}
-
-function getAccount(forceAccount) {
-  const config = getConfig();
-  const account = config.account;
-  if (isNull(forceAccount) && isNull(account)) {
-    console.log("Cannot exectute this command, please generate an account first.");
-  }
-  return isNull(forceAccount) ? account : forceAccount;
 }
 
 async function initCompletium(options) {
@@ -237,14 +267,25 @@ async function generateAccount(options) {
   const account = options.account;
   const fromFaucet = options.fromFaucet;
 
+  // TODO: Check if account is taken
+
   var args = [];
   if (fromFaucet !== undefined) {
-    args = ['activate', 'account', account, 'with', fromFaucet];
+    const faucet = loadJS(fromFaucet);
+    const config = getConfig();
+    const tezos_endpoint = config.tezos.endpoint;
+    const tezos = new TezosToolkit(tezos_endpoint);
+    importKey(tezos,
+      faucet.email,
+      faucet.password,
+      faucet.mnemonic.join(' '),
+      faucet.secret);
+    tezos.signer.secretKey().then(x => {
+      saveAccount({ name: account, key: { kind: 'private_key', value: x } });
+    });
   } else {
-    args = ['gen', 'keys', account];
+    // args = ['gen', 'keys', account];
   }
-
-  callTezosClient(options, args);
 }
 
 // function getContracts() {
@@ -306,15 +347,13 @@ async function deploy(options) {
   const verbose = options.verbose;
   const arl = options.file;
   const as = options.as;
-  // const tz_sci = getAccount(as);
-  const tz_sci = "tz1";
-  // if (!isNull(tz_sci)) {
+  const force = options.force;
   const named = options.named;
   const contract_name = named === undefined ? path.basename(arl) : named;
   const config = getConfig();
   var a = getContract(contract_name);
   if (a != null) {
-    console.log(`${contract_name} already exists.`);
+    console.log(`${contract_name} already exists, do you want to replace it ? [y/N]`);
     return;
   }
   const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
@@ -331,7 +370,8 @@ async function deploy(options) {
 
   var tzstorage = "";
   {
-    const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', tz_sci, arl]);
+    // const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', tz_sci, arl]);
+    const res = await callArchetype(options, ['-t', 'michelson-storage', arl]);
     tzstorage = res;
     if (verbose)
       console.log(tzstorage);
@@ -496,10 +536,6 @@ async function switchEndpoint(options) {
       saveConfig(config);
     })
     .catch(console.error);
-}
-
-function getKeyHashs() {
-  return JSON.parse(fs.readFileSync(public_key_hashs_path, 'utf8'));
 }
 
 async function showAccount(options) {
