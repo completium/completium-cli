@@ -37,17 +37,13 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "remove" && args[3] === "endpoint") {
     res = { command: "remove_endpoint", endpoint: args[4] };
     nargs = args.slice(6);
-    // import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS>
+    // import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]
   } else if (length > 6 && args[2] === "import" && args[3] === "faucet" && args[5] === "as") {
     res = { command: "import_faucet", value: args[4], account: args[6] };
     nargs = args.slice(7);
-    // import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS>
+    // import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]
   } else if (length > 6 && args[2] === "import" && args[3] === "privatekey" && args[5] === "as") {
     res = { command: "import_privatekey", value: args[4], account: args[6] };
-    nargs = args.slice(7);
-    // import mnemonic <MNEMONIC> as <ACCOUNT_ALIAS>
-  } else if (length > 6 && args[2] === "import" && args[3] === "mnemonic" && args[5] === "as") {
-    res = { command: "import_mnemonic", value: args[4], account: args[6] };
     nargs = args.slice(7);
     // show account
   } else if (length > 3 && args[2] === "show" && args[3] === "account") {
@@ -62,7 +58,7 @@ function parseCommand(args) {
     res = { command: "switch_account" };
     nargs = args.slice(4);
     // remove account <ACCOUNT_ALIAS>
-  } else if (length > 3 && args[2] === "remove" && args[3] === "account") {
+  } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
     res = { command: "remove_account", account: args[4] };
     nargs = args.slice(5);
     // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>

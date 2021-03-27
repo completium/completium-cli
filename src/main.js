@@ -15,6 +15,9 @@ const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
 
+///////////
+// TOOLS //
+///////////
 
 async function download(url, dest) {
   const request = wget({ url: url, dest: dest, timeout: 2000 });
@@ -72,11 +75,25 @@ function getAccounts() {
   return res;
 }
 
-function saveAccount(c) {
+function saveAccount(c, callback) {
   var obj = getAccounts();
-  obj.accounts.push(c);
-  saveFile(accounts_path, obj);
+  const name = c.name;
+  const a = obj.accounts.find(x => x.name === name);
+  if (isNull(a)) {
+    obj.accounts.push(c);
+  } else {
+    obj.accounts = obj.accounts.map(x => x.name === name ? c : x)
+  }
+
+  saveFile(accounts_path, obj, callback);
 }
+
+function removeAccountInternal(name, callback) {
+  var obj = getAccounts();
+  obj.accounts = obj.accounts.filter(x => { return (name !== x.name) });
+  saveFile(accounts_path, obj, callback);
+}
+
 
 function getAccount(name) {
   var obj = getAccounts();
@@ -110,6 +127,37 @@ function getTezos(forceAccount) {
   return tezos;
 }
 
+function isNull(str) {
+  return str === undefined || str === null || str === "";
+}
+
+async function callArchetype(options, args) {
+  const config = getConfig();
+  const verbose = options.verbose;
+  const init = options.init;
+
+  if (init !== undefined) {
+    args.push('--init');
+    args.push(init)
+  }
+
+  try {
+    const { stdout } = await execa(config.bin.archetype, args, {});
+    if (verbose) {
+      console.log(stdout);
+    }
+    return stdout;
+
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+}
+
+//////////////
+// COMMANDS //
+//////////////
+
 async function help(options) {
   console.log("usage: [command] [options]")
   console.log("command:");
@@ -122,9 +170,8 @@ async function help(options) {
   console.log("  add endpoint (main|edo|florence) <ENDPOINT_URL>");
   console.log("  remove endpoint [<ENDPOINT_URL>]");
 
-  console.log("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS>");
-  console.log("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS>");
-  console.log("  import mnemonic <MNEMONIC> as <ACCOUNT_ALIAS>");
+  console.log("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]");
+  console.log("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]");
 
   console.log("  show account");
   console.log("  set account <ACCOUNT_ALIAS>");
@@ -132,7 +179,6 @@ async function help(options) {
   console.log("  remove account <ACCOUNT_ALIAS>");
 
   console.log("  transfer <AMOUNT> (tez|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
-
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--init <PARAMETERS>] [--force]");
   console.log("  call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
   console.log("  generate json <FILE.arl>");
@@ -141,10 +187,6 @@ async function help(options) {
   console.log("  show contract <CONTRACT_NAME>");
   console.log("  remove contract <CONTRACT_NAME>");
   console.log("  show url <CONTRACT_NAME>");
-}
-
-function isNull(str) {
-  return str === undefined || str === null || str === "";
 }
 
 async function initCompletium(options) {
@@ -212,54 +254,247 @@ async function updateBinaries(options) {
   console.log(`Binaries is updated`);
 }
 
-async function callArchetype(options, args) {
-  const config = getConfig();
-  const verbose = options.verbose;
-  const init = options.init;
-
-  if (init !== undefined) {
-    args.push('--init');
-    args.push(init)
-  }
-
-  try {
-    const { stdout } = await execa(config.bin.archetype, args, {});
-    if (verbose) {
-      console.log(stdout);
-    }
-    return stdout;
-
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
+async function showEndpoint(options) {
+  var config = getConfig();
+  console.log("Current network: " + config.tezos.network);
+  console.log("Current endpoint: " + config.tezos.endpoint);
 }
 
-// cli generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]
-async function generateAccount(options) {
-  const account = options.account;
-  const fromFaucet = options.fromFaucet;
+async function switchEndpoint(options) {
+  showEndpoint(options);
 
-  // TODO: Check if account is taken
+  var config = getConfig();
 
-  var args = [];
-  if (fromFaucet !== undefined) {
-    const faucet = loadJS(fromFaucet);
-    const config = getConfig();
-    const tezos_endpoint = config.tezos.endpoint;
-    const tezos = new TezosToolkit(tezos_endpoint);
-    importKey(tezos,
-      faucet.email,
-      faucet.password,
-      faucet.mnemonic.join(' '),
-      faucet.secret);
-    tezos.signer.secretKey().then(x => {
-      saveAccount({ name: account, key: { kind: 'private_key', value: x } });
+  var res = {
+    answers: [],
+    indexes: [],
+    networks: [],
+    endpoints: []
+  };
+
+  config.tezos.list.forEach(x => {
+    const network = x.network;
+    x.endpoints.forEach(y => {
+      res.answers.push(`${network.padEnd(10)} ${y}`);
+      res.indexes.push(`${network.padEnd(10)} ${y}`);
+      res.networks.push(network);
+      res.endpoints.push(y);
     });
+  });
+
+  const { Select } = require('enquirer');
+
+  const prompt = new Select({
+    name: 'color',
+    message: 'Switch endpoint',
+    choices: res.answers,
+  });
+
+  prompt.run()
+    .then(answer => {
+      var i = res.indexes.indexOf(answer);
+      const config = getConfig();
+      config.tezos.network = res.networks[i];
+      config.tezos.endpoint = res.endpoints[i];
+      saveConfig(config, x => { console.log("endpoint updated") });
+    })
+    .catch(console.error);
+}
+
+async function addEndpoint(options) {
+  const network = options.network;
+  const endpoint = options.endpoint;
+
+  const config = getConfig();
+  const cnetwork = config.tezos.list.find(x => x.network === network);
+
+  if (isNull(cnetwork)) {
+    const networks = config.tezos.list.map(x => x.network);
+    return console.log(`Error: '${network}' is not found, expected: ${networks}`)
+  }
+
+  if (cnetwork.endpoints.includes(endpoint)) {
+    return console.log(`Error: '${endpoint}' already registerd`)
+  }
+
+  cnetwork.endpoints.push(endpoint);
+
+  config.tezos.list = config.tezos.list.map(x => x.network == network ? cnetwork : x);
+  saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network} registered`) });
+}
+
+async function removeEndpoint(options) {
+  const endpoint = options.endpoint;
+
+  const config = getConfig();
+  const l = config.tezos.list.map(x =>
+  ({
+    ...x,
+    endpoints: x.endpoints.filter(e => { return (e !== endpoint) })
+  })
+  );
+
+  config.tezos.list = l;
+  saveConfig(config, x => { console.log(`configuration file updated`) });
+}
+
+async function confirmAccount(force, account) {
+  if (force || isNull(getAccount(account))) { return true }
+
+  const Confirm = require('prompt-confirm');
+
+  const str = `${account} already exists, do you want to overwrite ?`;
+  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
+}
+
+async function importAccount(kind, options) {
+  const value = options.value;
+  const account = options.account;
+  const force = options.force;
+
+  var confirm = await confirmAccount(force, account);
+  if (!confirm) {
+    return;
+  }
+
+  const config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
+  const tezos = new TezosToolkit(tezos_endpoint);
+  switch (kind) {
+    case "faucet":
+      const faucet = loadJS(value);
+      importKey(tezos,
+        faucet.email,
+        faucet.password,
+        faucet.mnemonic.join(' '),
+        faucet.secret)
+        .catch(console.error);
+      break;
+    case "privatekey":
+      tezos.setProvider({
+        signer: new InMemorySigner(value),
+      });
+      break;
+    default:
+      break;
+  }
+  var pkh = await tezos.signer.publicKeyHash();
+  tezos.signer.secretKey().then(x => {
+    saveAccount({ name: account, pkh: pkh, key: { kind: 'private_key', value: x } },
+      x => { console.log(`${account} saved.`) });
+  })
+    .catch(console.error);
+}
+
+async function importFaucet(options) {
+  importAccount("faucet", options);
+}
+
+async function importPrivatekey(options) {
+  importAccount("privatekey", options);
+}
+
+async function showAccount(options, withBalance) {
+  const config = getConfig();
+  const value = config.account;
+
+  if (isNull(value)) {
+    console.log("Error: no account is set");
   } else {
-    // args = ['gen', 'keys', account];
+    const account = getAccount(value);
+    if (isNull(account)) {
+      return console.log(`Error: ${account} not found, set another`);
+    }
+    const tezos = getTezos();
+
+    console.log(`Current account: ${account.name}`);
+    console.log(`Public key hash: ${account.pkh}`);
+    var balance = await tezos.tz.getBalance(account.pkh);
+    console.log(`Balance on ${config.tezos.network}: ${balance.toNumber() / 1000000} ꜩ`);
   }
 }
+
+async function switchAccount(options) {
+  const config = getConfig();
+  if (!isNull(config.account)) {
+    console.log(`Current account: ${config.account}`);
+  }
+
+  const a = getAccounts();
+  var res = a.accounts.reduce(((accu, x) => ({
+    answers: accu.answers.concat(`${x.name.padEnd(60)} ${x.pkh}`),
+    indexes: accu.indexes.concat(`${x.name.padEnd(60)} ${x.pkh}`),
+    values: accu.values.concat(x.name)
+  })),
+    {
+      answers: [],
+      indexes: [],
+      values: []
+    });
+
+  const { Select } = require('enquirer');
+
+  const prompt = new Select({
+    name: 'color',
+    message: 'Switch account',
+    choices: res.answers,
+  });
+
+  prompt.run()
+    .then(answer => {
+      var i = res.indexes.indexOf(answer);
+      const value = res.values[i];
+      config.account = value;
+      saveConfig(config, x => { console.log("account updated") });
+    })
+    .catch(console.error);
+}
+
+async function setAccount(options) {
+  const value = options.account;
+
+  const account = getAccount(value);
+  if (isNull(account)) {
+    return console.log(`Error: '${value}' is not found`);
+  }
+  const config = getConfig();
+  config.account = value;
+  saveConfig(config, x => { console.log(`'${value}' is set as current account`) });
+}
+
+async function removeAccount(options) {
+  const value = options.account;
+
+  const account = getAccount(value);
+  if (isNull(account)) {
+    return console.log(`Error: '${value}' is not found`);
+  }
+
+  const config = getConfig();
+  if (config.account === value) {
+    return console.log(`Error: cannot remove '${value}', this account is currently set as default account, please set another one before to do this.`);
+  }
+
+  removeAccountInternal(value, x => { console.log(`'${value}' is removed`) });
+}
+
+
+///////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // function getContracts() {
 //   return JSON.parse(fs.readFileSync(public_contracts_path, 'utf8'));
@@ -299,13 +534,6 @@ async function transfer(options) {
     );
 }
 
-// cli remove <ACCOUNT_NAME|CONTRACT_NAME>
-async function removeAccount(options) {
-  const account = options.account;
-
-  var args = ['forget', 'address', account];
-  callTezosClient(options, args);
-}
 
 // cli deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--force]
 async function deploy(options) {
@@ -455,137 +683,6 @@ async function generateJson(options) {
   const res = await callArchetype(options, args);
   console.log(res);
 }
-
-async function showEndpoint(options) {
-  var config = getConfig();
-  console.log("Current network: " + config.tezos.network);
-  console.log("Current endpoint: " + config.tezos.endpoint);
-}
-
-async function switchEndpoint(options) {
-  showEndpoint(options);
-
-  var config = getConfig();
-
-  var res = {
-    answers: [],
-    indexes: [],
-    networks: [],
-    endpoints: []
-  };
-
-  config.tezos.list.forEach(x => {
-    const network = x.network;
-    x.endpoints.forEach(y => {
-      res.answers.push(`${network.padEnd(10)} ${y}`);
-      res.indexes.push(`${network.padEnd(10)} ${y}`);
-      res.networks.push(network);
-      res.endpoints.push(y);
-    });
-  });
-
-  const { Select } = require('enquirer');
-
-  const prompt = new Select({
-    name: 'color',
-    message: 'Switch endpoint',
-    choices: res.answers,
-  });
-
-  prompt.run()
-    .then(answer => {
-      var i = res.indexes.indexOf(answer);
-      const config = getConfig();
-      config.tezos.network = res.networks[i];
-      config.tezos.endpoint = res.endpoints[i];
-      saveConfig(config, x => { console.log("endpoint updated") });
-    })
-    .catch(console.error);
-}
-
-async function addEndpoint(options) {
-  const network = options.network;
-  const endpoint = options.endpoint;
-
-  const config = getConfig();
-  const cnetwork = config.tezos.list.find(x => x.network === network);
-
-  if (isNull(cnetwork)) {
-    const networks = config.tezos.list.map(x => x.network);
-    return console.log(`'${network}' is not found, expected: ${networks}`)
-  }
-
-  if (cnetwork.endpoints.includes(endpoint)) {
-    return console.log(`'${endpoint}' already registerd`)
-  }
-
-  cnetwork.endpoints.push(endpoint);
-
-  config.tezos.list = config.tezos.list.map(x => x.network == network ? cnetwork : x);
-  saveConfig(config, x => {console.log(`endpoint '${endpoint}' for network ${network} registered`)});
-}
-
-async function showAccount(options) {
-  const config = getConfig();
-  const value = config.account;
-
-  if (isNull(value)) {
-    console.log("No account is set");
-  } else {
-    const keyHashs = getKeyHashs();
-    var name = '';
-    keyHashs.forEach(x => { if (value === x.value) { name = x.name } })
-    console.log(`Current account: ${name} ${value}`);
-  }
-}
-
-async function switchAccount(options) {
-  showAccount(options);
-
-  const keyHashs = getKeyHashs();
-  const answers = keyHashs.map(x => { return `${x.name.padEnd(60)} ${x.value}` });
-  const answers2 = keyHashs.map(x => { return `${x.name.padEnd(60)} ${x.value}` });
-  const values = keyHashs.map(x => { return x.value });
-
-  const { Select } = require('enquirer');
-
-  const prompt = new Select({
-    name: 'color',
-    message: 'Switch account',
-    choices: answers,
-  });
-
-  prompt.run()
-    .then(answer => {
-      var i = answers2.indexOf(answer);
-      const value = values[i];
-      const config = getConfig();
-      config.account = value;
-      saveConfig(config);
-    })
-    .catch(console.error);
-}
-
-async function setAccount(options) {
-  const account = options.account;
-  const keyHashs = getKeyHashs();
-  var value = "";
-  keyHashs.forEach(x => {
-    if (x.value === account) {
-      value = x.value;
-    } else if (x.name === account && isNull(value)) {
-      value = x.value;
-    }
-  });
-  if (isNull(value)) {
-    console.log(`${account} is not found`)
-  } else {
-    const config = getConfig();
-    config.account = value;
-    saveConfig(config);
-  }
-}
-
 async function showEntriesOf(options) {
   const contract = options.contract;
   retrieveContract(contract, x => {
@@ -639,10 +736,6 @@ export async function process(options) {
     case "add_endpoint":
       addEndpoint(options);
       break;
-
-
-
-
     case "remove_endpoint":
       removeEndpoint(options);
       break;
@@ -652,9 +745,8 @@ export async function process(options) {
     case "import_privatekey":
       importPrivatekey(options);
       break;
-    case "import_mnemonic":
-      importMnemonic(options);
-      break;
+
+
     case "show_account":
       showAccount(options);
       break;
@@ -667,6 +759,8 @@ export async function process(options) {
     case "remove_account":
       removeAccount(options);
       break;
+
+
     case "transfer":
       transfer(options);
       break;

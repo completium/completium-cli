@@ -41,6 +41,7 @@
     "ncp": "^2.0.0",
     "node-wget": "^0.4.3",
     "pkg-install": "^1.0.0",
+    "prompt-confirm": "^2.0.4",
     "properties-reader": "^2.1.1"
   },
   "devDependencies": {}
