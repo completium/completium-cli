@@ -59,7 +59,9 @@ function saveContract(c) {
 
 function getContract(name) {
   var obj = getContracts();
-  return obj.contracts.find(x => x.name === name);
+  var c = obj.contracts.find(x => x.name === name);
+  if (isNull(c)) { console.log(`'${name}' is not found in contracts.`) }
+  return c;
 }
 
 function getAccounts() {
@@ -189,7 +191,9 @@ async function initCompletium(options) {
         {
           network: 'florence',
           bcd_url: "https://better-call.dev/florence/$address",
-          endpoints: []
+          endpoints: [
+            'https://florence-tezos.giganode.io'
+          ]
         }
       ]
     }
@@ -199,15 +203,10 @@ async function initCompletium(options) {
 
 async function updateBinaries(options) {
   const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.2/archetype-x64-linux";
-  const tezosclient_url = "https://github.com/serokell/tezos-packaging/releases/latest/download/tezos-client";
-  const path_tezosclient = bin_dir + '/tezos-client';
   const path_archetype = bin_dir + '/archetype';
-  await download(tezosclient_url, path_tezosclient);
   await download(archetype_url, path_archetype);
-  fs.chmodSync(path_tezosclient, '711');
   fs.chmodSync(path_archetype, '711');
   const config = getConfig();
-  config.bin.tezosclient = path_tezosclient;
   config.bin.archetype = path_archetype;
   saveConfig(config);
   console.log(`Binaries is updated`);
@@ -235,36 +234,6 @@ async function callArchetype(options, args) {
     throw error;
   }
 }
-
-// async function callTezosClient(options, args, callback) {
-//   const config = getConfig();
-//   const bin_tezos = config.bin.tezosclient;
-//   const tezos_endpoint = config.tezos.endpoint;
-
-//   const dry = options.dry;
-//   const force = options.force;
-
-//   const verbose = options.verbose;
-
-//   var args = ['--endpoint', tezos_endpoint].concat(args);
-//   if (dry) {
-//     args.push('-D')
-//   }
-//   if (force) {
-//     args.push('--force')
-//   }
-
-//   if (verbose) {
-//     console.log(bin_tezos + ' ' + args)
-//   }
-//   const { stdout } = await execa(bin_tezos, args, {});
-
-//   if (callback !== undefined) {
-//     callback(stdout);
-//   } else {
-//     console.log(stdout);
-//   }
-// }
 
 // cli generate account <ACCOUNT_NAME> [--from-faucet <FAUCET_FILE>]
 async function generateAccount(options) {
@@ -335,14 +304,6 @@ async function removeAccount(options) {
   const account = options.account;
 
   var args = ['forget', 'address', account];
-  callTezosClient(options, args);
-}
-
-// cli remove contract <ACCOUNT_NAME|CONTRACT_NAME>
-async function removeContract(options) {
-  const account = options.account;
-
-  var args = ['forget', 'contract', account];
   callTezosClient(options, args);
 }
 
@@ -495,17 +456,6 @@ async function generateJson(options) {
   console.log(res);
 }
 
-async function showEntries(options) {
-  const contract = options.contract;
-  retrieveContract(contract, x => {
-    (async () => {
-      var args = ['--show-entries', '--json', x];
-      const res = await callArchetype(options, args);
-      console.log(res);
-    })();
-  });
-}
-
 async function showEndpoint(options) {
   var config = getConfig();
   console.log("Current network: " + config.tezos.network);
@@ -526,10 +476,9 @@ async function switchEndpoint(options) {
 
   config.tezos.list.forEach(x => {
     const network = x.network;
-    console.log(x.endpoints);
     x.endpoints.forEach(y => {
-      res.answers.push(`${network.padEnd(10)} ${y}`),
-      res.indexes.push(`${network.padEnd(10)} ${y}`),
+      res.answers.push(`${network.padEnd(10)} ${y}`);
+      res.indexes.push(`${network.padEnd(10)} ${y}`);
       res.networks.push(network);
       res.endpoints.push(y);
     });
@@ -549,9 +498,31 @@ async function switchEndpoint(options) {
       const config = getConfig();
       config.tezos.network = res.networks[i];
       config.tezos.endpoint = res.endpoints[i];
-      saveConfig(config);
+      saveConfig(config, x => { console.log("endpoint updated") });
     })
     .catch(console.error);
+}
+
+async function addEndpoint(options) {
+  const network = options.network;
+  const endpoint = options.endpoint;
+
+  const config = getConfig();
+  const cnetwork = config.tezos.list.find(x => x.network === network);
+
+  if (isNull(cnetwork)) {
+    const networks = config.tezos.list.map(x => x.network);
+    return console.log(`'${network}' is not found, expected: ${networks}`)
+  }
+
+  if (cnetwork.endpoints.includes(endpoint)) {
+    return console.log(`'${endpoint}' already registerd`)
+  }
+
+  cnetwork.endpoints.push(endpoint);
+
+  config.tezos.list = config.tezos.list.map(x => x.network == network ? cnetwork : x);
+  saveConfig(config, x => {console.log(`endpoint '${endpoint}' for network ${network} registered`)});
 }
 
 async function showAccount(options) {
@@ -615,32 +586,31 @@ async function setAccount(options) {
   }
 }
 
-async function getContractAddress(options) {
+async function showEntriesOf(options) {
   const contract = options.contract;
-
-  var args = ['show', 'known', 'contract', contract];
-  var res = "";
-  await callTezosClient(options, args, addr => { res = addr.trim() });
-  return res;
+  retrieveContract(contract, x => {
+    (async () => {
+      var args = ['--show-entries', '--json', x];
+      const res = await callArchetype(options, args);
+      console.log(res);
+    })();
+  });
 }
 
-async function showContract(options) {
-  const address = await getContractAddress(options);
-  console.log(address);
+async function removeContract(options) {
+  const account = options.account;
+
+  var args = ['forget', 'contract', account];
+  callTezosClient(options, args);
 }
 
 async function showUrl(options) {
+  const name = options.contract;
   const config = getConfig();
-  const address = await getContractAddress(options);
-
-  var l = "";
-  switch (config.tezos.network) {
-    case "main": { l = "mainnet"; break; }
-    case "edo": { l = "edo2net"; break; }
-    case "florence": { l = "florence"; break; }
-    default: break;
-  }
-  console.log("https://better-call.dev/" + l + "/" + address);
+  const c = getContract(name);
+  const n = config.tezos.list.find(x => x.network === config.tezos.network);
+  const url = n.bcd_url.replace('$address', c.address);
+  console.log(url);
 }
 
 async function commandNotFound(options) {
@@ -651,29 +621,54 @@ async function commandNotFound(options) {
 
 export async function process(options) {
   switch (options.command) {
-    case "help":
-      help(options);
-      break;
     case "init":
       initCompletium(options);
+      break;
+    case "help":
+      help(options);
       break;
     case "update_binaries":
       updateBinaries(options);
       break;
-    case "generate_account":
-      generateAccount(options);
+    case "show_endpoint":
+      showEndpoint(options);
       break;
-    case "transfer":
-      transfer(options);
+    case "switch_endpoint":
+      switchEndpoint(options);
+      break;
+    case "add_endpoint":
+      addEndpoint(options);
+      break;
+
+
+
+
+    case "remove_endpoint":
+      removeEndpoint(options);
+      break;
+    case "import_faucet":
+      importFaucet(options);
+      break;
+    case "import_privatekey":
+      importPrivatekey(options);
+      break;
+    case "import_mnemonic":
+      importMnemonic(options);
+      break;
+    case "show_account":
+      showAccount(options);
+      break;
+    case "set_account":
+      setAccount(options);
+      break;
+    case "switch_account":
+      switchAccount(options);
       break;
     case "remove_account":
       removeAccount(options);
       break;
-    case "remove_contract":
-      removeContract(options);
-      break;
-    case "show_account":
-      showAccount(options);
+    case "transfer":
+      transfer(options);
       break;
     case "deploy":
       deploy(options);
@@ -684,29 +679,14 @@ export async function process(options) {
     case "generate_json":
       generateJson(options);
       break;
-    case "config_set":
-      configSet(options);
-      break;
     case "show_entries_of":
-      showEntries(options);
-      break;
-    case "show_endpoint":
-      showEndpoint(options);
-      break;
-    case "switch_endpoint":
-      switchEndpoint(options);
-      break;
-    case "show_account":
-      showAccount(options);
-      break;
-    case "switch_account":
-      switchAccount(options);
-      break;
-    case "set_account":
-      setAccount(options);
+      showEntriesOf(options);
       break;
     case "show_contract":
       showContract(options);
+      break;
+    case "remove_contract":
+      removeContract(options);
       break;
     case "show_url":
       showUrl(options);
