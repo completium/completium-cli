@@ -4,6 +4,8 @@ import execa from 'execa';
 import path from 'path';
 import { TezosToolkit } from '@taquito/taquito';
 import { InMemorySigner, importKey } from '@taquito/signer';
+import { isNumber } from 'util';
+import { config } from 'process';
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -94,10 +96,14 @@ function removeAccountInternal(name, callback) {
   saveFile(accounts_path, obj, callback);
 }
 
-
 function getAccount(name) {
   var obj = getAccounts();
   return obj.accounts.find(x => x.name === name);
+}
+
+function getAccountFromIdOrAddr(input) {
+  var obj = getAccounts();
+  return obj.accounts.find(x => x.name === input || x.pkh === input);
 }
 
 function getSigner(forceAccount) {
@@ -178,9 +184,9 @@ async function help(options) {
   console.log("  switch account");
   console.log("  remove account <ACCOUNT_ALIAS>");
 
-  console.log("  transfer <AMOUNT> (tez|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>");
+  console.log("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME|ACCOUNT_ADDRESS> to <ACCOUNT_NAME|ACCOUNT_ADDRESS> [--force]");
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--burn-cap <BURN_CAP>] [--init <PARAMETERS>] [--force]");
-  console.log("  call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]");
+  console.log("  call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--force]");
   console.log("  generate json <FILE.arl>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
 
@@ -215,6 +221,7 @@ async function initCompletium(options) {
         {
           network: 'main',
           bcd_url: "https://better-call.dev/main/$address",
+          tzstat_url: "https://tzstats.com",
           endpoints: [
             'https://mainnet-tezos.giganode.io',
             'https://mainnet.smartpy.io',
@@ -225,6 +232,7 @@ async function initCompletium(options) {
         {
           network: 'edo',
           bcd_url: "https://better-call.dev/edo2net/$address",
+          tzstat_url: "https://edo.tzstats.com",
           endpoints: [
             'https://edonet-tezos.giganode.io',
             'https://edonet.smartpy.io'
@@ -233,6 +241,7 @@ async function initCompletium(options) {
         {
           network: 'florence',
           bcd_url: "https://better-call.dev/florence/$address",
+          tzstat_url: "https://florence.tzstats.com",
           endpoints: [
             'https://florence-tezos.giganode.io'
           ]
@@ -394,7 +403,7 @@ async function importPrivatekey(options) {
   importAccount("privatekey", options);
 }
 
-async function showAccount(options, withBalance) {
+async function showAccount(options) {
   const config = getConfig();
   const value = config.account;
 
@@ -478,6 +487,75 @@ async function removeAccount(options) {
   removeAccountInternal(value, x => { console.log(`'${value}' is removed`) });
 }
 
+function getAmount(raw) {
+  var v = raw.endsWith('utz') ? { str: raw.slice(0, -3), utz: true } : (raw.endsWith('tz') ? { str: raw.slice(0, -2), utz: false } : null);
+  if (isNull(v)) {
+    console.error(`Error: ${raw} is invalid format for amount, expected, for example, 1tz or 2utz`);
+    return null;
+  }
+  var value = Math.abs(v.str) * (v.utz ? 1 : 1000000);
+  if (!Number.isInteger(value)) {
+    console.log(`Error: ${raw} is a bad value, ${value} is not an integer.`);
+    return null;
+  }
+  return value;
+}
+
+async function confirmTransfer(force, amount, from, to) {
+  if (force) { return true }
+
+  const config = getConfig();
+
+  const Confirm = require('prompt-confirm');
+
+  const str = `do you want to transfer: ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${config.tezos.network} ?`;
+  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
+}
+
+async function transfer(options) {
+  const amount_raw = options.vamount;
+  const from_raw = options.from;
+  const to_raw = options.to;
+  const force = options.force;
+
+  const amount = getAmount(amount_raw);
+  if (isNull(amount)) {
+    return;
+  }
+
+  const accountFrom = getAccountFromIdOrAddr(from_raw);
+  if (isNull(accountFrom)) {
+    console.log(`Error: ${from_raw} is not found.`);
+    return;
+  }
+  var accountTo = getAccountFromIdOrAddr(to_raw);
+  if (isNull(accountTo) && !to_raw.startsWith('tz')) {
+    console.log(`Error: ${to_raw} bad account or address.`);
+    return;
+  }
+  const to = isNull(accountTo) ? to_raw : accountTo.name;
+
+  var confirm = await confirmTransfer(force, amount, accountFrom, to);
+  if (!confirm) {
+    return;
+  }
+
+  const to_addr = isNull(accountTo) ? to : accountTo.pkh;
+  const tezos = getTezos(accountFrom.name);
+
+  const config = getConfig();
+  const network = config.tezos.list.find(x => x.network === config.tezos.network);
+
+  console.log(`Transfering ${amount / 1000000} ꜩ from ${accountFrom.pkh} to ${to_addr}...`);
+  tezos.contract
+    .transfer({ to: to_addr, amount: amount, mutez: true })
+    .then((op) => {
+      console.log(`Waiting for ${op.hash} to be confirmed...`);
+      return op.confirmation(1).then(() => op.hash);
+    })
+    .then((hash) => console.log(`Operation injected: ${network.tzstat_url}/${hash}`))
+    .catch((error) => console.log(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
+}
 
 ///////////////
 
@@ -514,26 +592,6 @@ async function removeAccount(options) {
 //     return value;
 //   }
 // }
-
-// cli transfer <AMOUNT> from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>
-async function transfer(options) {
-  const amount = options.vamount;
-  const from = options.from;
-  const to = options.to;
-
-  var args = [
-    'transfer', amount,
-    'from', from,
-    'to', getContract(to),
-  ];
-  callTezosClient(options, args)
-    .then(
-      x => {
-
-      }
-    );
-}
-
 
 // cli deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--force]
 async function deploy(options) {
