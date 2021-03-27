@@ -65,11 +65,11 @@ function parseCommand(args) {
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
     res = { command: "transfer", vamount: args[3], from: args[5], to: args[7] };
     nargs = args.slice(8);
-    // deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>(tz|utz)] [--burn-cap <BURN_CAP>] [--init <PARAMETERS>] [--force]
+    // deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]
   } else if (length > 3 && args[2] === "deploy") {
     res = { command: "deploy", file: args[3] };
     nargs = args.slice(4);
-    // call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)] [--dry]
+    // call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)]
   } else if (length > 3 && args[2] === "call") {
     res = { command: "call_contract", contract: args[3] };
     nargs = args.slice(4);
