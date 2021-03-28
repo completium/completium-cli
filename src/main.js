@@ -56,15 +56,27 @@ function getContracts() {
   return res;
 }
 
-function saveContract(c) {
+function saveContract(c, callback) {
   var obj = getContracts();
-  obj.contracts.push(c);
-  saveFile(contracts_path, obj);
+  const name = c.name;
+  const a = obj.contracts.find(x => x.name === name);
+  if (isNull(a)) {
+    obj.contracts.push(c);
+  } else {
+    obj.contracts = obj.contracts.map(x => x.name === name ? c : x)
+  }
+  saveFile(contracts_path, obj, callback);
 }
 
 function getContract(name) {
   var obj = getContracts();
   var c = obj.contracts.find(x => x.name === name);
+  return c;
+}
+
+function getContractFromIdOrAddress(input) {
+  var obj = getContracts();
+  var c = obj.contracts.find(x => x.name === input || x.address === input);
   return c;
 }
 
@@ -173,6 +185,29 @@ function getAmount(raw) {
   return value;
 }
 
+function createScript(id, content, callback) {
+  const path = scripts_dir + '/' + id + '.json';
+  fs.writeFile(path, content, function (err) {
+    if (err) throw err;
+    callback(path);
+  });
+}
+
+function retrieveContract(contract, callback) {
+  var config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
+  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
+
+  var request = require('request');
+  request(url, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      createScript(contract, body, callback);
+    } else {
+      console.log(`Error: ${response.statusCode}`)
+    }
+  })
+}
+
 //////////////
 // COMMANDS //
 //////////////
@@ -233,7 +268,7 @@ async function initCompletium(options) {
       list: [
         {
           network: 'main',
-          bcd_url: "https://better-call.dev/main/$address",
+          bcd_url: "https://better-call.dev/main/${address}",
           tzstat_url: "https://tzstats.com",
           endpoints: [
             'https://mainnet-tezos.giganode.io',
@@ -244,7 +279,7 @@ async function initCompletium(options) {
         },
         {
           network: 'edo',
-          bcd_url: "https://better-call.dev/edo2net/$address",
+          bcd_url: "https://better-call.dev/edo2net/${address}",
           tzstat_url: "https://edo.tzstats.com",
           endpoints: [
             'https://edonet-tezos.giganode.io',
@@ -253,7 +288,7 @@ async function initCompletium(options) {
         },
         {
           network: 'florence',
-          bcd_url: "https://better-call.dev/florence/$address",
+          bcd_url: "https://better-call.dev/florence/${address}",
           tzstat_url: "https://florence.tzstats.com",
           endpoints: [
             'https://florence-tezos.giganode.io'
@@ -584,13 +619,12 @@ async function deploy(options) {
   const as = options.as;
   const force = options.force;
   const named = options.named;
-
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
   const account = getAccountFromIdOrAddr(isNull(as) ? config.account : as);
   if (isNull(account)) {
     if (isNull(as)) {
-        console.error(`Error: invalid account ${as}.`);
+      console.error(`Error: invalid account ${as}.`);
     } else {
       if (config.account === "") {
         console.error(`Error: account is not set.`);
@@ -653,73 +687,70 @@ async function deploy(options) {
         saveContract({ name: contract_name, address: contract.address, network: config.tezos.network },
           x => {
             console.log(`Origination completed for ${contract.address} named ${contract_name}.`);
-            const url = n.bcd_url.replace('$address', c.address);
+            const url = network.bcd_url.replace('${address}', contract.address);
             console.log(url);
-          } );
+          });
       })
       .catch((error) => console.log(`Error: ${JSON.stringify(error, null, 2)}`));
   }
   return;
 }
 
+async function confirmCall(force, contract_id, amount, entry, arg) {
+  if (force) { return true }
 
+  const config = getConfig();
 
+  const Confirm = require('prompt-confirm');
 
-///////////////
-
-
-
-
-
-function createScript(id, content, callback) {
-  const path = scripts_dir + '/' + id + '.json';
-  fs.writeFile(path, content, function (err) {
-    if (err) throw err;
-    callback(path);
-  });
+  const str = `do you want to call ${contract_id} with ${amount / 1000000}ꜩ on ${entry} with ${arg}?`;
+  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
-function retrieveContract(contract, callback) {
-  var config = getConfig();
-  const tezos_endpoint = config.tezos.endpoint;
-  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
+async function callTransfer(options, arg) {
+  const config = getConfig();
+  const force = options.force;
+  const entry = options.entry === undefined ? 'default' : options.entry;
 
-  var request = require('request');
-  request(url, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      createScript(contract, body, callback);
-    }
-    else {
-      console.log("Error " + response.statusCode)
-    }
-  })
-}
-
-async function callTezosTransfer(options, arg) {
-  const as = options.as;
-  const account = getAccount(as);
-
-  if (!isNull(account)) {
-    const contract = options.contract;
-    var entry = options.entry === undefined ? 'default' : options.entry;
-
-    const amount = options.amount === undefined ? '0' : options.amount;
-    const burnCap = options.burnCap === undefined ? '20' : options.burnCap;
-
-    if (entry !== undefined && entry.startsWith('%')) {
-      entry = entry.substring(1);
-    }
-
-    var args = [
-      'transfer', amount,
-      'from', account,
-      'to', getContract(contract),
-      '--entrypoint', entry,
-      '--arg', arg,
-      '--burn-cap', burnCap
-    ];
-    callTezosClient(options, args);
+  const contract_id = options.contract;
+  const contract = getContract(contract_id);
+  const contract_address = isNull(contract) ? contract_id : contract.address;
+  if (!contract_address.startsWith('KT1')) {
+    console.log(`Error: ${contract_address} is not a valid address for contract`);
   }
+
+  const as = isNull(options.as) ? config.account : options.as;
+  const account = getAccountFromIdOrAddr(as);
+  if (isNull(account)) {
+    console.log(`Error: account '${as}' not found`);
+    return null;
+  }
+
+  const amount_raw = isNull(options.amount) ? '0tz' : options.amount;
+  const amount = getAmount(amount_raw);
+  if (isNull(amount)) {
+    return;
+  }
+
+  var confirm = await confirmCall(force, contract_id, amount, entry, arg);
+  if (!confirm) {
+    return;
+  }
+
+  const tezos = getTezos(account.name);
+
+  const network = config.tezos.list.find(x => x.network === config.tezos.network);
+
+  console.log(`Calling ${amount / 1000000} ꜩ from ${account.pkh} to ${contract_address}...`);
+
+  tezos.contract
+    .transfer({ to: contract_address, amount: amount, mutez: true, parameter: "Unit" })
+    .then((op) => {
+      console.log(`Waiting for ${op.hash} to be confirmed...`);
+      return op.confirmation(1).then(() => op.hash);
+    })
+    .then((hash) => console.log(`Operation injected: ${network.tzstat_url}/${hash}`))
+    .catch((error) => console.log(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
 }
 
 async function getArg(options, callback) {
@@ -745,14 +776,13 @@ async function getArg(options, callback) {
   });
 }
 
-// cli call <CONTRACT_NAME> as <ACCOUNT_NAME> [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--dry]
 async function callContract(options) {
   const arg = options.with === undefined ? 'Unit' : options.with;
 
   if (arg !== 'Unit') {
-    getArg(options, arg => { callTezosTransfer(options, arg) });
+    getArg(options, arg => { callTransfer(options, arg) });
   } else {
-    callTezosTransfer(options, arg)
+    callTransfer(options, arg)
   }
 }
 
@@ -763,9 +793,17 @@ async function generateJson(options) {
   const res = await callArchetype(options, args);
   console.log(res);
 }
+
 async function showEntriesOf(options) {
-  const contract = options.contract;
-  retrieveContract(contract, x => {
+  const input = options.contract;
+  const contract = getContractFromIdOrAddress(input);
+
+  if (isNull(contract)) {
+    console.log(`Error: contract '${input}' is not found.`);
+    return;
+  }
+
+  retrieveContract(contract.address, x => {
     (async () => {
       var args = ['--show-entries', '--json', x];
       const res = await callArchetype(options, args);
@@ -775,18 +813,30 @@ async function showEntriesOf(options) {
 }
 
 async function removeContract(options) {
-  const account = options.account;
+  const input = options.contract;
 
-  var args = ['forget', 'contract', account];
-  callTezosClient(options, args);
+  var contract = getContractFromIdOrAddress(input);
+
+  if (isNull(contract)) {
+    console.log(`Error: contract '${input}' is not found.`);
+    return;
+  }
+
+  var obj = getContracts();
+  obj.contracts = obj.contracts.filter(x => { return (input !== x.name && input !== x.address) });
+  saveFile(contracts_path, obj, x => { console.log(`contract '${contract.name}' is removed (${contract.address}).`) });
 }
 
 async function showUrl(options) {
   const name = options.contract;
   const config = getConfig();
   const c = getContract(name);
-  const n = config.tezos.list.find(x => x.network === config.tezos.network);
-  const url = n.bcd_url.replace('$address', c.address);
+  if (isNull(c)) {
+    console.log(`Error: contract '${name}' is not found.`);
+    return;
+  }
+  const network = config.tezos.list.find(x => x.network === config.tezos.network);
+  const url = network.bcd_url.replace('${address}', c.address);
   console.log(url);
 }
 
@@ -869,61 +919,5 @@ export async function process(options) {
       commandNotFound(options);
   }
 
-  // console.log('%s Project ready', chalk.green.bold('DONE'));
   return true;
 }
-
-// const tasks = new Listr([
-//   {
-//     title: 'Display help',
-//     task: () => help(options),
-//     enabled: () => options.command === "help",
-//   },
-//   {
-//     title: 'Initialize completium',
-//     task: () => initCompletium(options),
-//     enabled: () => options.command === "init",
-//   },
-//   {
-//     title: 'Generate account',
-//     task: () => generateAccount(options),
-//     enabled: () => options.command === "generate_account",
-//   },
-//   {
-//     title: 'Transfer',
-//     task: () => transfer(options),
-//     enabled: () => options.command === "transfer",
-//   },
-//   {
-//     title: 'Remove',
-//     task: () => removeAccount(options),
-//     enabled: () => options.command === "remove",
-//   },
-//   {
-//     title: 'Show account',
-//     task: () => showAccount(options),
-//     enabled: () => options.command === "show_account",
-//   },
-//   {
-//     title: 'Deployment from archetype file',
-//     task: () => deploy(options),
-//     enabled: () => options.command === "deploy",
-//   },
-//   {
-//     title: 'Set property value',
-//     task: () => configSet(options),
-//     enabled: () => options.command === "config_set",
-//   },
-//   {
-//     title: 'Set property value',
-//     task: () => configSet(options),
-//     enabled: () => options.command === "config_set",
-//   },
-//   {
-//     title: 'Show entries of a contract',
-//     task: () => showEntries(options),
-//     enabled: () => options.command === "show_entries_of",
-//   }
-// ]);
-
-// await tasks.run();

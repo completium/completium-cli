@@ -85,9 +85,9 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
     res = { command: "show_contract", contract: args[4] };
     nargs = args.slice(5);
-    // remove contract <CONTRACT_NAME>
+    // remove contract <CONTRACT_NAME|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "contract") {
-    res = { command: "remove_contract", account: args[4] };
+    res = { command: "remove_contract", contract: args[4] };
     nargs = args.slice(5);
     // show url <CONTRACT_NAME>
   } else if (length > 4 && args[2] === "show" && args[3] === "url") {
