@@ -448,7 +448,7 @@ async function importAccount(kind, options) {
   const pkh = await tezos.signer.publicKeyHash();
   tezos.signer.secretKey().then(x => {
     saveAccount({ name: account, pkh: pkh, key: { kind: 'private_key', value: x } },
-      x => { console.log(`${account} saved.`) });
+      x => { console.log(`Account ${pkh} is registered as '${account}'.`) });
   })
     .catch(console.error);
 }
