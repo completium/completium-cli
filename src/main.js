@@ -48,17 +48,17 @@ async function saveConfig(config, callback) {
   await saveFile(config_path, config, callback);
 }
 
-async function getContracts() {
+function getContracts() {
   if (!fs.existsSync(contracts_path)) {
-    await saveFile(contracts_path, { contracts: [] });
-    await fs.chmodSync(contracts_path, '770');
+    console.log(`Error: completium is not initialized, try to 'completium-cli init'`);
+    return null;
   }
   var res = JSON.parse(fs.readFileSync(contracts_path, 'utf8'));
   return res;
 }
 
 async function saveContract(c, callback) {
-  var obj = await getContracts();
+  var obj = getContracts();
   const name = c.name;
   const a = obj.contracts.find(x => x.name === name);
   if (isNull(a)) {
@@ -66,31 +66,32 @@ async function saveContract(c, callback) {
   } else {
     obj.contracts = obj.contracts.map(x => x.name === name ? c : x)
   }
-  await saveFile(contracts_path, obj, callback);
+  saveFile(contracts_path, obj, callback);
 }
 
-async function getContract(name) {
-  var obj = await getContracts();
+function getContract(name) {
+  var obj = getContracts();
   var c = obj.contracts.find(x => x.name === name);
   return c;
 }
 
-async function getContractFromIdOrAddress(input) {
-  var obj = await getContracts();
+function getContractFromIdOrAddress(input) {
+  var obj = getContracts();
   var c = obj.contracts.find(x => x.name === input || x.address === input);
   return c;
 }
 
-async function getAccounts() {
+function getAccounts() {
   if (!fs.existsSync(accounts_path)) {
-    await saveFile(accounts_path, { accounts: [] }, x => { fs.chmodSync(accounts_path, '770') });
+    console.log(`Error: completium is not initialized, try to 'completium-cli init'`);
+    return null;
   }
   var res = JSON.parse(fs.readFileSync(accounts_path, 'utf8'));
   return res;
 }
 
 async function saveAccount(c, callback) {
-  var obj = await getAccounts();
+  var obj = getAccounts();
   const name = c.name;
   const a = obj.accounts.find(x => x.name === name);
   if (isNull(a)) {
@@ -108,8 +109,8 @@ function removeAccountInternal(name, callback) {
   saveFile(accounts_path, obj, callback);
 }
 
-async function getAccount(name) {
-  var obj = await getAccounts();
+function getAccount(name) {
+  var obj = getAccounts();
   return obj.accounts.find(x => x.name === name);
 }
 
@@ -298,7 +299,11 @@ async function initCompletium(options) {
       ]
     }
   };
-  saveFile(config_path, config, (x => { console.log("Completium initialized successfully!") }));
+  saveFile(config_path, config, (x => {
+    saveFile(accounts_path, { accounts: [] }, (y => {
+      saveFile(contracts_path, { contracts: [] }, (z => { console.log("Completium initialized successfully!") }));
+    }))
+  }));
 }
 
 async function updateBinaries(options) {
@@ -401,7 +406,7 @@ async function removeEndpoint(options) {
 }
 
 async function confirmAccount(force, account) {
-  if (force || isNull(await getAccount(account))) { return new Promise(true) }
+  if (force || isNull(getAccount(account))) { return true }
 
   const Confirm = require('prompt-confirm');
 
@@ -414,7 +419,7 @@ async function importAccount(kind, options) {
   const account = options.account;
   const force = options.force;
 
-  var confirm = confirmAccount(force, account);
+  var confirm = await confirmAccount(force, account);
   if (!confirm) {
     return;
   }
@@ -422,11 +427,9 @@ async function importAccount(kind, options) {
   const config = getConfig();
   const tezos_endpoint = config.tezos.endpoint;
   const tezos = new TezosToolkit(tezos_endpoint);
-  var pkh = null;
   switch (kind) {
     case "faucet":
       const faucet = loadJS(value);
-      pkh = faucet.pkh;
       importKey(tezos,
         faucet.email,
         faucet.password,
@@ -442,9 +445,7 @@ async function importAccount(kind, options) {
     default:
       break;
   }
-  if (isNull(pkh)) {
-    pkh = await tezos.signer.publicKeyHash();
-  }
+  const pkh = tezos.signer.publicKeyHash();
   tezos.signer.secretKey().then(x => {
     saveAccount({ name: account, pkh: pkh, key: { kind: 'private_key', value: x } },
       x => { console.log(`${account} saved.`) });
@@ -862,7 +863,7 @@ async function removeContract(options) {
     return;
   }
 
-  var obj = await getContracts();
+  var obj = getContracts();
   obj.contracts = obj.contracts.filter(x => { return (input !== x.name && input !== x.address) });
   saveFile(contracts_path, obj, x => { console.log(`contract '${contract.name}' is removed (${contract.address}).`) });
 }

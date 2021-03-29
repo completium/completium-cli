@@ -17,6 +17,7 @@ function parseCommand(args) {
   } else if (length > 2 && args[2] === "help") {
     res = { command: "help" };
     nargs = args.slice(3);
+    // version
   } else if (length > 2 && args[2] === "version") {
     res = { command: "show_version" };
     nargs = args.slice(3);
