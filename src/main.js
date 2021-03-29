@@ -401,7 +401,7 @@ async function removeEndpoint(options) {
 }
 
 async function confirmAccount(force, account) {
-  if (force || isNull(getAccount(account))) { return true }
+  if (force || isNull(await getAccount(account))) { return new Promise(true) }
 
   const Confirm = require('prompt-confirm');
 
@@ -414,7 +414,7 @@ async function importAccount(kind, options) {
   const account = options.account;
   const force = options.force;
 
-  var confirm = await confirmAccount(force, account);
+  var confirm = confirmAccount(force, account);
   if (!confirm) {
     return;
   }
