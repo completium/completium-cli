@@ -7,6 +7,8 @@ import { InMemorySigner, importKey } from '@taquito/signer';
 import { isNumber } from 'util';
 import { config } from 'process';
 
+const version = '0.1.0'
+
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
 // const public_contracts_path = tezos_client_dir + '/contracts'
@@ -51,6 +53,7 @@ function saveConfig(config, callback) {
 function getContracts() {
   if (!fs.existsSync(contracts_path)) {
     saveFile(contracts_path, { contracts: [] });
+    fs.chmodSync(contracts_path, '770');
   }
   var res = JSON.parse(fs.readFileSync(contracts_path, 'utf8'));
   return res;
@@ -83,6 +86,7 @@ function getContractFromIdOrAddress(input) {
 function getAccounts() {
   if (!fs.existsSync(accounts_path)) {
     saveFile(accounts_path, { accounts: [] });
+    fs.chmodSync(accounts_path, '770');
   }
   var res = JSON.parse(fs.readFileSync(accounts_path, 'utf8'));
   return res;
@@ -216,6 +220,7 @@ async function help(options) {
   console.log("command:");
   console.log("  init")
   console.log("  help");
+  console.log("  version")
   console.log("  update binaries");
 
   console.log("  show endpoint");
@@ -308,6 +313,10 @@ async function updateBinaries(options) {
   config.bin.archetype = path_archetype;
   saveConfig(config);
   console.log(`Binaries is updated`);
+}
+
+async function showVersion(options) {
+  console.log(version);
 }
 
 async function showEndpoint(options) {
@@ -416,9 +425,11 @@ async function importAccount(kind, options) {
   const config = getConfig();
   const tezos_endpoint = config.tezos.endpoint;
   const tezos = new TezosToolkit(tezos_endpoint);
+  var pkh = null;
   switch (kind) {
     case "faucet":
       const faucet = loadJS(value);
+      pkh = faucet.pkh;
       importKey(tezos,
         faucet.email,
         faucet.password,
@@ -434,7 +445,9 @@ async function importAccount(kind, options) {
     default:
       break;
   }
-  var pkh = await tezos.signer.publicKeyHash();
+  if (isNull(pkh)) {
+    pkh = await tezos.signer.publicKeyHash();
+  }
   tezos.signer.secretKey().then(x => {
     saveAccount({ name: account, pkh: pkh, key: { kind: 'private_key', value: x } },
       x => { console.log(`${account} saved.`) });
@@ -751,7 +764,7 @@ async function callTransfer(options, arg) {
   console.log(`Calling ${amount / 1000000} ꜩ from ${account.pkh} to ${contract_address}...`);
 
   tezos.contract
-    .transfer({ to: contract_address, amount: amount, mutez: true, parameter: {entrypoint: entry, value: arg}})
+    .transfer({ to: contract_address, amount: amount, mutez: true, parameter: { entrypoint: entry, value: arg } })
     .then((op) => {
       console.log(`Waiting for ${op.hash} to be confirmed...`);
       return op.confirmation(1).then(() => op.hash);
@@ -883,6 +896,9 @@ export async function process(options) {
       break;
     case "help":
       help(options);
+      break;
+    case "show_version":
+      showVersion(options);
       break;
     case "update_binaries":
       updateBinaries(options);

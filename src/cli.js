@@ -17,6 +17,9 @@ function parseCommand(args) {
   } else if (length > 2 && args[2] === "help") {
     res = { command: "help" };
     nargs = args.slice(3);
+  } else if (length > 2 && args[2] === "version") {
+    res = { command: "show_version" };
+    nargs = args.slice(3);
     // update binaries
   } else if (length > 3 && args[2] === "update" && args[3] === "binaries") {
     res = { command: "update_binaries" };
