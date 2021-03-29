@@ -442,8 +442,19 @@ async function setEndpoint(options) {
 
 async function removeEndpoint(options) {
   const endpoint = options.endpoint;
-
   const config = getConfig();
+
+  const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
+
+  if (isNull(network)) {
+    return console.log(`Error: '${endpoint}' is not found.`);
+  }
+
+
+  if (config.tezos.endpoint === endpoint) {
+    return console.log(`Error: cannot remove endpoint '${endpoint}' because it is currently set as the default endpoint. Switch to another endpoint before removing.`);
+  }
+
   const l = config.tezos.list.map(x =>
   ({
     ...x,
@@ -452,7 +463,7 @@ async function removeEndpoint(options) {
   );
 
   config.tezos.list = l;
-  saveConfig(config, x => { console.log(`configuration file updated.`) });
+  saveConfig(config, x => { console.log(`'${endpoint}' is removed, configuration file updated.`) });
 }
 
 async function confirmAccount(force, account) {
