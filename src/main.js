@@ -234,15 +234,15 @@ async function help(options) {
   console.log("  switch account");
   console.log("  remove account <ACCOUNT_ALIAS>");
 
-  console.log("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME|ACCOUNT_ADDRESS> to <ACCOUNT_NAME|ACCOUNT_ADDRESS> [--force]");
-  console.log("  deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>] [--init <PARAMETERS>] [--force]");
-  console.log("  call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>] [--force]");
-  console.log("  generate json <FILE.arl>");
+  console.log("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
+  console.log("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>] [--init <PARAMETERS>] [--force]");
+  console.log("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>] [--force]");
+  console.log("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   console.log("  show entries of <CONTRACT_ADDRESS>");
 
-  console.log("  show contract <CONTRACT_NAME>");
-  console.log("  remove contract <CONTRACT_NAME>");
-  console.log("  show url <CONTRACT_NAME>");
+  console.log("  show contract <CONTRACT_ALIAS>");
+  console.log("  remove contract <CONTRACT_ALIAS>");
+  console.log("  show url <CONTRACT_ALIAS>");
 }
 
 async function initCompletium(options) {
@@ -811,7 +811,7 @@ async function callContract(options) {
   }
 }
 
-async function generateJson(options) {
+async function generateJavascript(options) {
   const x = options.path;
 
   var args = ['--json', '--only-code', x];
@@ -948,8 +948,8 @@ export async function process(options) {
     case "call_contract":
       callContract(options);
       break;
-    case "generate_json":
-      generateJson(options);
+    case "generate_javascript":
+      generateJavascript(options);
       break;
     case "show_entries_of":
       showEntriesOf(options);

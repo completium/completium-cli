@@ -77,9 +77,9 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "call") {
     res = { command: "call_contract", contract: args[3] };
     nargs = args.slice(4);
-    // generate json <FILE.arl>
-  } else if (length > 4 && args[2] === "generate" && args[3] === "json") {
-    res = { command: "generate_json", path: args[4] };
+    // generate javascript <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "javascript") {
+    res = { command: "generate_javascript", path: args[4] };
     nargs = args.slice(5);
     // show entries of <CONTRACT_ADDRESS>
   } else if (length > 5 && args[2] === "show" && args[3] === "entries" && args[4] === "of") {
