@@ -50,7 +50,7 @@ async function saveConfig(config, callback) {
 
 function getContracts() {
   if (!fs.existsSync(contracts_path)) {
-    console.log(`Error: completium is not initialized, try to 'completium-cli init'`);
+    console.log(`Error: completium is not initialized, try 'completium-cli init'`);
     return null;
   }
   var res = JSON.parse(fs.readFileSync(contracts_path, 'utf8'));
@@ -83,7 +83,7 @@ function getContractFromIdOrAddress(input) {
 
 function getAccounts() {
   if (!fs.existsSync(accounts_path)) {
-    console.log(`Error: completium is not initialized, try to 'completium-cli init'`);
+    console.log(`Error: completium is not initialized, try 'completium-cli init'`);
     return null;
   }
   var res = JSON.parse(fs.readFileSync(accounts_path, 'utf8'));
@@ -176,12 +176,12 @@ async function callArchetype(options, args) {
 function getAmount(raw) {
   var v = raw.endsWith('utz') ? { str: raw.slice(0, -3), utz: true } : (raw.endsWith('tz') ? { str: raw.slice(0, -2), utz: false } : null);
   if (isNull(v)) {
-    console.error(`Error: ${raw} is invalid format for amount, expected, for example, 1tz or 2utz`);
+    console.error(`Error: ${raw} is an invalid value; expecting for example, 1tz or 2utz.`);
     return null;
   }
   var value = Math.abs(v.str) * (v.utz ? 1 : 1000000);
   if (!Number.isInteger(value)) {
-    console.log(`Error: ${raw} is a bad value, ${value} is not an integer.`);
+    console.log(`Error: ${raw} is an invalid value; ${value} is not an integer.`);
     return null;
   }
   return value;
@@ -377,17 +377,17 @@ async function addEndpoint(options) {
 
   if (isNull(cnetwork)) {
     const networks = config.tezos.list.map(x => x.network);
-    return console.log(`Error: '${network}' is not found, expected: ${networks}`)
+    return console.log(`Error: '${network}' is not found, expecting one of ${networks}.`)
   }
 
   if (cnetwork.endpoints.includes(endpoint)) {
-    return console.log(`Error: '${endpoint}' already registerd`)
+    return console.log(`Error: '${endpoint}' is already registered.`)
   }
 
   cnetwork.endpoints.push(endpoint);
 
   config.tezos.list = config.tezos.list.map(x => x.network == network ? cnetwork : x);
-  saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network} registered`) });
+  saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network} registered.`) });
 }
 
 async function removeEndpoint(options) {
@@ -402,7 +402,7 @@ async function removeEndpoint(options) {
   );
 
   config.tezos.list = l;
-  saveConfig(config, x => { console.log(`configuration file updated`) });
+  saveConfig(config, x => { console.log(`configuration file updated.`) });
 }
 
 async function confirmAccount(force, account) {
@@ -410,7 +410,7 @@ async function confirmAccount(force, account) {
 
   const Confirm = require('prompt-confirm');
 
-  const str = `${account} already exists, do you want to overwrite ?`;
+  const str = `${account} already exists, do you want to overwrite?`;
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
@@ -466,11 +466,11 @@ async function showAccount(options) {
   const value = config.account;
 
   if (isNull(value)) {
-    console.log("Error: no account is set");
+    console.log("Error: no account is set.");
   } else {
     const account = getAccount(value);
     if (isNull(account)) {
-      return console.log(`Error: ${account} not found, set another`);
+      return console.log(`Error: ${account} is not found.`);
     }
     const tezos = getTezos();
 
@@ -522,11 +522,11 @@ async function setAccount(options) {
 
   const account = getAccount(value);
   if (isNull(account)) {
-    return console.log(`Error: '${value}' is not found`);
+    return console.log(`Error: '${value}' is not found.`);
   }
   const config = getConfig();
   config.account = value;
-  saveConfig(config, x => { console.log(`'${value}' is set as current account`) });
+  saveConfig(config, x => { console.log(`'${value}' is set as current account.`) });
 }
 
 async function removeAccount(options) {
@@ -534,15 +534,15 @@ async function removeAccount(options) {
 
   const account = getAccount(value);
   if (isNull(account)) {
-    return console.log(`Error: '${value}' is not found`);
+    return console.log(`Error: '${value}' is not found.`);
   }
 
   const config = getConfig();
   if (config.account === value) {
-    return console.log(`Error: cannot remove '${value}', this account is currently set as default account, please set another one before to do this.`);
+    return console.log(`Error: cannot remove account '${value}' because it is currently set as the default account. Switch to another account before removing.`);
   }
 
-  removeAccountInternal(value, x => { console.log(`'${value}' is removed`) });
+  removeAccountInternal(value, x => { console.log(`'${value}' is removed.`) });
 }
 
 async function confirmTransfer(force, amount, from, to) {
@@ -552,7 +552,7 @@ async function confirmTransfer(force, amount, from, to) {
 
   const Confirm = require('prompt-confirm');
 
-  const str = `do you want to transfer: ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${config.tezos.network} ?`;
+  const str = `Confirm transfer ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${config.tezos.network}?`;
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
@@ -569,12 +569,12 @@ async function transfer(options) {
 
   const accountFrom = getAccountFromIdOrAddr(from_raw);
   if (isNull(accountFrom)) {
-    console.log(`Error: ${from_raw} is not found.`);
+    console.log(`Error: '${from_raw}' is not found.`);
     return;
   }
   var accountTo = getAccountFromIdOrAddr(to_raw);
   if (isNull(accountTo) && !to_raw.startsWith('tz')) {
-    console.log(`Error: ${to_raw} bad account or address.`);
+    console.log(`Error: '${to_raw}' bad account or address.`);
     return;
   }
   const to = isNull(accountTo) ? to_raw : accountTo.name;
@@ -606,7 +606,7 @@ async function confirmContract(force, id) {
 
   const Confirm = require('prompt-confirm');
 
-  const str = `${id} already exists, do you want to overwrite ?`;
+  const str = `${id} already exists, overwrite it?`;
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
@@ -617,7 +617,7 @@ async function continueContract(force, id, from, amount) {
 
   const Confirm = require('prompt-confirm');
 
-  const str = `do you want to originate contract ${id} with ${amount / 1000000} ꜩ from ${from.name} on ${config.tezos.network} ?`;
+  const str = `Confirm contract ${id} origination by '${from.name}' with ${amount / 1000000} ꜩ on ${config.tezos.network}?`;
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
@@ -661,7 +661,7 @@ async function deploy(options) {
     fs.writeFile(contract_script, res, function (err) {
       if (err) throw err;
       if (verbose)
-        console.log('Contract js script saved!');
+        console.log(`JS script for contract ${contract_name} is saved.`);
     });
   }
 
@@ -714,7 +714,7 @@ async function confirmCall(force, account, contract_id, amount, entry, arg) {
   const Confirm = require('prompt-confirm');
 
   const arg_string = JSON.stringify(arg);
-  const str = `do you want to call ${contract_id} from ${account.name} with ${amount / 1000000}ꜩ on ${entry} with ${arg_string}?`;
+  const str = `Confirm call to entry point ${entry} of contract ${contract_id} by '${account.name}' with ${amount / 1000000} ꜩ and argument ${arg_string}?`;
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
@@ -728,19 +728,19 @@ async function callTransfer(options, arg) {
   const contract_address = isNull(contract) ? contract_id : contract.address;
 
   if (contract.network !== config.tezos.network) {
-    console.log(`Error: expected ${contract.network}`);
+    console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
     return null;
   }
 
   if (!contract_address.startsWith('KT1')) {
-    console.log(`Error: ${contract_address} is not a valid address for contract`);
+    console.log(`Error: ${contract_address} is not a valid address for contract.`);
     return null;
   }
 
   const as = isNull(options.as) ? config.account : options.as;
   const account = getAccountFromIdOrAddr(as);
   if (isNull(account)) {
-    console.log(`Error: account '${as}' not found`);
+    console.log(`Error: account '${as}' is not found.`);
     return null;
   }
 
@@ -759,12 +759,12 @@ async function callTransfer(options, arg) {
 
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
-  console.log(`Calling ${amount / 1000000} ꜩ from ${account.pkh} to ${contract_address}...`);
+  console.log(`Account '${account.pkh}' is calling ${entry} of ${contract_address} with ${amount / 1000000} ꜩ...`);
 
   tezos.contract
     .transfer({ to: contract_address, amount: amount, mutez: true, parameter: { entrypoint: entry, value: arg } })
     .then((op) => {
-      console.error.log(`Waiting for ${op.hash} to be confirmed...`);
+      console.log(`Waiting for ${op.hash} to be confirmed...`);
       return op.confirmation(1).then(() => op.hash);
     })
     .then((hash) => console.log(`Operation injected: ${network.tzstat_url}/${hash}`))
