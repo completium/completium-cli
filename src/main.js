@@ -764,11 +764,15 @@ async function callTransfer(options, arg) {
   tezos.contract
     .transfer({ to: contract_address, amount: amount, mutez: true, parameter: { entrypoint: entry, value: arg } })
     .then((op) => {
-      console.log(`Waiting for ${op.hash} to be confirmed...`);
+      console.error.log(`Waiting for ${op.hash} to be confirmed...`);
       return op.confirmation(1).then(() => op.hash);
     })
     .then((hash) => console.log(`Operation injected: ${network.tzstat_url}/${hash}`))
-    .catch((error) => console.log(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
+    .catch(
+      error => {
+        console.log({...error, errors:'...'});
+      }
+    );
 }
 
 async function getArg(options, callback) {
