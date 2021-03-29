@@ -19,7 +19,11 @@
   },
   "keywords": [
     "cli",
-    "completium-cli"
+    "completium-cli",
+    "tezos",
+    "archetype",
+    "smart-contract",
+    "dapp"
   ],
   "author": "completium",
   "license": "MIT",
