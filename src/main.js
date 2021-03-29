@@ -36,31 +36,29 @@ function getConfig() {
   return (loadJS(config_path));
 }
 
-function saveFile(path, c, callback) {
+async function saveFile(path, c, callback) {
   const content = JSON.stringify(c, null, 2);
-  fs.writeFile(path, content, function (err) {
-    if (err) return console.log(err);
-    if (callback !== undefined) {
-      callback();
-    }
-  });
+  await fs.writeFile(path, content, (err) => { if (err) return console.log(err); });
+  if (callback !== undefined) {
+    callback();
+  }
 }
 
-function saveConfig(config, callback) {
-  saveFile(config_path, config, callback);
+async function saveConfig(config, callback) {
+  await saveFile(config_path, config, callback);
 }
 
-function getContracts() {
+async function getContracts() {
   if (!fs.existsSync(contracts_path)) {
-    saveFile(contracts_path, { contracts: [] });
-    fs.chmodSync(contracts_path, '770');
+    await saveFile(contracts_path, { contracts: [] });
+    await fs.chmodSync(contracts_path, '770');
   }
   var res = JSON.parse(fs.readFileSync(contracts_path, 'utf8'));
   return res;
 }
 
-function saveContract(c, callback) {
-  var obj = getContracts();
+async function saveContract(c, callback) {
+  var obj = await getContracts();
   const name = c.name;
   const a = obj.contracts.find(x => x.name === name);
   if (isNull(a)) {
@@ -68,32 +66,31 @@ function saveContract(c, callback) {
   } else {
     obj.contracts = obj.contracts.map(x => x.name === name ? c : x)
   }
-  saveFile(contracts_path, obj, callback);
+  await saveFile(contracts_path, obj, callback);
 }
 
-function getContract(name) {
-  var obj = getContracts();
+async function getContract(name) {
+  var obj = await getContracts();
   var c = obj.contracts.find(x => x.name === name);
   return c;
 }
 
-function getContractFromIdOrAddress(input) {
-  var obj = getContracts();
+async function getContractFromIdOrAddress(input) {
+  var obj = await getContracts();
   var c = obj.contracts.find(x => x.name === input || x.address === input);
   return c;
 }
 
-function getAccounts() {
+async function getAccounts() {
   if (!fs.existsSync(accounts_path)) {
-    saveFile(accounts_path, { accounts: [] });
-    fs.chmodSync(accounts_path, '770');
+    await saveFile(accounts_path, { accounts: [] }, x => { fs.chmodSync(accounts_path, '770') });
   }
   var res = JSON.parse(fs.readFileSync(accounts_path, 'utf8'));
   return res;
 }
 
-function saveAccount(c, callback) {
-  var obj = getAccounts();
+async function saveAccount(c, callback) {
+  var obj = await getAccounts();
   const name = c.name;
   const a = obj.accounts.find(x => x.name === name);
   if (isNull(a)) {
@@ -111,8 +108,8 @@ function removeAccountInternal(name, callback) {
   saveFile(accounts_path, obj, callback);
 }
 
-function getAccount(name) {
-  var obj = getAccounts();
+async function getAccount(name) {
+  var obj = await getAccounts();
   return obj.accounts.find(x => x.name === name);
 }
 
@@ -865,7 +862,7 @@ async function removeContract(options) {
     return;
   }
 
-  var obj = getContracts();
+  var obj = await getContracts();
   obj.contracts = obj.contracts.filter(x => { return (input !== x.name && input !== x.address) });
   saveFile(contracts_path, obj, x => { console.log(`contract '${contract.name}' is removed (${contract.address}).`) });
 }
