@@ -1,4 +1,4 @@
-import fs, { exists } from 'fs';
+import fs, { copyFile, exists } from 'fs';
 import wget from 'node-wget';
 import execa from 'execa';
 import path from 'path';
@@ -18,6 +18,7 @@ const contracts_path = completium_dir + '/contracts.json'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
+const sources_dir = completium_dir + "/sources"
 
 ///////////
 // TOOLS //
@@ -209,6 +210,13 @@ function retrieveContract(contract, callback) {
   })
 }
 
+async function getArchetypeVersion() {
+  return new Promise(resolve => {
+    const output = callArchetype([], ['--version']);
+    resolve(output)
+  });
+}
+
 //////////////
 // COMMANDS //
 //////////////
@@ -244,6 +252,7 @@ async function help(options) {
   console.log("  show contract <CONTRACT_ALIAS>");
   console.log("  remove contract <CONTRACT_ALIAS>");
   console.log("  show url <CONTRACT_ALIAS>");
+  console.log("  show source <CONTRACT_ALIAS>");
 }
 
 async function initCompletium(options) {
@@ -258,6 +267,10 @@ async function initCompletium(options) {
 
   if (!fs.existsSync(scripts_dir)) {
     fs.mkdirSync(scripts_dir, { recursive: true });
+  }
+
+  if (!fs.existsSync(sources_dir)) {
+    fs.mkdirSync(sources_dir, { recursive: true });
   }
 
   const config = {
@@ -622,6 +635,18 @@ async function continueContract(force, id, from, amount) {
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
+async function copySource(arl, contract_name) {
+  return new Promise(resolve => {
+    fs.readFile(arl, 'utf8', (err, data) => {
+      const source_path = sources_dir + '/' + contract_name + ".arl";
+      fs.writeFile(source_path, data, (err) => {
+        if (err) throw err;
+        resolve(source_path);
+      });
+    });
+  });
+}
+
 async function deploy(options) {
   const config = getConfig();
 
@@ -649,7 +674,7 @@ async function deploy(options) {
   const amount = isNull(options.amount) ? 0 : getAmount(options.amount);
   if (isNull(amount)) { return; };
 
-  const contract_name = named === undefined ? path.basename(arl) : named;
+  const contract_name = named === undefined ? path.basename(arl).split('.').slice(0, -1).join('.') : named;
   var confirm = await confirmContract(force, contract_name);
   if (!confirm) {
     return;
@@ -666,6 +691,8 @@ async function deploy(options) {
     });
   }
 
+  const source = await copySource(arl, contract_name);
+  const version = await getArchetypeVersion();
 
   var cont = await continueContract(force, contract_name, account, amount);
   if (!cont) {
@@ -695,7 +722,14 @@ async function deploy(options) {
         return originationOp.contract();
       })
       .then((contract) => {
-        saveContract({ name: contract_name, address: contract.address, network: config.tezos.network },
+        saveContract({
+          name: contract_name,
+          address: contract.address,
+          network: config.tezos.network,
+          language: 'archetype',
+          compiler_version: version,
+          source: source
+        },
           x => {
             console.log(`Origination completed for ${contract.address} named ${contract_name}.`);
             const url = network.bcd_url.replace('${address}', contract.address);
@@ -771,7 +805,7 @@ async function callTransfer(options, arg) {
     .then((hash) => console.log(`Operation injected: ${network.tzstat_url}/${hash}`))
     .catch(
       error => {
-        console.log({...error, errors:'...'});
+        console.log({ ...error, errors: '...' });
       }
     );
 }
@@ -886,6 +920,19 @@ async function showUrl(options) {
   console.log(url);
 }
 
+async function showSource(options) {
+  const name = options.contract;
+  const c = getContract(name);
+  if (isNull(c)) {
+    console.log(`Error: contract '${name}' is not found.`);
+    return;
+  }
+  fs.readFile(c.source, 'utf8', (err, data) => {
+    if (err) { throw err }
+    console.log(data)
+  });
+}
+
 async function commandNotFound(options) {
   console.log("commandNotFound: " + options.command);
   help(options);
@@ -963,6 +1010,9 @@ export async function process(options) {
       break;
     case "show_url":
       showUrl(options);
+      break;
+    case "show_source":
+      showSource(options);
       break;
     default:
       commandNotFound(options);

@@ -65,15 +65,15 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
     res = { command: "remove_account", account: args[4] };
     nargs = args.slice(5);
-    // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_NAME>
+    // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
     res = { command: "transfer", vamount: args[3], from: args[5], to: args[7] };
     nargs = args.slice(8);
-    // deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_NAME>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]
+    // deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]
   } else if (length > 3 && args[2] === "deploy") {
     res = { command: "deploy", file: args[3] };
     nargs = args.slice(4);
-    // call <CONTRACT_NAME> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)]
+    // call <CONTRACT_ALIAS> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)]
   } else if (length > 3 && args[2] === "call") {
     res = { command: "call_contract", contract: args[3] };
     nargs = args.slice(4);
@@ -85,17 +85,21 @@ function parseCommand(args) {
   } else if (length > 5 && args[2] === "show" && args[3] === "entries" && args[4] === "of") {
     res = { command: "show_entries_of", contract: args[5] };
     nargs = args.slice(6);
-    // show contract <CONTRACT_NAME>
+    // show contract <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
     res = { command: "show_contract", contract: args[4] };
     nargs = args.slice(5);
-    // remove contract <CONTRACT_NAME|CONTRACT_ADDRESS>
+    // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "contract") {
     res = { command: "remove_contract", contract: args[4] };
     nargs = args.slice(5);
-    // show url <CONTRACT_NAME>
+    // show url <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "url") {
     res = { command: "show_url", contract: args[4] };
+    nargs = args.slice(5);
+    // show source <CONTRACT_ALIAS>
+  } else if (length > 4 && args[2] === "show" && args[3] === "source") {
+    res = { command: "show_source", contract: args[4] };
     nargs = args.slice(5);
   }
 
