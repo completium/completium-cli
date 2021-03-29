@@ -196,14 +196,15 @@ function createScript(contract, content, callback) {
   });
 }
 
-function retrieveContract(contract, callback) {
+function retrieveContract(contract_address, callback) {
   var config = getConfig();
+  console.log(`Network: ${config.tezos.network}`);
   const tezos_endpoint = config.tezos.endpoint;
-  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract.address + '/script';
+  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/script';
   var request = require('request');
   request(url, function (error, response, body) {
     if (!error && response.statusCode == 200) {
-      createScript(contract, body, callback);
+      createScript(contract_address, body, callback);
     } else {
       console.log(`Error: ${response.statusCode}`)
     }
@@ -249,9 +250,9 @@ async function help(options) {
   console.log("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>] [--init <PARAMETERS>] [--force]");
   console.log("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>] [--force]");
   console.log("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
-  console.log("  show entries of <CONTRACT_ADDRESS>");
 
   console.log("  show contract <CONTRACT_ALIAS>");
+  console.log("  show entries <CONTRACT_ADDRESS>");
   console.log("  remove contract <CONTRACT_ALIAS>");
   console.log("  show url <CONTRACT_ALIAS>");
   console.log("  show source <CONTRACT_ALIAS>");
@@ -873,24 +874,6 @@ async function generateJavascript(options) {
   console.log(res);
 }
 
-async function showEntriesOf(options) {
-  const input = options.contract;
-  const contract = getContractFromIdOrAddress(input);
-
-  if (isNull(contract)) {
-    console.log(`Error: contract '${input}' is not found.`);
-    return;
-  }
-
-  retrieveContract(contract.address, x => {
-    (async () => {
-      var args = ['--show-entries', '--json', x];
-      const res = await callArchetype(options, args);
-      console.log(res);
-    })();
-  });
-}
-
 async function showContract(options) {
   const input = options.contract;
 
@@ -908,7 +891,38 @@ async function showContract(options) {
   console.log(`Name:    ${contract.name}`);
   console.log(`Network: ${contract.network}`);
   console.log(`Address: ${contract.address}`);
+  console.log(`Source:  ${contract.source}`);
+  console.log(`Language:${contract.language}`);
+  console.log(`Version: ${contract.compiler_version}`);
   console.log(`Url:     ${url}`);
+}
+
+async function showEntries(options) {
+  const input = options.contract;
+  const contract = getContractFromIdOrAddress(input);
+
+  var contract_address = input;
+  if (!isNull(contract)) {
+    const config = getConfig();
+    if (contract.network !== config.tezos.network) {
+      console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
+      return;
+    }
+    contract_address = contract.address;
+  } else {
+    if (!contract_address.startsWith('KT1')) {
+      console.log(`Error: '${contract_address}' bad contract address.`);
+      return;
+    }
+  }
+
+  retrieveContract(contract_address, x => {
+    (async () => {
+      var args = ['--show-entries', '--json', x];
+      const res = await callArchetype(options, args);
+      console.log(res);
+    })();
+  });
 }
 
 async function removeContract(options) {
@@ -1021,11 +1035,11 @@ export async function process(options) {
     case "generate_javascript":
       generateJavascript(options);
       break;
-    case "show_entries_of":
-      showEntriesOf(options);
-      break;
     case "show_contract":
       showContract(options);
+      break;
+    case "show_entries":
+      showEntries(options);
       break;
     case "remove_contract":
       removeContract(options);

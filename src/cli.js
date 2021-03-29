@@ -86,9 +86,9 @@ function parseCommand(args) {
     res = { command: "generate_javascript", path: args[4] };
     nargs = args.slice(5);
     // show entries of <CONTRACT_ADDRESS>
-  } else if (length > 5 && args[2] === "show" && args[3] === "entries" && args[4] === "of") {
-    res = { command: "show_entries_of", contract: args[5] };
-    nargs = args.slice(6);
+  } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
+    res = { command: "show_entries", contract: args[4] };
+    nargs = args.slice(5);
     // show contract <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
     res = { command: "show_contract", contract: args[4] };
