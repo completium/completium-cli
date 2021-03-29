@@ -800,24 +800,12 @@ async function confirmCall(force, account, contract_id, amount, entry, arg) {
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
-async function callTransfer(options, arg) {
+async function callTransfer(options, contract_address, arg) {
   const config = getConfig();
   const force = options.force;
   const entry = options.entry === undefined ? 'default' : options.entry;
 
   const contract_id = options.contract;
-  const contract = getContract(contract_id);
-  const contract_address = isNull(contract) ? contract_id : contract.address;
-
-  if (contract.network !== config.tezos.network) {
-    console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
-    return null;
-  }
-
-  if (!contract_address.startsWith('KT1')) {
-    console.log(`Error: ${contract_address} is not a valid address for contract.`);
-    return null;
-  }
 
   const as = isNull(options.as) ? config.account : options.as;
   const account = getAccountFromIdOrAddr(as);
@@ -857,11 +845,8 @@ async function callTransfer(options, arg) {
     );
 }
 
-async function getArg(options, callback) {
-  const contract = getContract(options.contract);
-  var entry = options.entry === undefined ? 'default' : options.entry;
-
-  retrieveContract(contract, path => {
+async function getArg(options, contract_address, entry, callback) {
+  retrieveContract(contract_address, path => {
     var args = [
       '--expr', options.with,
       '--with-contract', path,
@@ -884,12 +869,32 @@ async function getArg(options, callback) {
 }
 
 async function callContract(options) {
+  const input = options.contract;
   const arg = options.with;
+  var entry = options.entry === undefined ? 'default' : options.entry;
+
+  const contract = getContractFromIdOrAddress(input);
+
+  var contract_address = input;
+  if (!isNull(contract)) {
+    const config = getConfig();
+    if (contract.network !== config.tezos.network) {
+      console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
+      return;
+    }
+    contract_address = contract.address;
+  } else {
+    if (!contract_address.startsWith('KT1')) {
+      console.log(`Error: '${contract_address}' unknown contract alias or bad contract address.`);
+      return;
+    }
+  }
+
 
   if (arg !== undefined) {
-    getArg(options, arg => { callTransfer(options, arg) });
+    getArg(options, contract_address, entry, arg => { callTransfer(options, contract_address, arg) });
   } else {
-    callTransfer(options, { prim: "Unit" });
+    callTransfer(options, contract_address, { prim: "Unit" });
   }
 }
 
