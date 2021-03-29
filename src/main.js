@@ -227,7 +227,9 @@ async function help(options) {
   console.log("  init")
   console.log("  help");
   console.log("  version")
-  console.log("  update binaries");
+
+  console.log("  set <BIN> <PATH>");
+  console.log("  update <BIN>");
 
   console.log("  show endpoint");
   console.log("  switch endpoint");
@@ -320,15 +322,32 @@ async function initCompletium(options) {
   }));
 }
 
-async function updateBinaries(options) {
+function setBinArchetypeConfig(arc_path, msg) {
+  const config = getConfig();
+  config.bin.archetype = arc_path;
+  saveConfig(config, x => { console.log(msg) });
+}
+
+async function setBin(options) {
+  const bin = options.bin;
+  if (bin !== 'archetype') {
+    return console.log(`Error: expecting bin archetype`);
+  }
+  const path_archetype = options.path;
+  setBinArchetypeConfig(path_archetype, "archetype set.");
+}
+
+async function updateBin(options) {
+  const bin = options.bin;
+  if (bin !== 'archetype') {
+    return console.log(`Error: expecting bin archetype`);
+  }
+
   const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.2/archetype-x64-linux";
   const path_archetype = bin_dir + '/archetype';
   await download(archetype_url, path_archetype);
   fs.chmodSync(path_archetype, '711');
-  const config = getConfig();
-  config.bin.archetype = path_archetype;
-  saveConfig(config);
-  console.log(`Binaries is updated`);
+  setBinArchetypeConfig(path_archetype, "archetype updated.");
 }
 
 async function showVersion(options) {
@@ -950,8 +969,11 @@ export async function process(options) {
     case "show_version":
       showVersion(options);
       break;
-    case "update_binaries":
-      updateBinaries(options);
+    case "set_bin":
+      setBin(options);
+      break;
+    case "update_bin":
+      updateBin(options);
       break;
     case "show_endpoint":
       showEndpoint(options);
