@@ -22,13 +22,13 @@ function parseCommand(args) {
     res = { command: "show_version" };
     nargs = args.slice(3);
     // set bin
-  } else if (length > 4 && args[2] === "set") {
-    res = { command: "set_bin", bin: args[3], path: args[4] };
-    nargs = args.slice(5);
+  } else if (length > 5 && args[2] === "set" && args[3] === "bin") {
+    res = { command: "set_bin", bin: args[4], path: args[5] };
+    nargs = args.slice(6);
     // update binaries
-  } else if (length > 3 && args[2] === "install") {
-    res = { command: "install_bin", bin: args[3] };
-    nargs = args.slice(4);
+  } else if (length > 4 && args[2] === "install" && args[3] === "bin") {
+    res = { command: "install_bin", bin: args[4] };
+    nargs = args.slice(5);
     // show endpoint
   } else if (length > 3 && args[2] === "show" && args[3] === "endpoint") {
     res = { command: "show_endpoint" };
@@ -41,6 +41,10 @@ function parseCommand(args) {
   } else if (length > 5 && args[2] === "add" && args[3] === "endpoint") {
     res = { command: "add_endpoint", network: args[4], endpoint: args[5] };
     nargs = args.slice(6);
+    // set account <ACCOUNT_ALIAS>
+  } else if (length > 4 && args[2] === "set" && args[3] === "endpoint") {
+    res = { command: "set_endpoint", endpoint: args[4] };
+    nargs = args.slice(5);
     // remove endpoint [<ENDPOINT_URL>]
   } else if (length > 4 && args[2] === "remove" && args[3] === "endpoint") {
     res = { command: "remove_endpoint", endpoint: args[4] };

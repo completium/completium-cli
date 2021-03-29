@@ -229,8 +229,8 @@ async function help(options) {
   console.log("  help");
   console.log("  version")
 
-  console.log("  set <BIN> <PATH>");
-  console.log("  install <BIN>");
+  console.log("  set bin <BIN> <PATH>");
+  console.log("  install bin <BIN>");
 
   console.log("  show endpoint");
   console.log("  switch endpoint");
@@ -422,6 +422,21 @@ async function addEndpoint(options) {
 
   config.tezos.list = config.tezos.list.map(x => x.network == network ? cnetwork : x);
   saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network} registered.`) });
+}
+
+async function setEndpoint(options) {
+  const endpoint = options.endpoint;
+
+  const config = getConfig();
+  const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
+
+  if (isNull(network)) {
+    return console.log(`Error: ${endpoint} is not found.`);
+  }
+
+  config.tezos.network  = network.network;
+  config.tezos.endpoint = endpoint;
+  saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network.network} set.`) });
 }
 
 async function removeEndpoint(options) {
@@ -997,6 +1012,9 @@ export async function process(options) {
       break;
     case "add_endpoint":
       addEndpoint(options);
+      break;
+    case "set_endpoint":
+      setEndpoint(options);
       break;
     case "remove_endpoint":
       removeEndpoint(options);
