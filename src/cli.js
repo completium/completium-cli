@@ -26,8 +26,8 @@ function parseCommand(args) {
     res = { command: "set_bin", bin: args[3], path: args[4] };
     nargs = args.slice(5);
     // update binaries
-  } else if (length > 3 && args[2] === "update") {
-    res = { command: "update_bin", bin: args[3] };
+  } else if (length > 3 && args[2] === "install") {
+    res = { command: "install_bin", bin: args[3] };
     nargs = args.slice(4);
     // show endpoint
   } else if (length > 3 && args[2] === "show" && args[3] === "endpoint") {

@@ -229,7 +229,7 @@ async function help(options) {
   console.log("  version")
 
   console.log("  set <BIN> <PATH>");
-  console.log("  update <BIN>");
+  console.log("  install <BIN>");
 
   console.log("  show endpoint");
   console.log("  switch endpoint");
@@ -337,7 +337,7 @@ async function setBin(options) {
   setBinArchetypeConfig(path_archetype, "archetype set.");
 }
 
-async function updateBin(options) {
+async function installBin(options) {
   const bin = options.bin;
   if (bin !== 'archetype') {
     return console.log(`Error: expecting bin archetype`);
@@ -347,7 +347,7 @@ async function updateBin(options) {
   const path_archetype = bin_dir + '/archetype';
   await download(archetype_url, path_archetype);
   fs.chmodSync(path_archetype, '711');
-  setBinArchetypeConfig(path_archetype, "archetype updated.");
+  setBinArchetypeConfig(path_archetype, "archetype installed.");
 }
 
 async function showVersion(options) {
@@ -972,8 +972,8 @@ export async function process(options) {
     case "set_bin":
       setBin(options);
       break;
-    case "update_bin":
-      updateBin(options);
+    case "install_bin":
+      installBin(options);
       break;
     case "show_endpoint":
       showEndpoint(options);
