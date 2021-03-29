@@ -185,8 +185,8 @@ function getAmount(raw) {
   return value;
 }
 
-function createScript(id, content, callback) {
-  const path = scripts_dir + '/' + id + '.json';
+function createScript(contract, content, callback) {
+  const path = scripts_dir + '/' + contract.name + '.json';
   fs.writeFile(path, content, function (err) {
     if (err) throw err;
     callback(path);
@@ -196,8 +196,7 @@ function createScript(id, content, callback) {
 function retrieveContract(contract, callback) {
   var config = getConfig();
   const tezos_endpoint = config.tezos.endpoint;
-  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract + '/script';
-
+  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract.address + '/script';
   var request = require('request');
   request(url, function (error, response, body) {
     if (!error && response.statusCode == 200) {
@@ -696,14 +695,15 @@ async function deploy(options) {
   return;
 }
 
-async function confirmCall(force, contract_id, amount, entry, arg) {
+async function confirmCall(force, account, contract_id, amount, entry, arg) {
   if (force) { return true }
 
   const config = getConfig();
 
   const Confirm = require('prompt-confirm');
 
-  const str = `do you want to call ${contract_id} with ${amount / 1000000}ꜩ on ${entry} with ${arg}?`;
+  const arg_string = JSON.stringify(arg);
+  const str = `do you want to call ${contract_id} from ${account.name} with ${amount / 1000000}ꜩ on ${entry} with ${arg_string}?`;
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
@@ -739,7 +739,7 @@ async function callTransfer(options, arg) {
     return;
   }
 
-  var confirm = await confirmCall(force, contract_id, amount, entry, arg);
+  var confirm = await confirmCall(force, account, contract_id, amount, entry, arg);
   if (!confirm) {
     return;
   }
@@ -751,10 +751,7 @@ async function callTransfer(options, arg) {
   console.log(`Calling ${amount / 1000000} ꜩ from ${account.pkh} to ${contract_address}...`);
 
   tezos.contract
-    .at(contract_address)
-    .then((contract) => {
-      return contract.methods.default([['Unit']]).send();
-    })
+    .transfer({ to: contract_address, amount: amount, mutez: true, parameter: {entrypoint: entry, value: arg}})
     .then((op) => {
       console.log(`Waiting for ${op.hash} to be confirmed...`);
       return op.confirmation(1).then(() => op.hash);
@@ -770,7 +767,8 @@ async function getArg(options, callback) {
   retrieveContract(contract, path => {
     var args = [
       '--expr', options.with,
-      '--with-contract', path
+      '--with-contract', path,
+      '--json'
     ];
     if (entry !== 'default') {
       if (entry.charAt(0) !== '%') {
@@ -780,7 +778,9 @@ async function getArg(options, callback) {
     }
 
     (async () => {
-      const res = await callArchetype(options, args);
+      const output_raw = await callArchetype(options, args);
+      const output = output_raw.substring(0, output_raw.indexOf('}\n{') + 1);
+      const res = JSON.parse(output);
       callback(res)
     })();
   });
