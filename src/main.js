@@ -491,7 +491,8 @@ async function importAccount(kind, options) {
   switch (kind) {
     case "faucet":
       const faucet = loadJS(value);
-      importKey(tezos,
+      console.log(`Import key ...`);
+      await importKey(tezos,
         faucet.email,
         faucet.password,
         faucet.mnemonic.join(' '),
@@ -889,7 +890,6 @@ async function callContract(options) {
       return;
     }
   }
-
 
   if (arg !== undefined) {
     getArg(options, contract_address, entry, arg => { callTransfer(options, contract_address, arg) });
