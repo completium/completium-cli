@@ -93,7 +93,11 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
     res = { command: "show_entries", contract: args[4] };
     nargs = args.slice(5);
-    // show contract <CONTRACT_ALIAS>
+    // show contracts
+  } else if (length > 3 && args[2] === "show" && args[3] === "contracts") {
+    res = { command: "show_contracts" };
+    nargs = args.slice(4);
+    // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
     res = { command: "show_contract", contract: args[4] };
     nargs = args.slice(5);

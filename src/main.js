@@ -251,6 +251,7 @@ async function help(options) {
   console.log("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>] [--force]");
   console.log("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
 
+  console.log("  show contracts");
   console.log("  show contract <CONTRACT_ALIAS>");
   console.log("  show entries <CONTRACT_ADDRESS>");
   console.log("  remove contract <CONTRACT_ALIAS>");
@@ -434,7 +435,7 @@ async function setEndpoint(options) {
     return console.log(`Error: ${endpoint} is not found.`);
   }
 
-  config.tezos.network  = network.network;
+  config.tezos.network = network.network;
   config.tezos.endpoint = endpoint;
   saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network.network} set.`) });
 }
@@ -889,6 +890,14 @@ async function generateJavascript(options) {
   console.log(res);
 }
 
+async function showContracts(options) {
+  const contracts = getContracts();
+
+  contracts.contracts.forEach(x => {
+    console.log(`${x.address}\t${x.network}\t${x.name}`);
+  });
+}
+
 async function showContract(options) {
   const input = options.contract;
 
@@ -1052,6 +1061,9 @@ export async function process(options) {
       break;
     case "generate_javascript":
       generateJavascript(options);
+      break;
+    case "show_contracts":
+      showContracts(options);
       break;
     case "show_contract":
       showContract(options);
