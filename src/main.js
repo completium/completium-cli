@@ -715,8 +715,15 @@ async function callTransfer(options, arg) {
   const contract_id = options.contract;
   const contract = getContract(contract_id);
   const contract_address = isNull(contract) ? contract_id : contract.address;
+
+  if (contract.network !== config.tezos.network) {
+    console.log(`Error: expected ${contract.network}`);
+    return null;
+  }
+
   if (!contract_address.startsWith('KT1')) {
     console.log(`Error: ${contract_address} is not a valid address for contract`);
+    return null;
   }
 
   const as = isNull(options.as) ? config.account : options.as;
@@ -744,7 +751,10 @@ async function callTransfer(options, arg) {
   console.log(`Calling ${amount / 1000000} ꜩ from ${account.pkh} to ${contract_address}...`);
 
   tezos.contract
-    .transfer({ to: contract_address, amount: amount, mutez: true, parameter: "Unit" })
+    .at(contract_address)
+    .then((contract) => {
+      return contract.methods.default([['Unit']]).send();
+    })
     .then((op) => {
       console.log(`Waiting for ${op.hash} to be confirmed...`);
       return op.confirmation(1).then(() => op.hash);
@@ -812,6 +822,26 @@ async function showEntriesOf(options) {
   });
 }
 
+async function showContract(options) {
+  const input = options.contract;
+
+  var contract = getContractFromIdOrAddress(input);
+
+  if (isNull(contract)) {
+    console.log(`Error: contract '${input}' is not found.`);
+    return;
+  }
+
+  const config = getConfig();
+  const network = config.tezos.list.find(x => x.network === contract.network);
+  const url = network.bcd_url.replace('${address}', contract.address);
+
+  console.log(`Name:    ${contract.name}`);
+  console.log(`Network: ${contract.network}`);
+  console.log(`Address: ${contract.address}`);
+  console.log(`Url:     ${url}`);
+}
+
 async function removeContract(options) {
   const input = options.contract;
 
@@ -829,12 +859,12 @@ async function removeContract(options) {
 
 async function showUrl(options) {
   const name = options.contract;
-  const config = getConfig();
   const c = getContract(name);
   if (isNull(c)) {
     console.log(`Error: contract '${name}' is not found.`);
     return;
   }
+  const config = getConfig();
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
   const url = network.bcd_url.replace('${address}', c.address);
   console.log(url);
