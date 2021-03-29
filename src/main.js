@@ -224,7 +224,8 @@ async function help(options) {
   console.log("  show endpoint");
   console.log("  switch endpoint");
   console.log("  add endpoint (main|edo|florence) <ENDPOINT_URL>");
-  console.log("  remove endpoint [<ENDPOINT_URL>]");
+  console.log("  set endpoint <ENDPOINT_URL>");
+  console.log("  remove endpoint <ENDPOINT_URL>");
 
   console.log("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]");
   console.log("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]");
@@ -802,12 +803,12 @@ async function getArg(options, callback) {
 }
 
 async function callContract(options) {
-  const arg = options.with === undefined ? 'Unit' : options.with;
+  const arg = options.with;
 
-  if (arg !== 'Unit') {
+  if (arg !== undefined) {
     getArg(options, arg => { callTransfer(options, arg) });
   } else {
-    callTransfer(options, arg)
+    callTransfer(options, { prim: "Unit" });
   }
 }
 
