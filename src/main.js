@@ -197,7 +197,6 @@ function createScript(contract, content, callback) {
 
 function retrieveContract(contract_address, callback) {
   var config = getConfig();
-  console.log(`Network: ${config.tezos.network}`);
   const tezos_endpoint = config.tezos.endpoint;
   const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/script';
   var request = require('request');
@@ -788,7 +787,7 @@ async function deploy(options) {
   return;
 }
 
-async function confirmCall(force, account, contract_id, amount, entry, arg) {
+async function confirmCall(force, account, contract_id, amount, entry, arg, network) {
   if (force) { return true }
 
   const config = getConfig();
@@ -796,7 +795,7 @@ async function confirmCall(force, account, contract_id, amount, entry, arg) {
   const Confirm = require('prompt-confirm');
 
   const arg_string = JSON.stringify(arg);
-  const str = `Confirm call to entry point ${entry} of contract ${contract_id} by '${account.name}' with ${amount / 1000000} ꜩ and argument ${arg_string}?`;
+  const str = `Confirm call to entrypoint ${entry} of contract ${contract_id} by '${account.name}' with ${amount / 1000000} ꜩ and argument ${arg_string} on ${config.tezos.network}?`;
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
