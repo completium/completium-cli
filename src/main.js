@@ -7,7 +7,7 @@ import { InMemorySigner, importKey } from '@taquito/signer';
 import { isNumber } from 'util';
 import { config } from 'process';
 
-const version = '0.1.3'
+const version = '0.1.4'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
