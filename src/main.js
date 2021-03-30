@@ -897,7 +897,14 @@ async function callContract(options) {
 }
 
 async function generateJavascript(options) {
-  const x = options.path;
+  const value = options.path;
+
+  const contract = getContract(value);
+
+  var x = value;
+  if (!isNull(contract)) {
+    x = contract.source;
+  }
 
   var args = ['--json', '--only-code', x];
   const res = await callArchetype(options, args);
@@ -926,13 +933,13 @@ async function showContract(options) {
   const network = config.tezos.list.find(x => x.network === contract.network);
   const url = network.bcd_url.replace('${address}', contract.address);
 
-  console.log(`Name:    ${contract.name}`);
-  console.log(`Network: ${contract.network}`);
-  console.log(`Address: ${contract.address}`);
-  console.log(`Source:  ${contract.source}`);
-  console.log(`Language:${contract.language}`);
-  console.log(`Version: ${contract.compiler_version}`);
-  console.log(`Url:     ${url}`);
+  console.log(`Name:     ${contract.name}`);
+  console.log(`Network:  ${contract.network}`);
+  console.log(`Address:  ${contract.address}`);
+  console.log(`Source:   ${contract.source}`);
+  console.log(`Language: ${contract.language}`);
+  console.log(`Version:  ${contract.compiler_version}`);
+  console.log(`Url:      ${url}`);
 }
 
 async function showEntries(options) {
