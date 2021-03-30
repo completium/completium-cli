@@ -11,7 +11,6 @@ const version = '0.1.2'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
-// const public_contracts_path = tezos_client_dir + '/contracts'
 const config_path = completium_dir + '/config.json'
 const accounts_path = completium_dir + '/accounts.json'
 const contracts_path = completium_dir + '/contracts.json'
@@ -284,7 +283,7 @@ async function initCompletium(options) {
     },
     tezos: {
       network: 'edo',
-      endpoint: 'https://edonet-tezos.giganode.io',
+      endpoint: 'https://edonet.smartpy.io',
       list: [
         {
           network: 'main',
