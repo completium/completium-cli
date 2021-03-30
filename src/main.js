@@ -256,6 +256,7 @@ async function help(options) {
   console.log("  show url <CONTRACT_ALIAS>");
   console.log("  show source <CONTRACT_ALIAS>");
   console.log("  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>");
+  console.log("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS>");
 }
 
 async function initCompletium(options) {
@@ -1032,6 +1033,40 @@ async function showAddress(options) {
   return;
 }
 
+async function showStorage(options) {
+  const input = options.value;
+
+  const config = getConfig();
+  const contract = getContract(input);
+  var contract_address = input;
+  if (!isNull(contract)) {
+    const config = getConfig();
+    if (contract.network !== config.tezos.network) {
+      console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
+      return;
+    }
+    contract_address = contract.address;
+  } else {
+    if (!contract_address.startsWith('KT1')) {
+      console.log(`Error: '${contract_address}' bad contract address.`);
+      return;
+    }
+  }
+
+  const tezos_endpoint = config.tezos.endpoint;
+  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/storage';
+  var request = require('request');
+  request(url, function (error, response, body) {
+    if (!error && response.statusCode == 200) {
+      console.log(JSON.stringify(JSON.parse(body), 0, 2));
+    } else {
+      console.log(`Error: ${response.statusCode}`)
+    }
+  })
+
+  return;
+}
+
 async function commandNotFound(options) {
   console.log("commandNotFound: " + options.command);
   help(options);
@@ -1124,6 +1159,9 @@ export async function process(options) {
       break;
     case "show_address":
       showAddress(options);
+      break;
+    case "show_storage":
+      showStorage(options);
       break;
     default:
       commandNotFound(options);
