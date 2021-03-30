@@ -113,6 +113,9 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "show" && args[3] === "source") {
     res = { command: "show_source", contract: args[4] };
     nargs = args.slice(5);
+  } else if (length > 4 && args[2] === "show" && args[3] === "address") {
+    res = { command: "show_address", value: args[4] };
+    nargs = args.slice(5);
   }
 
   // console.log(res);

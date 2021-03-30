@@ -255,6 +255,7 @@ async function help(options) {
   console.log("  remove contract <CONTRACT_ALIAS>");
   console.log("  show url <CONTRACT_ALIAS>");
   console.log("  show source <CONTRACT_ALIAS>");
+  console.log("  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>");
 }
 
 async function initCompletium(options) {
@@ -1013,6 +1014,24 @@ async function showSource(options) {
   });
 }
 
+async function showAddress(options) {
+  const value = options.value;
+
+  var c = getContract(value);
+  if (isNull(c)) {
+    c = getAccount(value);
+    if (isNull(c)) {
+      console.log(`Error: alias '${value}' is not found.`);
+      return;
+    } else {
+      console.log(c.pkh);
+    }
+  } else {
+    console.log(c.address);
+  }
+  return;
+}
+
 async function commandNotFound(options) {
   console.log("commandNotFound: " + options.command);
   help(options);
@@ -1102,6 +1121,9 @@ export async function process(options) {
       break;
     case "show_source":
       showSource(options);
+      break;
+    case "show_address":
+      showAddress(options);
       break;
     default:
       commandNotFound(options);
