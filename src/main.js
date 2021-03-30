@@ -906,7 +906,7 @@ async function generateJavascript(options) {
     x = contract.source;
   }
 
-  var args = ['--json', '--only-code', x];
+  var args = ['-t', 'javascript', x];
   const res = await callArchetype(options, args);
   console.log(res);
 }
