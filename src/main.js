@@ -245,8 +245,8 @@ async function help(options) {
   console.log("  remove account <ACCOUNT_ALIAS>");
 
   console.log("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  console.log("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>] [--init <PARAMETERS>] [--force]");
-  console.log("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>] [--force]");
+  console.log("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]");
+  console.log("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
   console.log("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
 
   console.log("  show contracts");
@@ -760,8 +760,10 @@ async function deploy(options) {
     var c = require(contract_script);
     tezos.contract
       .originate({
+        balance: amount,
         code: c.code,
-        init: c.getStorage()
+        init: c.getStorage(),
+        mutez: true
       })
       .then((originationOp) => {
         console.log(`Waiting for confirmation of origination for ${originationOp.contractAddress} ...`);
