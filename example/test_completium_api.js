@@ -3,27 +3,27 @@
 require = require('esm')(module /*, options*/);
 
 // import Completium from '@completium/completium-cli';
+const Completium = require('../src/completium');
 
 const test = async () => {
   const contract_id = "state_machine";
-  const Completium = require('../src/completium');
   const completium = new Completium ();
-  await completium.originate('./contract/state_machine.arl');
-  await completium.call(contract_id, {
-    entry : "init",
-    amount: "5tz"
-  });
-  // call inc_value twice
-  await completium.call(contract_id, { entry : "inc_value" });
-  await completium.call(contract_id, { entry : "inc_value" });
-  await completium.call(contract_id, { entry : "complete" });
+  // await completium.originate('./contract/state_machine.arl');
+  // await completium.call(contract_id, {
+  //   entry : "init",
+  //   amount: "5tz"
+  // });
+  // // call inc_value twice
+  // await completium.call(contract_id, { entry : "inc_value" });
+  // await completium.call(contract_id, { entry : "inc_value" });
+  // await completium.call(contract_id, { entry : "complete" });
   const storage = await completium.getStorage(contract_id);
-  if (storage._state.toNumber() == 1) {
+  if (storage._state.toNumber() == 3) {
     console.log('OK')
   } else {
-    console.log('KO: state = ' + storage._state.toNumber())
+    console.log('KO: bad _state = ' + storage._state.toNumber())
   }
-  console.log(storage);
+  // console.log(storage);
   // assert (storage._state.toNumber() === 1, "Invalid Contract State");
 }
 
