@@ -5,8 +5,6 @@
  * Released under the MIT License.
  */
 
-import arg from 'arg';
-import inquirer from 'inquirer';
 import { deploy, callContract, getStorage } from './main';
 
 module.exports = class Completium {
