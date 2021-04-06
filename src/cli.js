@@ -1,3 +1,10 @@
+/*!
+ * completium-cli <https://github.com/edukera/completium-cli>
+ *
+ * Copyright (c) 2021, edukera, SAS.
+ * Released under the MIT License.
+ */
+
 import arg from 'arg';
 import inquirer from 'inquirer';
 import { process } from './main';

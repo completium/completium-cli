@@ -1,3 +1,10 @@
+/*!
+ * completium-cli <https://github.com/edukera/completium-cli>
+ *
+ * Copyright (c) 2021, edukera, SAS.
+ * Released under the MIT License.
+ */
+
 import fs, { copyFile, exists } from 'fs';
 import wget from 'node-wget';
 import execa from 'execa';
@@ -23,6 +30,15 @@ const sources_dir = completium_dir + "/sources"
 // TOOLS //
 ///////////
 
+function print(msg) {
+  return console.log(msg);
+}
+
+function print_error(msg) {
+  return console.error(msg);
+}
+
+
 async function download(url, dest) {
   const request = wget({ url: url, dest: dest, timeout: 2000 });
   return request;
@@ -36,12 +52,15 @@ function getConfig() {
   return (loadJS(config_path));
 }
 
-async function saveFile(path, c, callback) {
+function saveFile(path, c, callback) {
   const content = JSON.stringify(c, null, 2);
-  await fs.writeFile(path, content, (err) => { if (err) return console.log(err); });
-  if (callback !== undefined) {
-    callback();
+  fs.writeFile(path, content, (err) => {
+    if (err) return print(err);
+    if (callback !== undefined) {
+      callback();
+    }
   }
+  );
 }
 
 async function saveConfig(config, callback) {
@@ -50,14 +69,15 @@ async function saveConfig(config, callback) {
 
 function getContracts() {
   if (!fs.existsSync(contracts_path)) {
-    console.log(`Error: completium is not initialized, try 'completium-cli init'`);
+    print(`Error: completium is not initialized, try 'completium-cli init'`);
     return null;
   }
-  var res = JSON.parse(fs.readFileSync(contracts_path, 'utf8'));
+  const content = fs.readFileSync(contracts_path, 'utf8');
+  var res = JSON.parse(content);
   return res;
 }
 
-async function saveContract(c, callback) {
+function saveContract(c, callback) {
   var obj = getContracts();
   const name = c.name;
   const a = obj.contracts.find(x => x.name === name);
@@ -83,7 +103,7 @@ function getContractFromIdOrAddress(input) {
 
 function getAccounts() {
   if (!fs.existsSync(accounts_path)) {
-    console.log(`Error: completium is not initialized, try 'completium-cli init'`);
+    print(`Error: completium is not initialized, try 'completium-cli init'`);
     return null;
   }
   var res = JSON.parse(fs.readFileSync(accounts_path, 'utf8'));
@@ -123,13 +143,13 @@ function getSigner(forceAccount) {
   const config = getConfig();
   const account = config.account;
   if (isNull(forceAccount) && isNull(account)) {
-    console.log("Cannot exectute this command, please generate an account first.");
+    print("Cannot exectute this command, please generate an account first.");
     return null;
   }
   var a = isNull(forceAccount) ? account : forceAccount;
   var ac = getAccount(a);
   if (isNull(ac)) {
-    console.log(`${account} is not found.`);
+    print(`${account} is not found.`);
     return null;
   }
   return {
@@ -163,12 +183,12 @@ async function callArchetype(options, args) {
   try {
     const { stdout } = await execa(config.bin.archetype, args, {});
     if (verbose) {
-      console.log(stdout);
+      print(stdout);
     }
     return stdout;
 
   } catch (error) {
-    console.log(error);
+    print(error);
     throw error;
   }
 }
@@ -176,12 +196,12 @@ async function callArchetype(options, args) {
 function getAmount(raw) {
   var v = raw.endsWith('utz') ? { str: raw.slice(0, -3), utz: true } : (raw.endsWith('tz') ? { str: raw.slice(0, -2), utz: false } : null);
   if (isNull(v)) {
-    console.error(`Error: ${raw} is an invalid value; expecting for example, 1tz or 2utz.`);
+    print_error(`Error: ${raw} is an invalid value; expecting for example, 1tz or 2utz.`);
     return null;
   }
   var value = Math.abs(v.str) * (v.utz ? 1 : 1000000);
   if (!Number.isInteger(value)) {
-    console.log(`Error: ${raw} is an invalid value; ${value} is not an integer.`);
+    print(`Error: ${raw} is an invalid value; ${value} is not an integer.`);
     return null;
   }
   return value;
@@ -204,7 +224,7 @@ function retrieveContract(contract_address, callback) {
     if (!error && response.statusCode == 200) {
       createScript(contract_address, body, callback);
     } else {
-      console.log(`Error: ${response.statusCode}`)
+      print(`Error: ${response.statusCode}`)
     }
   })
 }
@@ -221,42 +241,42 @@ async function getArchetypeVersion() {
 //////////////
 
 async function help(options) {
-  console.log("usage: [command] [options]")
-  console.log("command:");
-  console.log("  init")
-  console.log("  help");
-  console.log("  version")
+  print("usage: [command] [options]")
+  print("command:");
+  print("  init")
+  print("  help");
+  print("  version")
 
-  console.log("  set bin <BIN> <PATH>");
-  console.log("  install bin <BIN>");
+  print("  set bin <BIN> <PATH>");
+  print("  install bin <BIN>");
 
-  console.log("  show endpoint");
-  console.log("  switch endpoint");
-  console.log("  add endpoint (main|edo|florence) <ENDPOINT_URL>");
-  console.log("  set endpoint <ENDPOINT_URL>");
-  console.log("  remove endpoint <ENDPOINT_URL>");
+  print("  show endpoint");
+  print("  switch endpoint");
+  print("  add endpoint (main|edo|florence) <ENDPOINT_URL>");
+  print("  set endpoint <ENDPOINT_URL>");
+  print("  remove endpoint <ENDPOINT_URL>");
 
-  console.log("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]");
-  console.log("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]");
+  print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]");
+  print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]");
 
-  console.log("  show account");
-  console.log("  set account <ACCOUNT_ALIAS>");
-  console.log("  switch account");
-  console.log("  remove account <ACCOUNT_ALIAS>");
+  print("  show account");
+  print("  set account <ACCOUNT_ALIAS>");
+  print("  switch account");
+  print("  remove account <ACCOUNT_ALIAS>");
 
-  console.log("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  console.log("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]");
-  console.log("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
-  console.log("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
+  print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
+  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]");
+  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
+  print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
 
-  console.log("  show contracts");
-  console.log("  show contract <CONTRACT_ALIAS>");
-  console.log("  show entries <CONTRACT_ADDRESS>");
-  console.log("  remove contract <CONTRACT_ALIAS>");
-  console.log("  show url <CONTRACT_ALIAS>");
-  console.log("  show source <CONTRACT_ALIAS>");
-  console.log("  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>");
-  console.log("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS>");
+  print("  show contracts");
+  print("  show contract <CONTRACT_ALIAS>");
+  print("  show entries <CONTRACT_ADDRESS>");
+  print("  remove contract <CONTRACT_ALIAS>");
+  print("  show url <CONTRACT_ALIAS>");
+  print("  show source <CONTRACT_ALIAS>");
+  print("  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>");
+  print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS>");
 }
 
 async function initCompletium(options) {
@@ -319,7 +339,7 @@ async function initCompletium(options) {
   };
   saveFile(config_path, config, (x => {
     saveFile(accounts_path, { accounts: [] }, (y => {
-      saveFile(contracts_path, { contracts: [] }, (z => { console.log("Completium initialized successfully!") }));
+      saveFile(contracts_path, { contracts: [] }, (z => { print("Completium initialized successfully!") }));
     }))
   }));
 }
@@ -327,13 +347,13 @@ async function initCompletium(options) {
 function setBinArchetypeConfig(arc_path, msg) {
   const config = getConfig();
   config.bin.archetype = arc_path;
-  saveConfig(config, x => { console.log(msg) });
+  saveConfig(config, x => { print(msg) });
 }
 
 async function setBin(options) {
   const bin = options.bin;
   if (bin !== 'archetype') {
-    return console.log(`Error: expecting bin archetype`);
+    return print(`Error: expecting bin archetype`);
   }
   const path_archetype = options.path;
   setBinArchetypeConfig(path_archetype, "archetype set.");
@@ -342,7 +362,7 @@ async function setBin(options) {
 async function installBin(options) {
   const bin = options.bin;
   if (bin !== 'archetype') {
-    return console.log(`Error: expecting bin archetype`);
+    return print(`Error: expecting bin archetype`);
   }
 
   const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.2/archetype-x64-linux";
@@ -353,13 +373,13 @@ async function installBin(options) {
 }
 
 async function showVersion(options) {
-  console.log(version);
+  print(version);
 }
 
 async function showEndpoint(options) {
   var config = getConfig();
-  console.log("Current network: " + config.tezos.network);
-  console.log("Current endpoint: " + config.tezos.endpoint);
+  print("Current network: " + config.tezos.network);
+  print("Current endpoint: " + config.tezos.endpoint);
 }
 
 async function switchEndpoint(options) {
@@ -398,7 +418,7 @@ async function switchEndpoint(options) {
       const config = getConfig();
       config.tezos.network = res.networks[i];
       config.tezos.endpoint = res.endpoints[i];
-      saveConfig(config, x => { console.log("endpoint updated") });
+      saveConfig(config, x => { print("endpoint updated") });
     })
     .catch(console.error);
 }
@@ -412,17 +432,17 @@ async function addEndpoint(options) {
 
   if (isNull(cnetwork)) {
     const networks = config.tezos.list.map(x => x.network);
-    return console.log(`Error: '${network}' is not found, expecting one of ${networks}.`)
+    return print(`Error: '${network}' is not found, expecting one of ${networks}.`)
   }
 
   if (cnetwork.endpoints.includes(endpoint)) {
-    return console.log(`Error: '${endpoint}' is already registered.`)
+    return print(`Error: '${endpoint}' is already registered.`)
   }
 
   cnetwork.endpoints.push(endpoint);
 
   config.tezos.list = config.tezos.list.map(x => x.network == network ? cnetwork : x);
-  saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network} registered.`) });
+  saveConfig(config, x => { print(`endpoint '${endpoint}' for network ${network} registered.`) });
 }
 
 async function setEndpoint(options) {
@@ -432,12 +452,12 @@ async function setEndpoint(options) {
   const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
 
   if (isNull(network)) {
-    return console.log(`Error: ${endpoint} is not found.`);
+    return print(`Error: ${endpoint} is not found.`);
   }
 
   config.tezos.network = network.network;
   config.tezos.endpoint = endpoint;
-  saveConfig(config, x => { console.log(`endpoint '${endpoint}' for network ${network.network} set.`) });
+  saveConfig(config, x => { print(`endpoint '${endpoint}' for network ${network.network} set.`) });
 }
 
 async function removeEndpoint(options) {
@@ -447,12 +467,12 @@ async function removeEndpoint(options) {
   const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
 
   if (isNull(network)) {
-    return console.log(`Error: '${endpoint}' is not found.`);
+    return print(`Error: '${endpoint}' is not found.`);
   }
 
 
   if (config.tezos.endpoint === endpoint) {
-    return console.log(`Error: cannot remove endpoint '${endpoint}' because it is currently set as the default endpoint. Switch to another endpoint before removing.`);
+    return print(`Error: cannot remove endpoint '${endpoint}' because it is currently set as the default endpoint. Switch to another endpoint before removing.`);
   }
 
   const l = config.tezos.list.map(x =>
@@ -463,7 +483,7 @@ async function removeEndpoint(options) {
   );
 
   config.tezos.list = l;
-  saveConfig(config, x => { console.log(`'${endpoint}' is removed, configuration file updated.`) });
+  saveConfig(config, x => { print(`'${endpoint}' is removed, configuration file updated.`) });
 }
 
 async function confirmAccount(force, account) {
@@ -491,7 +511,7 @@ async function importAccount(kind, options) {
   switch (kind) {
     case "faucet":
       const faucet = loadJS(value);
-      console.log(`Import key ...`);
+      print(`Import key ...`);
       await importKey(tezos,
         faucet.email,
         faucet.password,
@@ -510,7 +530,7 @@ async function importAccount(kind, options) {
   const pkh = await tezos.signer.publicKeyHash();
   tezos.signer.secretKey().then(x => {
     saveAccount({ name: account, pkh: pkh, key: { kind: 'private_key', value: x } },
-      x => { console.log(`Account ${pkh} is registered as '${account}'.`) });
+      x => { print(`Account ${pkh} is registered as '${account}'.`) });
   })
     .catch(console.error);
 }
@@ -528,25 +548,25 @@ async function showAccount(options) {
   const value = config.account;
 
   if (isNull(value)) {
-    console.log("Error: no account is set.");
+    print("Error: no account is set.");
   } else {
     const account = getAccount(value);
     if (isNull(account)) {
-      return console.log(`Error: ${account} is not found.`);
+      return print(`Error: ${account} is not found.`);
     }
     const tezos = getTezos();
 
-    console.log(`Current account: ${account.name}`);
-    console.log(`Public key hash: ${account.pkh}`);
+    print(`Current account: ${account.name}`);
+    print(`Public key hash: ${account.pkh}`);
     var balance = await tezos.tz.getBalance(account.pkh);
-    console.log(`Balance on ${config.tezos.network}: ${balance.toNumber() / 1000000} ꜩ`);
+    print(`Balance on ${config.tezos.network}: ${balance.toNumber() / 1000000} ꜩ`);
   }
 }
 
 async function switchAccount(options) {
   const config = getConfig();
   if (!isNull(config.account)) {
-    console.log(`Current account: ${config.account}`);
+    print(`Current account: ${config.account}`);
   }
 
   const a = getAccounts();
@@ -574,7 +594,7 @@ async function switchAccount(options) {
       var i = res.indexes.indexOf(answer);
       const value = res.values[i];
       config.account = value;
-      saveConfig(config, x => { console.log("account updated") });
+      saveConfig(config, x => { print("account updated") });
     })
     .catch(console.error);
 }
@@ -584,11 +604,11 @@ async function setAccount(options) {
 
   const account = getAccount(value);
   if (isNull(account)) {
-    return console.log(`Error: '${value}' is not found.`);
+    return print(`Error: '${value}' is not found.`);
   }
   const config = getConfig();
   config.account = value;
-  saveConfig(config, x => { console.log(`'${value}' is set as current account.`) });
+  saveConfig(config, x => { print(`'${value}' is set as current account.`) });
 }
 
 async function removeAccount(options) {
@@ -596,15 +616,15 @@ async function removeAccount(options) {
 
   const account = getAccount(value);
   if (isNull(account)) {
-    return console.log(`Error: '${value}' is not found.`);
+    return print(`Error: '${value}' is not found.`);
   }
 
   const config = getConfig();
   if (config.account === value) {
-    return console.log(`Error: cannot remove account '${value}' because it is currently set as the default account. Switch to another account before removing.`);
+    return print(`Error: cannot remove account '${value}' because it is currently set as the default account. Switch to another account before removing.`);
   }
 
-  removeAccountInternal(value, x => { console.log(`'${value}' is removed.`) });
+  removeAccountInternal(value, x => { print(`'${value}' is removed.`) });
 }
 
 async function confirmTransfer(force, amount, from, to) {
@@ -631,12 +651,12 @@ async function transfer(options) {
 
   const accountFrom = getAccountFromIdOrAddr(from_raw);
   if (isNull(accountFrom)) {
-    console.log(`Error: '${from_raw}' is not found.`);
+    print(`Error: '${from_raw}' is not found.`);
     return;
   }
   var accountTo = getAccountFromIdOrAddr(to_raw);
   if (isNull(accountTo) && !to_raw.startsWith('tz')) {
-    console.log(`Error: '${to_raw}' bad account or address.`);
+    print(`Error: '${to_raw}' bad account or address.`);
     return;
   }
   const to = isNull(accountTo) ? to_raw : accountTo.name;
@@ -652,15 +672,15 @@ async function transfer(options) {
   const config = getConfig();
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
-  console.log(`Transfering ${amount / 1000000} ꜩ from ${accountFrom.pkh} to ${to_addr}...`);
+  print(`Transfering ${amount / 1000000} ꜩ from ${accountFrom.pkh} to ${to_addr}...`);
   tezos.contract
     .transfer({ to: to_addr, amount: amount, mutez: true })
     .then((op) => {
-      console.log(`Waiting for ${op.hash} to be confirmed...`);
+      print(`Waiting for ${op.hash} to be confirmed...`);
       return op.confirmation(1).then(() => op.hash);
     })
-    .then((hash) => console.log(`Operation injected: ${network.tzstat_url}/${hash}`))
-    .catch((error) => console.log(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
+    .then((hash) => print(`Operation injected: ${network.tzstat_url}/${hash}`))
+    .catch((error) => print(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
 }
 
 async function confirmContract(force, id) {
@@ -695,7 +715,7 @@ async function copySource(arl, contract_name) {
   });
 }
 
-async function deploy(options) {
+export async function deploy(options) {
   const config = getConfig();
 
   const verbose = options.verbose;
@@ -708,12 +728,12 @@ async function deploy(options) {
   const account = getAccountFromIdOrAddr(isNull(as) ? config.account : as);
   if (isNull(account)) {
     if (isNull(as)) {
-      console.error(`Error: invalid account ${as}.`);
+      print_error(`Error: invalid account ${as}.`);
     } else {
       if (config.account === "") {
-        console.error(`Error: account is not set.`);
+        print_error(`Error: account is not set.`);
       } else {
-        console.error(`Error: invalid account ${config.account}.`);
+        print_error(`Error: invalid account ${config.account}.`);
       }
     }
     return;
@@ -735,7 +755,7 @@ async function deploy(options) {
     fs.writeFile(contract_script, res, function (err) {
       if (err) throw err;
       if (verbose)
-        console.log(`JS script for contract ${contract_name} is saved.`);
+        print(`JS script for contract ${contract_name} is saved.`);
     });
   }
 
@@ -755,40 +775,42 @@ async function deploy(options) {
     const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', account.pkh, arl]);
     tzstorage = res;
     if (verbose)
-      console.log(tzstorage);
+      print(tzstorage);
   }
 
   {
     var c = require(contract_script);
-    tezos.contract
-      .originate({
-        balance: amount,
-        code: c.code,
-        init: c.getStorage(),
-        mutez: true
-      })
-      .then((originationOp) => {
-        console.log(`Waiting for confirmation of origination for ${originationOp.contractAddress} ...`);
-        return originationOp.contract();
-      })
-      .then((contract) => {
-        saveContract({
-          name: contract_name,
-          address: contract.address,
-          network: config.tezos.network,
-          language: 'archetype',
-          compiler_version: version,
-          source: source
-        },
-          x => {
-            console.log(`Origination completed for ${contract.address} named ${contract_name}.`);
-            const url = network.bcd_url.replace('${address}', contract.address);
-            console.log(url);
-          });
-      })
-      .catch((error) => console.log(`Error: ${JSON.stringify(error, null, 2)}`));
+    return new Promise(resolve => {
+      tezos.contract
+        .originate({
+          balance: amount,
+          code: c.code,
+          init: c.getStorage(),
+          mutez: true
+        })
+        .then((originationOp) => {
+          print(`Waiting for confirmation of origination for ${originationOp.contractAddress} ...`);
+          return originationOp.contract();
+        })
+        .then((contract) => {
+          saveContract({
+            name: contract_name,
+            address: contract.address,
+            network: config.tezos.network,
+            language: 'archetype',
+            compiler_version: version,
+            source: source
+          },
+            x => {
+              print(`Origination completed for ${contract.address} named ${contract_name}.`);
+              const url = network.bcd_url.replace('${address}', contract.address);
+              print(url);
+              return resolve(null)
+            });
+        })
+        .catch((error) => print(`Error: ${JSON.stringify(error, null, 2)}`));
+    });
   }
-  return;
 }
 
 async function confirmCall(force, account, contract_id, amount, entry, arg, network) {
@@ -813,7 +835,7 @@ async function callTransfer(options, contract_address, arg) {
   const as = isNull(options.as) ? config.account : options.as;
   const account = getAccountFromIdOrAddr(as);
   if (isNull(account)) {
-    console.log(`Error: account '${as}' is not found.`);
+    print(`Error: account '${as}' is not found.`);
     return null;
   }
 
@@ -832,20 +854,25 @@ async function callTransfer(options, contract_address, arg) {
 
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
-  console.log(`Account '${account.pkh}' is calling ${entry} of ${contract_address} with ${amount / 1000000} ꜩ...`);
+  print(`Account '${account.pkh}' is calling ${entry} of ${contract_address} with ${amount / 1000000} ꜩ...`);
 
-  tezos.contract
-    .transfer({ to: contract_address, amount: amount, mutez: true, parameter: { entrypoint: entry, value: arg } })
-    .then((op) => {
-      console.log(`Waiting for ${op.hash} to be confirmed...`);
-      return op.confirmation(1).then(() => op.hash);
-    })
-    .then((hash) => console.log(`Operation injected: ${network.tzstat_url}/${hash}`))
-    .catch(
-      error => {
-        console.log({ ...error, errors: '...' });
-      }
-    );
+  return new Promise(resolve => {
+    tezos.contract
+      .transfer({ to: contract_address, amount: amount, mutez: true, parameter: { entrypoint: entry, value: arg } })
+      .then((op) => {
+        print(`Waiting for ${op.hash} to be confirmed...`);
+        return op.confirmation(1).then(() => op.hash);
+      })
+      .then((hash) => {
+        print(`Operation injected: ${network.tzstat_url}/${hash}`);
+        return resolve(null)
+      })
+      .catch(
+        error => {
+          print({ ...error, errors: '...' });
+        }
+      );
+  });
 }
 
 async function getArg(options, contract_address, entry, callback) {
@@ -871,7 +898,7 @@ async function getArg(options, contract_address, entry, callback) {
   });
 }
 
-async function callContract(options) {
+export async function callContract(options) {
   const input = options.contract;
   const arg = options.with;
   var entry = options.entry === undefined ? 'default' : options.entry;
@@ -882,21 +909,21 @@ async function callContract(options) {
   if (!isNull(contract)) {
     const config = getConfig();
     if (contract.network !== config.tezos.network) {
-      console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
+      print(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
       return;
     }
     contract_address = contract.address;
   } else {
     if (!contract_address.startsWith('KT1')) {
-      console.log(`Error: '${contract_address}' unknown contract alias or bad contract address.`);
+      print(`Error: '${contract_address}' unknown contract alias or bad contract address.`);
       return;
     }
   }
 
   if (arg !== undefined) {
-    getArg(options, contract_address, entry, arg => { callTransfer(options, contract_address, arg) });
+    getArg(options, contract_address, entry, arg => { return callTransfer(options, contract_address, arg) });
   } else {
-    callTransfer(options, contract_address, { prim: "Unit" });
+    return callTransfer(options, contract_address, { prim: "Unit" });
   }
 }
 
@@ -912,14 +939,14 @@ async function generateJavascript(options) {
 
   var args = ['-t', 'javascript', x];
   const res = await callArchetype(options, args);
-  console.log(res);
+  print(res);
 }
 
 async function showContracts(options) {
   const contracts = getContracts();
 
   contracts.contracts.forEach(x => {
-    console.log(`${x.address}\t${x.network}\t${x.name}`);
+    print(`${x.address}\t${x.network}\t${x.name}`);
   });
 }
 
@@ -929,7 +956,7 @@ async function showContract(options) {
   var contract = getContractFromIdOrAddress(input);
 
   if (isNull(contract)) {
-    console.log(`Error: contract '${input}' is not found.`);
+    print(`Error: contract '${input}' is not found.`);
     return;
   }
 
@@ -937,13 +964,13 @@ async function showContract(options) {
   const network = config.tezos.list.find(x => x.network === contract.network);
   const url = network.bcd_url.replace('${address}', contract.address);
 
-  console.log(`Name:     ${contract.name}`);
-  console.log(`Network:  ${contract.network}`);
-  console.log(`Address:  ${contract.address}`);
-  console.log(`Source:   ${contract.source}`);
-  console.log(`Language: ${contract.language}`);
-  console.log(`Version:  ${contract.compiler_version}`);
-  console.log(`Url:      ${url}`);
+  print(`Name:     ${contract.name}`);
+  print(`Network:  ${contract.network}`);
+  print(`Address:  ${contract.address}`);
+  print(`Source:   ${contract.source}`);
+  print(`Language: ${contract.language}`);
+  print(`Version:  ${contract.compiler_version}`);
+  print(`Url:      ${url}`);
 }
 
 async function showEntries(options) {
@@ -954,13 +981,13 @@ async function showEntries(options) {
   if (!isNull(contract)) {
     const config = getConfig();
     if (contract.network !== config.tezos.network) {
-      console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
+      print(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
       return;
     }
     contract_address = contract.address;
   } else {
     if (!contract_address.startsWith('KT1')) {
-      console.log(`Error: '${contract_address}' bad contract address.`);
+      print(`Error: '${contract_address}' bad contract address.`);
       return;
     }
   }
@@ -969,7 +996,7 @@ async function showEntries(options) {
     (async () => {
       var args = ['--show-entries', '--json', x];
       const res = await callArchetype(options, args);
-      console.log(res);
+      print(res);
     })();
   });
 }
@@ -980,38 +1007,38 @@ async function removeContract(options) {
   var contract = getContractFromIdOrAddress(input);
 
   if (isNull(contract)) {
-    console.log(`Error: contract '${input}' is not found.`);
+    print(`Error: contract '${input}' is not found.`);
     return;
   }
 
   var obj = getContracts();
   obj.contracts = obj.contracts.filter(x => { return (input !== x.name && input !== x.address) });
-  saveFile(contracts_path, obj, x => { console.log(`contract '${contract.name}' is removed (${contract.address}).`) });
+  saveFile(contracts_path, obj, x => { print(`contract '${contract.name}' is removed (${contract.address}).`) });
 }
 
 async function showUrl(options) {
   const name = options.contract;
   const c = getContract(name);
   if (isNull(c)) {
-    console.log(`Error: contract '${name}' is not found.`);
+    print(`Error: contract '${name}' is not found.`);
     return;
   }
   const config = getConfig();
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
   const url = network.bcd_url.replace('${address}', c.address);
-  console.log(url);
+  print(url);
 }
 
 async function showSource(options) {
   const name = options.contract;
   const c = getContract(name);
   if (isNull(c)) {
-    console.log(`Error: contract '${name}' is not found.`);
+    print(`Error: contract '${name}' is not found.`);
     return;
   }
   fs.readFile(c.source, 'utf8', (err, data) => {
     if (err) { throw err }
-    console.log(data)
+    print(data)
   });
 }
 
@@ -1022,53 +1049,68 @@ async function showAddress(options) {
   if (isNull(c)) {
     c = getAccount(value);
     if (isNull(c)) {
-      console.log(`Error: alias '${value}' is not found.`);
+      print(`Error: alias '${value}' is not found.`);
       return;
     } else {
-      console.log(c.pkh);
+      print(c.pkh);
     }
   } else {
-    console.log(c.address);
+    print(c.address);
   }
   return;
 }
 
-async function showStorage(options) {
-  const input = options.value;
-
-  const config = getConfig();
+function getContractAddress(input) {
   const contract = getContract(input);
   var contract_address = input;
   if (!isNull(contract)) {
     const config = getConfig();
     if (contract.network !== config.tezos.network) {
-      console.log(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
+      print(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
       return;
     }
     contract_address = contract.address;
   } else {
     if (!contract_address.startsWith('KT1')) {
-      console.log(`Error: '${contract_address}' bad contract address.`);
+      print(`Error: '${contract_address}' bad contract address.`);
       return;
     }
   }
+  return contract_address;
+}
 
+async function showStorage(options) {
+  const input = options.value;
+
+  const contract_address = getContractAddress(input);
+
+  const config = getConfig();
   const tezos_endpoint = config.tezos.endpoint;
   const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/storage';
   var request = require('request');
   request(url, function (error, response, body) {
     if (!error && response.statusCode == 200) {
-      console.log(JSON.stringify(JSON.parse(body), 0, 2));
+      print(JSON.stringify(JSON.parse(body), 0, 2));
     } else {
-      console.log(`Error: ${response.statusCode}`)
+      print(`Error: ${response.statusCode}`)
     }
   })
 
   return;
 }
 
+export async function getStorage(input) {
+  const contract_address = getContractAddress(input);
+
+  const tezos = getTezos();
+
+  var contract = await tezos.contract.at(contract_address);
+  var storage = await contract.storage();
+  return storage;
+}
+
 async function commandNotFound(options) {
-  console.log("commandNotFound: " + options.command);
+  print("commandNotFound: " + options.command);
   help(options);
   return 1;
 }
