@@ -5,7 +5,9 @@
  * Released under the MIT License.
  */
 
-import { deploy, callContract, getStorage } from './main';
+// import { deploy, callContract, getStorage } from './main';
+
+const Main = require('./main')
 
 module.exports = class Completium {
 
@@ -15,15 +17,15 @@ module.exports = class Completium {
 
   async originate(path, obj) {
     const options = { ...obj, file: path, force: true };
-    await deploy(options);
+    await Main.deploy(options);
   }
 
   async call(input, obj) {
     const options = { ...obj, contract: input, force: true };
-    await callContract(options);
+    await Main.callContract(options);
   }
 
   async getStorage(contract_id) {
-    return getStorage(contract_id);
+    return Main.getStorage(contract_id);
   }
 }

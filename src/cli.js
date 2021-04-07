@@ -6,7 +6,7 @@
  */
 
 import arg from 'arg';
-import inquirer from 'inquirer';
+// import inquirer from 'inquirer';
 import { process } from './main';
 
 function parseCommand(args) {

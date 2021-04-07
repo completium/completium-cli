@@ -5,25 +5,24 @@
  * Released under the MIT License.
  */
 
-import fs, { copyFile, exists } from 'fs';
-import wget from 'node-wget';
-import execa from 'execa';
-import path from 'path';
-import { TezosToolkit } from '@taquito/taquito';
-import { InMemorySigner, importKey } from '@taquito/signer';
-import { config } from 'process';
+const fs      = require('fs');
+const wget    = require('node-wget');
+const execa   = require('execa');
+const path    = require('path');
+const taquito = require('@taquito/taquito');
+const signer  = require('@taquito/signer');
 
-const version = '0.1.6'
+const version = '0.1.7'
 
-const homedir = require('os').homedir();
+const homedir        = require('os').homedir();
 const completium_dir = homedir + '/.completium'
-const config_path = completium_dir + '/config.json'
-const accounts_path = completium_dir + '/accounts.json'
+const config_path    = completium_dir + '/config.json'
+const accounts_path  = completium_dir + '/accounts.json'
 const contracts_path = completium_dir + '/contracts.json'
-const bin_dir = completium_dir + '/bin'
-const contracts_dir = completium_dir + "/contracts"
-const scripts_dir = completium_dir + "/scripts"
-const sources_dir = completium_dir + "/sources"
+const bin_dir        = completium_dir + '/bin'
+const contracts_dir  = completium_dir + "/contracts"
+const scripts_dir    = completium_dir + "/scripts"
+const sources_dir    = completium_dir + "/sources"
 
 ///////////
 // TOOLS //
@@ -152,14 +151,14 @@ function getSigner(forceAccount) {
     return null;
   }
   return {
-    signer: new InMemorySigner(ac.key.value)
+    signer: new signer.InMemorySigner(ac.key.value)
   }
 }
 
 function getTezos(forceAccount) {
   const config = getConfig();
   const tezos_endpoint = config.tezos.endpoint;
-  const tezos = new TezosToolkit(tezos_endpoint);
+  const tezos = new taquito.TezosToolkit(tezos_endpoint);
   var signer = getSigner(forceAccount);
   tezos.setProvider(signer);
   return tezos;
@@ -513,12 +512,12 @@ async function importAccount(kind, options) {
 
   const config = getConfig();
   const tezos_endpoint = config.tezos.endpoint;
-  const tezos = new TezosToolkit(tezos_endpoint);
+  const tezos = new taquito.TezosToolkit(tezos_endpoint);
   switch (kind) {
     case "faucet":
       const faucet = loadJS(value);
       print(`Import key ...`);
-      await importKey(tezos,
+      await signer.importKey(tezos,
         faucet.email,
         faucet.password,
         faucet.mnemonic.join(' '),
@@ -527,7 +526,7 @@ async function importAccount(kind, options) {
       break;
     case "privatekey":
       tezos.setProvider({
-        signer: new InMemorySigner(value),
+        signer: new signer.InMemorySigner(value),
       });
       break;
     default:
@@ -724,7 +723,7 @@ async function copySource(arl, contract_name) {
   });
 }
 
-export async function deploy(options) {
+async function deploy(options) {
   const config = getConfig();
 
   const verbose = options.verbose;
@@ -907,7 +906,7 @@ async function getArg(options, contract_address, entry, callback) {
   });
 }
 
-export async function callContract(options) {
+async function callContract(options) {
   const input = options.contract;
   const arg = options.with;
   var entry = options.entry === undefined ? 'default' : options.entry;
@@ -1108,7 +1107,7 @@ async function showStorage(options) {
   return;
 }
 
-export async function getStorage(input) {
+async function getStorage(input) {
   const contract_address = getContractAddress(input);
 
   const tezos = getTezos();
@@ -1124,7 +1123,7 @@ async function commandNotFound(options) {
   return 1;
 }
 
-export async function process(options) {
+async function process(options) {
   switch (options.command) {
     case "init":
       initCompletium(options);
@@ -1220,3 +1219,8 @@ export async function process(options) {
 
   return true;
 }
+
+exports.deploy=deploy;
+exports.callContract=callContract;
+exports.getStorage=getStorage;
+exports.process=process
