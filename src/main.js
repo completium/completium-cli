@@ -13,7 +13,7 @@ import { TezosToolkit } from '@taquito/taquito';
 import { InMemorySigner, importKey } from '@taquito/signer';
 import { config } from 'process';
 
-const version = '0.1.5'
+const version = '0.1.6'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
