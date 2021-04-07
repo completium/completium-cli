@@ -252,7 +252,7 @@ async function help(options) {
 
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|edo|florence) <ENDPOINT_URL>");
+  print("  add endpoint (main|edo|florence|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
 
@@ -332,6 +332,13 @@ async function initCompletium(options) {
           tzstat_url: "https://florence.tzstats.com",
           endpoints: [
             'https://florence-tezos.giganode.io'
+          ]
+        },
+        {
+          network: "sandbox",
+          bcd_url: "https://localhost:8080/sandbox/${address}",
+          endpoints: [
+            "http://localhost:18731"
           ]
         }
       ]
@@ -679,7 +686,10 @@ async function transfer(options) {
       print(`Waiting for ${op.hash} to be confirmed...`);
       return op.confirmation(1).then(() => op.hash);
     })
-    .then((hash) => print(`Operation injected: ${network.tzstat_url}/${hash}`))
+    .then((hash) => {
+      const op_inj = network.tzstat_url === undefined ? `${hash}` : `${network.tzstat_url}/${hash}`
+      print(`Operation injected: ${op_inj}`)}
+    )
     .catch((error) => print(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
 }
 
