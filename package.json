@@ -1,8 +1,13 @@
 {
   "name": "@completium/completium-cli",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Completium CLI",
-  "main": "src/index.js",
+  "main": "./src/completium.js",
+  "module": "./src/completium.js",
+  "exports": {
+    "require": "./src/completium.js",
+    "import": "./src/completium.js"
+  },
   "bin": {
     "@completium/completium-cli": "bin/completium-cli",
     "completium-cli": "bin/completium-cli"
