@@ -351,7 +351,7 @@ async function initCompletium(options) {
           network: "sandbox",
           bcd_url: "https://localhost:8080/sandbox/${address}",
           endpoints: [
-            "http://localhost:18731"
+            "http://localhost:20000"
           ]
         }
       ]
