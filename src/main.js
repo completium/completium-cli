@@ -260,6 +260,9 @@ async function help(options) {
   print("  set bin <BIN> <PATH>");
   print("  install bin <BIN>");
 
+  print("  start sandbox");
+  print("  stop sandbox");
+
   print("  show endpoint");
   print("  switch endpoint");
   print("  add endpoint (main|edo|florence|sandbox) <ENDPOINT_URL>");
@@ -355,7 +358,24 @@ async function initCompletium(options) {
     }
   };
   saveFile(config_path, config, (x => {
-    saveFile(accounts_path, { accounts: [] }, (y => {
+    saveFile(accounts_path, {
+      accounts: [{
+        "name": "alice",
+        "pkh": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb",
+        "key": {
+          "kind": "private_key",
+          "value": "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq"
+        }
+      },
+      {
+        "name": "bob",
+        "pkh": "tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6",
+        "key": {
+          "kind": "private_key",
+          "value": "edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt"
+        }
+      }]
+    }, (y => {
       saveFile(contracts_path, { contracts: [] }, (z => { print("Completium initialized successfully!") }));
     }))
   }));
@@ -387,6 +407,42 @@ async function installBin(options) {
   await download(archetype_url, path_archetype);
   fs.chmodSync(path_archetype, '711');
   setBinArchetypeConfig(path_archetype, "archetype installed.");
+}
+
+
+async function startSandbox(options) {
+  const verbose = options.verbose;
+
+  try {
+    const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '-e', 'block_time=2', '--detach', '-p', '20000:20000',
+      'tqtezos/flextesa:20210316', 'edobox', 'start'], {});
+    if (verbose) {
+      print(stdout);
+    }
+    print('sandbox is running');
+    return stdout;
+
+  } catch (error) {
+    print(error);
+    throw error;
+  }
+}
+
+async function stopSandbox(options) {
+  const verbose = options.verbose;
+
+  try {
+    const { stdout } = await execa('docker', ['kill', 'my-sandbox'], {});
+    if (verbose) {
+      print(stdout);
+    }
+    print('sandbox is stopped');
+    return stdout;
+
+  } catch (error) {
+    print(error);
+    throw error;
+  }
 }
 
 async function showVersion(options) {
@@ -1154,6 +1210,12 @@ async function process(options) {
     case "install_bin":
       installBin(options);
       break;
+    case "start_sandbox":
+      startSandbox(options);
+      break;
+    case "stop_sandbox":
+      stopSandbox(options);
+      break;
     case "show_endpoint":
       showEndpoint(options);
       break;
@@ -1175,8 +1237,6 @@ async function process(options) {
     case "import_privatekey":
       importPrivatekey(options);
       break;
-
-
     case "show_account":
       showAccount(options);
       break;

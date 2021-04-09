@@ -36,6 +36,14 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "install" && args[3] === "bin") {
     res = { command: "install_bin", bin: args[4] };
     nargs = args.slice(5);
+    // start sandbox
+  } else if (length > 3 && args[2] === "start" && args[3] === "sandbox") {
+    res = { command: "start_sandbox" };
+    nargs = args.slice(4);
+    // stop sandbox
+  } else if (length > 3 && args[2] === "stop" && args[3] === "sandbox") {
+    res = { command: "stop_sandbox" };
+    nargs = args.slice(4);
     // show endpoint
   } else if (length > 3 && args[2] === "show" && args[3] === "endpoint") {
     res = { command: "show_endpoint" };
