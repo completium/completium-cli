@@ -414,7 +414,7 @@ async function startSandbox(options) {
   const verbose = options.verbose;
   print('Waiting for sandbox to start ...');
   try {
-    const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '-e', 'block_time=5', '--detach', '-p', '20000:20000',
+    const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--cpus', '1', '-e', 'block_time=5', '--detach', '-p', '20000:20000',
       'tqtezos/flextesa:20210316', 'edobox', 'start'], {});
     if (verbose) {
       print(stdout);
