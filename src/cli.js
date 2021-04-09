@@ -143,6 +143,8 @@ function parseCommand(args) {
       '--force': Boolean,
       '--verbose': Boolean,
       '--init': String,
+      '--metadata-storage': String,
+      '--metadata-uri': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -166,6 +168,8 @@ function parseCommand(args) {
     force: options['--force'] || false,
     verbose: options['--verbose'] || false,
     init: options['--init'],
+    metadata_storage: options['--metadata-storage'],
+    metadata_uri: options['--metadata-uri'],
   }
 }
 

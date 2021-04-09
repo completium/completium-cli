@@ -5,24 +5,24 @@
  * Released under the MIT License.
  */
 
-const fs      = require('fs');
-const wget    = require('node-wget');
-const execa   = require('execa');
-const path    = require('path');
+const fs = require('fs');
+const wget = require('node-wget');
+const execa = require('execa');
+const path = require('path');
 const taquito = require('@taquito/taquito');
-const signer  = require('@taquito/signer');
+const signer = require('@taquito/signer');
 
 const version = '0.1.8'
 
-const homedir        = require('os').homedir();
+const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
-const config_path    = completium_dir + '/config.json'
-const accounts_path  = completium_dir + '/accounts.json'
+const config_path = completium_dir + '/config.json'
+const accounts_path = completium_dir + '/accounts.json'
 const contracts_path = completium_dir + '/contracts.json'
-const bin_dir        = completium_dir + '/bin'
-const contracts_dir  = completium_dir + "/contracts"
-const scripts_dir    = completium_dir + "/scripts"
-const sources_dir    = completium_dir + "/sources"
+const bin_dir = completium_dir + '/bin'
+const contracts_dir = completium_dir + "/contracts"
+const scripts_dir = completium_dir + "/scripts"
+const sources_dir = completium_dir + "/sources"
 
 ///////////
 // TOOLS //
@@ -172,10 +172,22 @@ async function callArchetype(options, args) {
   const config = getConfig();
   const verbose = options.verbose;
   const init = options.init;
+  const metadata_storage = options.metadata_storage;
+  const metadata_uri = options.metadata_uri;
 
   if (init !== undefined) {
     args.push('--init');
     args.push(init)
+  }
+
+  if (metadata_storage !== undefined) {
+    args.push('--metadata-storage');
+    args.push(metadata_storage)
+  }
+
+  if (metadata_uri !== undefined) {
+    args.push('--metadata-uri');
+    args.push(metadata_uri)
   }
 
   try {
@@ -263,7 +275,7 @@ async function help(options) {
   print("  remove account <ACCOUNT_ALIAS>");
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]");
+  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON>] [--metadata-uri <VALUE_URI>] [--force]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
 
@@ -686,7 +698,8 @@ async function transfer(options) {
     })
     .then((hash) => {
       const op_inj = network.tzstat_url === undefined ? `${hash}` : `${network.tzstat_url}/${hash}`
-      print(`Operation injected: ${op_inj}`)}
+      print(`Operation injected: ${op_inj}`)
+    }
     )
     .catch((error) => print(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
 }
@@ -758,7 +771,7 @@ async function deploy(options) {
 
   const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
   {
-    const res = await callArchetype(options, ['-t', 'javascript', arl]);
+    const res = await callArchetype(options, ['-t', 'javascript', '--no-js-header', arl]);
 
     fs.writeFile(contract_script, res, function (err) {
       if (err) throw err;
@@ -787,6 +800,7 @@ async function deploy(options) {
   }
 
   {
+    require = require('esm')(module /*, options*/);
     var c = require(contract_script);
     return new Promise(resolve => {
       tezos.contract
@@ -1220,7 +1234,7 @@ async function process(options) {
   return true;
 }
 
-exports.deploy=deploy;
-exports.callContract=callContract;
-exports.getStorage=getStorage;
-exports.process=process
+exports.deploy = deploy;
+exports.callContract = callContract;
+exports.getStorage = getStorage;
+exports.process = process
