@@ -859,6 +859,7 @@ async function deploy(options) {
     require = require('esm')(module /*, options*/);
     var c = require(contract_script);
     return new Promise(resolve => {
+      var op = null;
       tezos.contract
         .originate({
           balance: amount,
@@ -868,6 +869,7 @@ async function deploy(options) {
         })
         .then((originationOp) => {
           print(`Waiting for confirmation of origination for ${originationOp.contractAddress} ...`);
+          op = originationOp;
           return originationOp.contract();
         })
         .then((contract) => {
@@ -883,7 +885,7 @@ async function deploy(options) {
               print(`Origination completed for ${contract.address} named ${contract_name}.`);
               const url = network.bcd_url.replace('${address}', contract.address);
               print(url);
-              return resolve(null)
+              return resolve(op)
             });
         })
         .catch((error) => print(`Error: ${JSON.stringify(error, null, 2)}`));
@@ -939,11 +941,12 @@ async function callTransfer(options, contract_address, arg) {
       .transfer({ to: contract_address, amount: amount, mutez: true, parameter: { entrypoint: entry, value: arg } })
       .then((op) => {
         print(`Waiting for ${op.hash} to be confirmed...`);
-        return op.confirmation(1).then(() => op.hash);
+        return op.confirmation(1).then(() => op);
       })
-      .then((hash) => {
-        print(`Operation injected: ${network.tzstat_url}/${hash}`);
-        return resolve(null)
+      .then((op) => {
+        const a = network.tzstat_url !== undefined ? `${network.tzstat_url}/${op.hash}` : `${op.hash}`;
+        print(`Operation injected: ${a}`);
+        return resolve(op)
       })
       .catch(
         error => {

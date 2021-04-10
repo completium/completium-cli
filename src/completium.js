@@ -9,6 +9,8 @@
 
 const Main = require('./main')
 
+const BigNumber = require('bignumber.js').BigNumber;
+
 module.exports = class Completium {
 
   constructor() {
@@ -17,12 +19,22 @@ module.exports = class Completium {
 
   async originate(path, obj) {
     const options = { ...obj, file: path, force: true };
-    await Main.deploy(options);
+    const op = await Main.deploy(options);
+    if (op.results !== undefined) {
+      var cost = new BigNumber('0');
+      op.results.forEach(x => {
+        const fee = new BigNumber(x.fee);
+        const storage_limit = new BigNumber(x.storage_limit);
+        cost = cost.plus(fee.plus(storage_limit.multipliedBy(new BigNumber('250'))))
+      });
+      op.cost = cost;
+    }
+    return op;
   }
 
   async call(input, obj) {
     const options = { ...obj, contract: input, force: true };
-    await Main.callContract(options);
+    return await Main.callContract(options);
   }
 
   async getStorage(contract_id) {
@@ -30,7 +42,7 @@ module.exports = class Completium {
   }
 
   async getBalance(alias, obj) {
-    const options = alias === undefined ? {} : obj === undefined ? {alias: alias} : { ...obj, alias: alias};
+    const options = alias === undefined ? {} : obj === undefined ? { alias: alias } : { ...obj, alias: alias };
     return Main.getBalance(options);
   }
 }
