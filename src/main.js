@@ -12,7 +12,7 @@ const path = require('path');
 const taquito = require('@taquito/taquito');
 const signer = require('@taquito/signer');
 
-const version = '0.1.8'
+const version = '0.1.9'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
