@@ -17,9 +17,7 @@ module.exports = class Completium {
 
   }
 
-  async originate(path, obj) {
-    const options = { ...obj, file: path, force: true };
-    const op = await Main.deploy(options);
+  computeCost(op) {
     if (op.results !== undefined) {
       var cost = new BigNumber('0');
       op.results.forEach(x => {
@@ -27,14 +25,24 @@ module.exports = class Completium {
         const storage_limit = new BigNumber(x.storage_limit);
         cost = cost.plus(fee.plus(storage_limit.multipliedBy(new BigNumber('250'))))
       });
-      op.cost = cost;
+      return cost;
+    } else {
+      return null;
     }
+  }
+
+  async originate(path, obj) {
+    const options = { ...obj, file: path, force: true };
+    const op = await Main.deploy(options);
+    op.cost = this.computeCost(op);
     return op;
   }
 
   async call(input, obj) {
     const options = { ...obj, contract: input, force: true };
-    return await Main.callContract(options);
+    const op = await Main.callContract(options);
+    op.cost = this.computeCost(op);
+    return op;
   }
 
   async getStorage(contract_id) {
