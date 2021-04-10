@@ -28,4 +28,9 @@ module.exports = class Completium {
   async getStorage(contract_id) {
     return Main.getStorage(contract_id);
   }
+
+  async getBalance(alias, obj) {
+    const options = alias === undefined ? {} : obj === undefined ? {alias: alias} : { ...obj, alias: alias};
+    return Main.getBalance(options);
+  }
 }

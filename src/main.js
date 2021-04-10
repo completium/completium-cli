@@ -1187,6 +1187,39 @@ async function getStorage(input) {
   return storage;
 }
 
+async function getBalance(options) {
+  const alias = options.alias;
+
+  var pkh = null;
+  if (alias === undefined) {
+    const config = getConfig();
+    const account = getAccount(config.account);
+    if (account === undefined) {
+      print('Account is not set.');
+      return null;
+    }
+    pkh = account.pkh;
+  } else {
+    const account = getAccountFromIdOrAddr(alias);
+    if (account === undefined) {
+      const contract = getContractFromIdOrAddress(alias);
+      if (contract === undefined) {
+        print(`${alias} is not found.`);
+        return null;
+      } else {
+        pkh = contract.address;
+      }
+    } else {
+      pkh = account.pkh;
+    }
+  }
+
+  const tezos = getTezos();
+
+  var balance = await tezos.tz.getBalance(pkh);
+  return balance;
+}
+
 async function commandNotFound(options) {
   print("commandNotFound: " + options.command);
   help(options);
@@ -1297,4 +1330,5 @@ async function process(options) {
 exports.deploy = deploy;
 exports.callContract = callContract;
 exports.getStorage = getStorage;
-exports.process = process
+exports.getBalance = getBalance;
+exports.process = process;
