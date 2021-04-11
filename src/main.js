@@ -190,6 +190,13 @@ async function callArchetype(options, args) {
     args.push(metadata_uri)
   }
 
+
+  if (verbose) {
+    var cmd = config.bin.archetype;
+    args.forEach (x => cmd += ' ' + x);
+    print(cmd);
+  }
+
   try {
     const { stdout } = await execa(config.bin.archetype, args, {});
     if (verbose) {
@@ -217,8 +224,8 @@ function getAmount(raw) {
   return value;
 }
 
-function createScript(contract, content, callback) {
-  const path = scripts_dir + '/' + contract.name + '.json';
+function createScript(address, content, callback) {
+  const path = scripts_dir + '/' + address + '.json';
   fs.writeFile(path, content, function (err) {
     if (err) throw err;
     callback(path);
@@ -961,7 +968,8 @@ async function getArg(options, contract_address, entry, callback) {
     var args = [
       '--expr', options.with,
       '--with-contract', path,
-      '--json'
+      '--json',
+      '--only-expr'
     ];
     if (entry !== 'default') {
       if (entry.charAt(0) !== '%') {
@@ -972,8 +980,7 @@ async function getArg(options, contract_address, entry, callback) {
 
     (async () => {
       const output_raw = await callArchetype(options, args);
-      const output = output_raw.substring(0, output_raw.indexOf('}\n{') + 1);
-      const res = JSON.parse(output);
+      const res = JSON.parse(output_raw);
       callback(res)
     })();
   });
