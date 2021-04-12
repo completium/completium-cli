@@ -104,6 +104,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "generate" && args[3] === "javascript") {
     res = { command: "generate_javascript", path: args[4] };
     nargs = args.slice(5);
+    // generate javascript <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "whyml") {
+    res = { command: "generate_whyml", path: args[4] };
+    nargs = args.slice(5);
     // show entries of <CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
     res = { command: "show_entries", contract: args[4] };

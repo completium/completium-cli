@@ -193,7 +193,7 @@ async function callArchetype(options, args) {
 
   if (verbose) {
     var cmd = config.bin.archetype;
-    args.forEach (x => cmd += ' ' + x);
+    args.forEach(x => cmd += ' ' + x);
     print(cmd);
   }
 
@@ -288,6 +288,7 @@ async function help(options) {
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
 
   print("  show contracts");
   print("  show contract <CONTRACT_ALIAS>");
@@ -409,7 +410,7 @@ async function installBin(options) {
     return print(`Error: expecting bin archetype`);
   }
 
-  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.2/archetype-x64-linux";
+  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.3/archetype-x64-linux";
   const path_archetype = bin_dir + '/archetype';
   await download(archetype_url, path_archetype);
   fs.chmodSync(path_archetype, '711');
@@ -1030,6 +1031,21 @@ async function generateJavascript(options) {
   print(res);
 }
 
+async function generateWhyml(options) {
+  const value = options.path;
+
+  const contract = getContract(value);
+
+  var x = value;
+  if (!isNull(contract)) {
+    x = contract.source;
+  }
+
+  var args = ['-t', 'whyml', x];
+  const res = await callArchetype(options, args);
+  print(res);
+}
+
 async function showContracts(options) {
   const contracts = getContracts();
 
@@ -1305,6 +1321,9 @@ async function process(options) {
       break;
     case "generate_javascript":
       generateJavascript(options);
+      break;
+    case "generate_whyml":
+      generateWhyml(options);
       break;
     case "show_contracts":
       showContracts(options);
