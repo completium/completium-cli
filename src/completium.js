@@ -53,4 +53,19 @@ module.exports = class Completium {
     const options = alias === undefined ? {} : obj === undefined ? { alias: alias } : { ...obj, alias: alias };
     return Main.getBalance(options);
   }
+
+  async setAccount(account, obj) {
+    const options = obj === undefined ? { account: account, quiet: true } : { ...obj, account: account, quiet: true };
+    return Main.setAccount(options);
+  }
+
+  async setEndpoint(endpoint, obj) {
+    const options = obj === undefined ? { endpoint: endpoint, quiet: true } : { ...obj, endpoint: endpoint, quiet: true };
+    return Main.setEndpoint(options);
+  }
+
+  getAddress(alias) {
+    const options = { alias: alias };
+    return Main.getAddress(options);
+  }
 }

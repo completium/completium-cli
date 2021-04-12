@@ -528,17 +528,28 @@ async function addEndpoint(options) {
 
 async function setEndpoint(options) {
   const endpoint = options.endpoint;
+  const quiet = options.quiet === undefined ? false : options.quiet;
 
   const config = getConfig();
   const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
 
   if (isNull(network)) {
-    return print(`Error: ${endpoint} is not found.`);
+    if (!quiet)
+      print(`Error: ${endpoint} is not found.`);
+    return false;
   }
 
   config.tezos.network = network.network;
   config.tezos.endpoint = endpoint;
-  saveConfig(config, x => { print(`endpoint '${endpoint}' for network ${network.network} set.`) });
+
+  return new Promise(resolve => {
+    saveConfig(config, x => {
+      if (!quiet)
+        print(`endpoint '${endpoint}' for network ${network.network} set.`);
+      resolve(true);
+    }
+    )
+  });
 }
 
 async function removeEndpoint(options) {
@@ -682,14 +693,23 @@ async function switchAccount(options) {
 
 async function setAccount(options) {
   const value = options.account;
+  const quiet = options.quiet === undefined ? false : options.quiet;
 
   const account = getAccount(value);
   if (isNull(account)) {
-    return print(`Error: '${value}' is not found.`);
+    if (!quiet)
+      print(`Error: '${value}' is not found.`);
+    return false;
   }
   const config = getConfig();
   config.account = value;
-  saveConfig(config, x => { print(`'${value}' is set as current account.`) });
+  return new Promise(resolve => {
+    saveConfig(config, x => {
+      if (!quiet)
+        print(`'${value}' is set as current account.`);
+      resolve(true);
+    })
+  });
 }
 
 async function removeAccount(options) {
@@ -1246,6 +1266,22 @@ async function getBalance(options) {
   return balance;
 }
 
+function getAddress(options) {
+  const alias = options.alias;
+
+  var address = null;
+  const account = getAccount(alias);
+  if (account !== undefined) {
+    address = account.pkh;
+  } else {
+    const contract = getContract(alias);
+    if (contract !== undefined) {
+      address = contract.address;
+    }
+  }
+  return address;
+}
+
 async function commandNotFound(options) {
   print("commandNotFound: " + options.command);
   help(options);
@@ -1361,3 +1397,6 @@ exports.callContract = callContract;
 exports.getStorage = getStorage;
 exports.getBalance = getBalance;
 exports.process = process;
+exports.setAccount = setAccount;
+exports.setEndpoint = setEndpoint;
+exports.getAddress = getAddress;
