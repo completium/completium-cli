@@ -31,17 +31,26 @@ module.exports = class Completium {
     }
   }
 
+  updateCost(op) {
+    if (op !== undefined && op != null) {
+      const cost = this.computeCost(op);
+      return {...op, cost: cost};
+    } else {
+      return op;
+    }
+  }
+
   async originate(path, obj) {
-    const options = { ...obj, file: path, force: true };
-    const op = await Main.deploy(options);
-    op.cost = this.computeCost(op);
+    const options = { ...obj, file: path, force: true, quiet: true };
+    var op = await Main.deploy(options);
+    op = this.updateCost(op);
     return op;
   }
 
   async call(input, obj) {
-    const options = { ...obj, contract: input, force: true };
-    const op = await Main.callContract(options);
-    op.cost = this.computeCost(op);
+    const options = { ...obj, contract: input, force: true, verbose: true };
+    var op = await Main.callContract(options);
+    op = this.updateCost(op);
     return op;
   }
 

@@ -937,6 +937,7 @@ async function callTransfer(options, contract_address, arg) {
   const config = getConfig();
   const force = options.force;
   const entry = options.entry === undefined ? 'default' : options.entry;
+  const quiet = options.quiet === undefined ? false : options.quiet;
 
   const contract_id = options.contract;
 
@@ -978,38 +979,41 @@ async function callTransfer(options, contract_address, arg) {
       })
       .catch(
         error => {
-          print({ ...error, errors: '...' });
+          if (!quiet)
+            print({ ...error, errors: '...' });
+          return resolve(null)
         }
       );
   });
 }
 
-async function getArg(options, contract_address, entry, callback) {
-  retrieveContract(contract_address, path => {
-    var args = [
-      '--expr', options.with,
-      '--with-contract', path,
-      '--json',
-      '--only-expr'
-    ];
-    if (entry !== 'default') {
-      if (entry.charAt(0) !== '%') {
-        entry = "%" + entry;
+async function getArg(options, contract_address, entry) {
+  return new Promise(async (resolve) => {
+    retrieveContract(contract_address, async (path) => {
+      var args = [
+        '--expr', options.with,
+        '--with-contract', path,
+        '--json',
+        '--only-expr'
+      ];
+      if (entry !== 'default') {
+        if (entry.charAt(0) !== '%') {
+          entry = "%" + entry;
+        }
+        args.push('--entrypoint', entry);
       }
-      args.push('--entrypoint', entry);
-    }
 
-    (async () => {
       const output_raw = await callArchetype(options, args);
       const res = JSON.parse(output_raw);
-      callback(res)
-    })();
+
+      resolve(res);
+    });
   });
 }
 
 async function callContract(options) {
   const input = options.contract;
-  const arg = options.with;
+  var arg = options.with;
   var entry = options.entry === undefined ? 'default' : options.entry;
 
   const contract = getContractFromIdOrAddress(input);
@@ -1030,10 +1034,12 @@ async function callContract(options) {
   }
 
   if (arg !== undefined) {
-    getArg(options, contract_address, entry, arg => { return callTransfer(options, contract_address, arg) });
+    arg = await getArg(options, contract_address, entry);
   } else {
-    return callTransfer(options, contract_address, { prim: "Unit" });
+    arg = { prim: "Unit" };
   }
+  const res = await callTransfer(options, contract_address, arg);
+  return res;
 }
 
 async function generateJavascript(options) {
