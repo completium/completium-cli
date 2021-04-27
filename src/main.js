@@ -141,7 +141,7 @@ function getSigner(forceAccount) {
   const config = getConfig();
   const account = config.account;
   if (isNull(forceAccount) && isNull(account)) {
-    print("Cannot exectute this command, please generate an account first.");
+    print("Cannot execute this command, please generate an account first.");
     return null;
   }
   var a = isNull(forceAccount) ? account : forceAccount;
@@ -286,7 +286,7 @@ async function help(options) {
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
-  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
+  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
 
@@ -349,10 +349,11 @@ async function initCompletium(options) {
         },
         {
           network: 'florence',
-          bcd_url: "https://better-call.dev/florence/${address}",
+          bcd_url: "https://better-call.dev/florencenet/${address}",
           tzstat_url: "https://florence.tzstats.com",
           endpoints: [
-            'https://florence-tezos.giganode.io'
+            'https://florence-tezos.giganode.io',
+            'https://florencenet.smartpy.io'
           ]
         },
         {
@@ -1014,6 +1015,7 @@ async function getArg(options, contract_address, entry) {
 async function callContract(options) {
   const input = options.contract;
   var arg = options.with;
+  var argMichelson = options.withMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
 
   const contract = getContractFromIdOrAddress(input);
@@ -1033,7 +1035,9 @@ async function callContract(options) {
     }
   }
 
-  if (arg !== undefined) {
+  if (argMichelson !== undefined) {
+
+  } else if (arg !== undefined) {
     arg = await getArg(options, contract_address, entry);
   } else {
     arg = { prim: "Unit" };
