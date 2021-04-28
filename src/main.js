@@ -324,8 +324,8 @@ async function initCompletium(options) {
       archetype: 'archetype'
     },
     tezos: {
-      network: 'edo',
-      endpoint: 'https://edonet.smartpy.io',
+      network: 'florence',
+      endpoint: 'https://florencenet.smartpy.io',
       list: [
         {
           network: 'main',
