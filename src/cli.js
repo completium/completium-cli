@@ -7,7 +7,7 @@
 
 import arg from 'arg';
 // import inquirer from 'inquirer';
-import { process } from './main';
+import { exec } from './main';
 
 function parseCommand(args) {
   const length = args.length;
@@ -203,5 +203,8 @@ export async function cli(args) {
   let options = parseCommand(args);
   // console.log(options);
   // options = await promptForMissingOptions(options);
-  await process(options);
+  var r = await exec(options);
+  if (r != 0) {
+    process.exit(r);
+  }
 }

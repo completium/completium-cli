@@ -876,12 +876,14 @@ async function deploy(options) {
   const tezos = getTezos(account.name);
 
   var tzstorage = "";
-  {
+  try {
     const account = getAccount(config.account);
     const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', account.pkh, arl]);
     tzstorage = res;
     if (verbose)
       print(tzstorage);
+  } catch (error) {
+    return new Promise(resolve => {resolve(null)});
   }
 
   {
@@ -917,7 +919,7 @@ async function deploy(options) {
               return resolve(op)
             });
         })
-        .catch((error) => print(`Error: ${JSON.stringify(error, null, 2)}`));
+        .catch((error) => { print(`Error: ${JSON.stringify(error, null, 2)}`); resolve(null); });
     });
   }
 }
@@ -1298,7 +1300,7 @@ async function commandNotFound(options) {
   return 1;
 }
 
-async function process(options) {
+async function exec(options) {
   switch (options.command) {
     case "init":
       initCompletium(options);
@@ -1360,7 +1362,10 @@ async function process(options) {
       transfer(options);
       break;
     case "deploy":
-      deploy(options);
+      var op = await deploy(options);
+      if (op == null) {
+        return 1;
+      }
       break;
     case "call_contract":
       callContract(options);
@@ -1399,14 +1404,14 @@ async function process(options) {
       commandNotFound(options);
   }
 
-  return true;
+  return 0;
 }
 
 exports.deploy = deploy;
 exports.callContract = callContract;
 exports.getStorage = getStorage;
 exports.getBalance = getBalance;
-exports.process = process;
+exports.exec = exec;
 exports.setAccount = setAccount;
 exports.setEndpoint = setEndpoint;
 exports.getAddress = getAddress;
