@@ -856,7 +856,7 @@ async function deploy(options) {
 
   const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
   {
-    const res = await callArchetype(options, ['-t', 'javascript', '--no-js-header', arl]);
+    const res = await callArchetype(options, ['-sci', account.pkh, '-t', 'javascript', '--no-js-header', arl]);
 
     fs.writeFile(contract_script, res, function (err) {
       if (err) throw err;
