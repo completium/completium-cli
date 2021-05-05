@@ -424,7 +424,7 @@ async function startSandbox(options) {
   print('Waiting for sandbox to start ...');
   try {
     const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--cpus', '1', '-e', 'block_time=10', '--detach', '-p', '20000:20000',
-      'tqtezos/flextesa:20210316', 'edobox', 'start'], {});
+      'tqtezos/flextesa:20210316', 'flobox', 'start'], {});
     if (verbose) {
       print(stdout);
     }
@@ -883,7 +883,7 @@ async function deploy(options) {
     if (verbose)
       print(tzstorage);
   } catch (error) {
-    return new Promise(resolve => {resolve(null)});
+    return new Promise(resolve => { resolve(null) });
   }
 
   {
@@ -1014,6 +1014,19 @@ async function getArg(options, contract_address, entry) {
   });
 }
 
+async function getMicheline(options, input) {
+  return new Promise(async (resolve) => {
+    var args = [
+      '--to-micheline', input
+    ];
+
+    const output_raw = await callArchetype(options, args);
+    const res = JSON.parse(output_raw);
+
+    resolve(res);
+  });
+}
+
 async function callContract(options) {
   const input = options.contract;
   var arg = options.with;
@@ -1038,7 +1051,7 @@ async function callContract(options) {
   }
 
   if (argMichelson !== undefined) {
-
+    arg = await getMicheline(options, argMichelson);
   } else if (arg !== undefined) {
     arg = await getArg(options, contract_address, entry);
   } else {
