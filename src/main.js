@@ -287,8 +287,8 @@ async function help(options) {
   print("  remove account <ACCOUNT_ALIAS>");
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
-  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <ARG>] [--amount <AMOUNT>(tz|utz)] [--force]");
+  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
+  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <ARG>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
 
@@ -844,22 +844,25 @@ async function deploy(options) {
         print_error(`Error: invalid account ${config.account}.`);
       }
     }
-    return;
+    return new Promise(resolve => { resolve(null) });
   }
 
   const amount = isNull(options.amount) ? 0 : getAmount(options.amount);
-  if (isNull(amount)) { return; };
+  if (isNull(amount)) { return new Promise(resolve => { resolve(null) }); };
+
+  const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
+  if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
   const contract_name = named === undefined ? path.basename(arl).split('.').slice(0, -1).join('.') : named;
   var confirm = await confirmContract(force, contract_name);
   if (!confirm) {
-    return;
+    return new Promise(resolve => { resolve(null) });
   }
 
   try {
     const res = await callArchetype({...options, no_print: true}, ['--get-parameters', arl]);
     if (res !== "" && isNull(options.init)) {
-      print(`This contract has this following parameter:\n${res}\nPlease use '--init' to initialize.`)
+      print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
       return new Promise(resolve => { resolve(null) });
     }
   } catch (error) {
@@ -912,6 +915,7 @@ async function deploy(options) {
       tezos.contract
         .originate({
           balance: amount,
+          fee: fee > 0 ? fee : undefined,
           code: c.code,
           init: c.getStorage(),
           mutez: true
@@ -975,6 +979,9 @@ async function callTransfer(options, contract_address, arg) {
     return;
   }
 
+  const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
+  if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
+
   var confirm = await confirmCall(force, account, contract_id, amount, entry, arg);
   if (!confirm) {
     return;
@@ -988,7 +995,7 @@ async function callTransfer(options, contract_address, arg) {
 
   return new Promise(resolve => {
     tezos.contract
-      .transfer({ to: contract_address, amount: amount, mutez: true, parameter: { entrypoint: entry, value: arg } })
+      .transfer({ to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } })
       .then((op) => {
         print(`Waiting for ${op.hash} to be confirmed...`);
         return op.confirmation(1).then(() => op);
