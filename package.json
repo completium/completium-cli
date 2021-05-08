@@ -1,6 +1,6 @@
 {
   "name": "@completium/completium-cli",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Completium CLI",
   "main": "./src/completium.js",
   "module": "./src/completium.js",
