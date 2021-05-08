@@ -413,7 +413,7 @@ async function installBin(options) {
     return print(`Error: expecting bin archetype`);
   }
 
-  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.3/archetype-x64-linux";
+  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.5/archetype-x64-linux";
   const path_archetype = bin_dir + '/archetype';
   await download(archetype_url, path_archetype);
   fs.chmodSync(path_archetype, '711');
@@ -857,9 +857,9 @@ async function deploy(options) {
   }
 
   try {
-    const res = await callArchetype({...options, no_print: true}, ['--with-parameters', arl]);
-    if (res === "true" && isNull(options.init)) {
-      print("This contract has parameter, please use '--init' to initialize it.")
+    const res = await callArchetype({...options, no_print: true}, ['--get-parameters', arl]);
+    if (res !== "" && isNull(options.init)) {
+      print(`This contract has this following parameter:\n${res}\nPlease use '--init' to initialize.`)
       return new Promise(resolve => { resolve(null) });
     }
   } catch (error) {
