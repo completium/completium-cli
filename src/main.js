@@ -174,6 +174,7 @@ async function callArchetype(options, args) {
   const init = options.init;
   const metadata_storage = options.metadata_storage;
   const metadata_uri = options.metadata_uri;
+  const no_print = options.no_print === undefined ? false : options.no_print;
 
   if (init !== undefined) {
     args.push('--init');
@@ -205,7 +206,8 @@ async function callArchetype(options, args) {
     return stdout;
 
   } catch (error) {
-    print(error);
+    if (!no_print)
+      print(error);
     throw error;
   }
 }
@@ -854,15 +856,31 @@ async function deploy(options) {
     return;
   }
 
-  const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
-  {
-    const res = await callArchetype(options, ['-sci', account.pkh, '-t', 'javascript', '--no-js-header', arl]);
+  try {
+    const res = await callArchetype({...options, no_print: true}, ['--with-parameters', arl]);
+    if (res === "true" && isNull(options.init)) {
+      print("This contract has parameter, please use '--init' to initialize it.")
+      return new Promise(resolve => { resolve(null) });
+    }
+  } catch (error) {
+    print_error(error.stderr);
+    return new Promise(resolve => { resolve(null) });
+  }
 
-    fs.writeFile(contract_script, res, function (err) {
-      if (err) throw err;
-      if (verbose)
-        print(`JS script for contract ${contract_name} is saved.`);
-    });
+
+  const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
+  try {
+    {
+      const res = await callArchetype(options, ['-sci', account.pkh, '-t', 'javascript', '--no-js-header', arl]);
+
+      fs.writeFile(contract_script, res, function (err) {
+        if (err) throw err;
+        if (verbose)
+          print(`JS script for contract ${contract_name} is saved.`);
+      });
+    }
+  } catch (error) {
+    return new Promise(resolve => { resolve(null) });
   }
 
   const source = await copySource(arl, contract_name);
