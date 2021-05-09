@@ -606,7 +606,7 @@ async function importAccount(kind, options) {
   switch (kind) {
     case "faucet":
       const faucet = loadJS(value);
-      print(`Import key ...`);
+      print(`Importing key ...`);
       await signer.importKey(tezos,
         faucet.email,
         faucet.password,
