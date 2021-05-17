@@ -281,7 +281,7 @@ async function help(options) {
   print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]");
   print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]");
 
-  print("  show account");
+  print("  show keys from <PRIVATE_KEY>");
   print("  set account <ACCOUNT_ALIAS>");
   print("  switch account");
   print("  remove account <ACCOUNT_ALIAS>");
@@ -622,9 +622,10 @@ async function importAccount(kind, options) {
     default:
       break;
   }
+  const pubk = await tezos.signer.publicKey();
   const pkh = await tezos.signer.publicKeyHash();
   tezos.signer.secretKey().then(x => {
-    saveAccount({ name: account, pkh: pkh, key: { kind: 'private_key', value: x } },
+    saveAccount({ name: account, pubk: pubk, pkh: pkh, key: { kind: 'private_key', value: x } },
       x => { print(`Account ${pkh} is registered as '${account}'.`) });
   })
     .catch(console.error);
@@ -638,9 +639,25 @@ async function importPrivatekey(options) {
   importAccount("privatekey", options);
 }
 
+async function showKeysFrom(options) {
+  const value = options.value;
+
+  const config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
+  const tezos = new taquito.TezosToolkit(tezos_endpoint);
+  tezos.setProvider({
+    signer: new signer.InMemorySigner(value),
+  });
+  const pubk = await tezos.signer.publicKey();
+  const pkh = await tezos.signer.publicKeyHash();
+  const prik = await tezos.signer.secretKey();
+  showKeyInfo(pubk, pkh, prik);
+}
+
 async function showAccount(options) {
   const config = getConfig();
   const value = config.account;
+  const withPrivateKey = options.withPrivateKey;
 
   if (isNull(value)) {
     print("Error: no account is set.");
@@ -650,11 +667,18 @@ async function showAccount(options) {
       return print(`Error: ${account} is not found.`);
     }
     const tezos = getTezos();
-
-    print(`Current account: ${account.name}`);
-    print(`Public key hash: ${account.pkh}`);
+    print(`Current account:\t${account.name}`);
+    showKeyInfo(account.pubk, account.pkh, withPrivateKey ? account.key.value : null);
     var balance = await tezos.tz.getBalance(account.pkh);
-    print(`Balance on ${config.tezos.network}: ${balance.toNumber() / 1000000} ꜩ`);
+    print(`Balance on ${config.tezos.network}:\t${balance.toNumber() / 1000000} ꜩ`);
+  }
+}
+
+async function showKeyInfo(pubk, pkh, prik) {
+  print(`Public  key hash:\t${pkh}`);
+  print(`Public  key:\t\t${pubk}`);
+  if (prik) {
+    print(`Private key:\t\t${prik}`);
   }
 }
 
@@ -832,6 +856,7 @@ async function deploy(options) {
   const force = options.force;
   const named = options.named;
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
+  const dry = options.dry;
 
   const account = getAccountFromIdOrAddr(isNull(as) ? config.account : as);
   if (isNull(account)) {
@@ -860,7 +885,7 @@ async function deploy(options) {
   }
 
   try {
-    const res = await callArchetype({...options, no_print: true}, ['--get-parameters', arl]);
+    const res = await callArchetype({ ...options, no_print: true }, ['--get-parameters', arl]);
     if (res !== "" && isNull(options.init)) {
       print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
       return new Promise(resolve => { resolve(null) });
@@ -907,7 +932,10 @@ async function deploy(options) {
     return new Promise(resolve => { resolve(null) });
   }
 
-  {
+  if (dry) {
+    taquito.RpcPacker.preapplyOperations();
+    print("TODO")
+  } else {
     require = require('esm')(module /*, options*/);
     var c = require(contract_script);
     return new Promise(resolve => {
@@ -1381,6 +1409,9 @@ async function exec(options) {
       break;
     case "import_privatekey":
       importPrivatekey(options);
+      break;
+    case "show_keys_from":
+      showKeysFrom(options);
       break;
     case "show_account":
       showAccount(options);

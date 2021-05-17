@@ -72,6 +72,10 @@ function parseCommand(args) {
   } else if (length > 6 && args[2] === "import" && args[3] === "privatekey" && args[5] === "as") {
     res = { command: "import_privatekey", value: args[4], account: args[6] };
     nargs = args.slice(7);
+    // show keys from
+  } else if (length > 5 && args[2] === "show" && args[3] === "keys" && args[4] === "from") {
+    res = { command: "show_keys_from", value: args[5] };
+    nargs = args.slice(6);
     // show account
   } else if (length > 3 && args[2] === "show" && args[3] === "account") {
     res = { command: "show_account" };
@@ -132,9 +136,11 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "show" && args[3] === "source") {
     res = { command: "show_source", contract: args[4] };
     nargs = args.slice(5);
+    // show address <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "address") {
     res = { command: "show_address", value: args[4] };
     nargs = args.slice(5);
+    // show storage <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "storage") {
     res = { command: "show_storage", value: args[4] };
     nargs = args.slice(5);
@@ -147,6 +153,7 @@ function parseCommand(args) {
       '--dry': Boolean,
       '--from-faucet': String,
       '--with-secret': Boolean,
+      '--with-private-key': Boolean,
       '--amount': String,
       '--fee': String,
       '--as': String,
@@ -173,6 +180,7 @@ function parseCommand(args) {
     ...res,
     dry: options['--dry'] || false,
     withSecret: options['--with-secret'] || false,
+    withPrivateKey: options['--with-private-key'] || false,
     amount: options['--amount'],
     fee: options['--fee'],
     burnCap: options['--burn-cap'],
