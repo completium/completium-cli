@@ -10,6 +10,8 @@ const wget = require('node-wget');
 const execa = require('execa');
 const path = require('path');
 const taquito = require('@taquito/taquito');
+const taquitoUtils = require('@taquito/utils');
+const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 
 const version = '0.1.16'
@@ -278,6 +280,7 @@ async function help(options) {
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
 
+  print("  generate account as <ACCOUNT_ALIAS> [--force]");
   print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]");
   print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]");
 
@@ -590,6 +593,33 @@ async function confirmAccount(force, account) {
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
+async function generateAccount(options) {
+  const alias = options.alias;
+  const force = options.force;
+
+  var confirm = await confirmAccount(force, alias);
+  if (!confirm) {
+    return;
+  }
+
+  const mnemonic = bip39.generateMnemonic(); // maybe too weak
+
+  const seed = bip39.mnemonicToSeedSync(mnemonic);
+
+  const privateK = taquitoUtils.b58cencode(seed.slice(0, 32), taquitoUtils.prefix.edsk2);
+  const signer_ = await signer.InMemorySigner.fromSecretKey(privateK);
+
+  const pubk = await signer_.publicKey();
+  const pkh = await signer_.publicKeyHash();
+  const prik = await signer_.secretKey();
+  saveAccountWithId(alias, pubk, pkh, prik);
+}
+
+async function saveAccountWithId(alias, pubk, pkh, prik) {
+  saveAccount({ name: alias, pubk: pubk, pkh: pkh, key: { kind: 'private_key', value: prik } },
+    x => { print(`Account ${pkh} is registered as '${alias}'.`) });
+}
+
 async function importAccount(kind, options) {
   const value = options.value;
   const account = options.account;
@@ -625,8 +655,7 @@ async function importAccount(kind, options) {
   const pubk = await tezos.signer.publicKey();
   const pkh = await tezos.signer.publicKeyHash();
   tezos.signer.secretKey().then(x => {
-    saveAccount({ name: account, pubk: pubk, pkh: pkh, key: { kind: 'private_key', value: x } },
-      x => { print(`Account ${pkh} is registered as '${account}'.`) });
+    saveAccountWithId(account, pubk, pkh, x)
   })
     .catch(console.error);
 }
@@ -1403,6 +1432,9 @@ async function exec(options) {
       break;
     case "remove_endpoint":
       removeEndpoint(options);
+      break;
+    case "generate_account":
+      generateAccount(options);
       break;
     case "import_faucet":
       importFaucet(options);

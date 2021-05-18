@@ -64,6 +64,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "remove" && args[3] === "endpoint") {
     res = { command: "remove_endpoint", endpoint: args[4] };
     nargs = args.slice(6);
+    // generate account as <ACCOUNT_ALIAS> [--force]
+  } else if (length > 5 && args[2] === "generate" && args[3] === "account" && args[4] === "as") {
+    res = { command: "generate_account", alias: args[5] };
+    nargs = args.slice(6);
     // import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]
   } else if (length > 6 && args[2] === "import" && args[3] === "faucet" && args[5] === "as") {
     res = { command: "import_faucet", value: args[4], account: args[6] };
