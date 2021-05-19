@@ -148,6 +148,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "show" && args[3] === "storage") {
     res = { command: "show_storage", value: args[4] };
     nargs = args.slice(5);
+    // get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>
+  } else if (length > 5 && args[2] === "get" && args[3] === "balance" && args[4] === "for") {
+    res = { command: "get_balance_for", value: args[5] };
+    nargs = args.slice(6);
   }
 
   // console.log(res);

@@ -303,6 +303,7 @@ async function help(options) {
   print("  show source <CONTRACT_ALIAS>");
   print("  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>");
   print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS>");
+  print("  get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>");
 }
 
 async function initCompletium(options) {
@@ -1389,6 +1390,20 @@ function getAddress(options) {
   return address;
 }
 
+async function getBalanceFor(options) {
+  const value = options.value;
+
+  const account = getAccountFromIdOrAddr(value);
+  var pkh = value;
+  if (!isNull(account)) {
+    pkh = account.pkh;
+  }
+
+  const tezos = getTezos();
+  var balance = await tezos.tz.getBalance(pkh);
+  print(`${balance.toNumber() / 1000000} ꜩ`);
+}
+
 async function commandNotFound(options) {
   print("commandNotFound: " + options.command);
   help(options);
@@ -1500,6 +1515,9 @@ async function exec(options) {
       break;
     case "show_storage":
       showStorage(options);
+      break;
+    case "get_balance_for":
+      getBalanceFor(options);
       break;
     default:
       commandNotFound(options);
