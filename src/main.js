@@ -602,7 +602,7 @@ async function generateAccount(options) {
     return;
   }
 
-  const mnemonic = bip39.generateMnemonic(); // maybe too weak
+  const mnemonic = bip39.generateMnemonic(256);
 
   const seed = bip39.mnemonicToSeedSync(mnemonic);
 
