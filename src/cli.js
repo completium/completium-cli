@@ -102,7 +102,10 @@ function parseCommand(args) {
     nargs = args.slice(8);
     // deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]
   } else if (length > 3 && args[2] === "deploy") {
-    res = { command: "deploy", file: args[3] };
+    res = { command: "deploy", file: args[3], originate: false };
+    nargs = args.slice(4);
+  } else if (length > 3 && args[2] === "originate") {
+    res = { command: "deploy", file: args[3], originate: true };
     nargs = args.slice(4);
     // call <CONTRACT_ALIAS> [--as <ACCOUNT_NAME>] [--entry <ENTRYNAME>] [--with <ARG>] [--amount <AMOUNT>(tz|utz)]
   } else if (length > 3 && args[2] === "call") {

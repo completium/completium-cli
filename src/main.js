@@ -291,7 +291,8 @@ async function help(options) {
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
-  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <ARG>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
+  print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--init <MICHELSON_DATA>]");
+  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
 
@@ -865,10 +866,10 @@ async function continueContract(force, id, from, amount) {
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
-async function copySource(arl, contract_name) {
+async function copySource(arl, ext, contract_name) {
   return new Promise(resolve => {
     fs.readFile(arl, 'utf8', (err, data) => {
-      const source_path = sources_dir + '/' + contract_name + ".arl";
+      const source_path = sources_dir + '/' + contract_name + "." + ext;
       fs.writeFile(source_path, data, (err) => {
         if (err) throw err;
         resolve(source_path);
@@ -880,13 +881,15 @@ async function copySource(arl, contract_name) {
 async function deploy(options) {
   const config = getConfig();
 
+  const originate = options.originate;
   const verbose = options.verbose;
-  const arl = options.file;
+  const file = options.file;
   const as = options.as;
   const force = options.force;
   const named = options.named;
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
   const dry = options.dry;
+  const oinit = options.init;
 
   const account = getAccountFromIdOrAddr(isNull(as) ? config.account : as);
   if (isNull(account)) {
@@ -908,28 +911,32 @@ async function deploy(options) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  const contract_name = named === undefined ? path.basename(arl).split('.').slice(0, -1).join('.') : named;
+  const contract_name = named === undefined ? path.basename(file).split('.').slice(0, -1).join('.') : named;
   var confirm = await confirmContract(force, contract_name);
   if (!confirm) {
     return new Promise(resolve => { resolve(null) });
   }
 
-  try {
-    const res = await callArchetype({ ...options, no_print: true }, ['--get-parameters', arl]);
-    if (res !== "" && isNull(options.init)) {
-      print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
+  if (!originate) {
+    try {
+      const res = await callArchetype({ ...options, no_print: true }, ['--get-parameters', file]);
+      if (res !== "" && isNull(oinit)) {
+        print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
+        return new Promise(resolve => { resolve(null) });
+      }
+    } catch (error) {
+      print_error(error.stderr);
       return new Promise(resolve => { resolve(null) });
     }
-  } catch (error) {
-    print_error(error.stderr);
-    return new Promise(resolve => { resolve(null) });
   }
 
 
   const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
   try {
     {
-      const res = await callArchetype(options, ['-sci', account.pkh, '-t', 'javascript', '--no-js-header', arl]);
+      const res = originate ?
+        "export const code = " + await callArchetype(options, ['-d', '-mici', file]) + ";" :
+        await callArchetype(options, ['-sci', account.pkh, '-t', 'javascript', '--no-js-header', file]);
 
       fs.writeFile(contract_script, res, function (err) {
         if (err) throw err;
@@ -941,7 +948,8 @@ async function deploy(options) {
     return new Promise(resolve => { resolve(null) });
   }
 
-  const source = await copySource(arl, contract_name);
+  const ext = originate ? 'tz' : 'arl';
+  const source = await copySource(file, ext, contract_name);
   const version = await getArchetypeVersion();
 
   var cont = await continueContract(force, contract_name, account, amount);
@@ -952,30 +960,53 @@ async function deploy(options) {
   const tezos = getTezos(account.name);
 
   var tzstorage = "";
-  try {
-    const account = getAccount(config.account);
-    const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', account.pkh, arl]);
-    tzstorage = res;
-    if (verbose)
-      print(tzstorage);
-  } catch (error) {
-    return new Promise(resolve => { resolve(null) });
+  if (originate) {
+    if (isNull(oinit)) {
+      tzstorage = { "prim": "Unit" };
+    } else {
+      var args = [
+        '--expr', oinit,
+        '--json',
+        '--only-expr'
+      ];
+      const output_raw = await callArchetype({...options, init: undefined }, args);
+      tzstorage = JSON.parse(output_raw);
+    }
+  } else {
+    try {
+      const account = getAccount(config.account);
+      const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', account.pkh, file]);
+      tzstorage = res;
+    } catch (error) {
+      return new Promise(resolve => { resolve(null) });
+    }
   }
+
+  if (verbose)
+    print(tzstorage);
 
   if (dry) {
     taquito.RpcPacker.preapplyOperations();
     print("TODO")
   } else {
     require = require('esm')(module /*, options*/);
-    var c = require(contract_script);
+    const c = require(contract_script);
+    const code = c.code;
+    const init = originate ? tzstorage : c.getStorage();
+    if (verbose) {
+      const aaa = JSON.stringify(code);
+      const bbb = JSON.stringify(init);
+      print(`code: ${aaa}`);
+      print(`init: ${bbb}`);
+    }
     return new Promise(resolve => {
       var op = null;
       tezos.contract
         .originate({
           balance: amount,
           fee: fee > 0 ? fee : undefined,
-          code: c.code,
-          init: c.getStorage(),
+          code: code,
+          init: init,
           mutez: true
         })
         .then((originationOp) => {
@@ -988,8 +1019,8 @@ async function deploy(options) {
             name: contract_name,
             address: contract.address,
             network: config.tezos.network,
-            language: 'archetype',
-            compiler_version: version,
+            language: originate ? 'michelson' : 'archetype',
+            compiler_version: originate ? '0' : version,
             source: source
           },
             x => {
@@ -1478,6 +1509,7 @@ async function exec(options) {
       transfer(options);
       break;
     case "deploy":
+    case "originate":
       var op = await deploy(options);
       if (op == null) {
         return 1;
