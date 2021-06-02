@@ -14,7 +14,7 @@ const taquitoUtils = require('@taquito/utils');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 
-const version = '0.1.16'
+const version = '0.1.17'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
