@@ -276,7 +276,7 @@ async function help(options) {
 
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|edo|florence|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|edo|florence|granada|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
 
@@ -361,6 +361,15 @@ async function initCompletium(options) {
           endpoints: [
             'https://florence-tezos.giganode.io',
             'https://florencenet.smartpy.io'
+          ]
+        },
+        {
+          network: 'granada',
+          bcd_url: "https://better-call.dev/granadanet/${address}",
+          tzstat_url: "https://granada.tzstats.com",
+          endpoints: [
+            'https://granada-tezos.giganode.io',
+            'https://granadanet.smartpy.io'
           ]
         },
         {
@@ -965,9 +974,7 @@ async function deploy(options) {
       tzstorage = { "prim": "Unit" };
     } else {
       var args = [
-        '--expr', oinit,
-        '--json',
-        '--only-expr'
+        '--to-micheline', oinit
       ];
       const output_raw = await callArchetype({...options, init: undefined }, args);
       tzstorage = JSON.parse(output_raw);
