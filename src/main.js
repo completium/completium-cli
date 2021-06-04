@@ -296,6 +296,7 @@ async function help(options) {
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
 
+  print("  show account [--with-private-key]");
   print("  show contracts");
   print("  show contract <CONTRACT_ALIAS>");
   print("  show entries <CONTRACT_ADDRESS>");
