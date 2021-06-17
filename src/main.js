@@ -296,6 +296,7 @@ async function help(options) {
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
 
+  print("  show accounts");
   print("  show account [--with-private-key]");
   print("  show contracts");
   print("  show contract <CONTRACT_ALIAS>");
@@ -695,6 +696,14 @@ async function showKeysFrom(options) {
   showKeyInfo(pubk, pkh, prik);
 }
 
+async function showAccounts(options) {
+  const accounts = getAccounts();
+
+  accounts.accounts.forEach(x => {
+    print(`${x.name.padEnd(30)}\t\t${x.pkh}`);
+  });
+}
+
 async function showAccount(options) {
   const config = getConfig();
   const value = config.account;
@@ -977,7 +986,7 @@ async function deploy(options) {
       var args = [
         '--to-micheline', oinit
       ];
-      const output_raw = await callArchetype({...options, init: undefined }, args);
+      const output_raw = await callArchetype({ ...options, init: undefined }, args);
       tzstorage = JSON.parse(output_raw);
     }
   } else {
@@ -1498,6 +1507,9 @@ async function exec(options) {
       break;
     case "show_keys_from":
       showKeysFrom(options);
+      break;
+    case "show_accounts":
+      showAccounts(options);
       break;
     case "show_account":
       showAccount(options);

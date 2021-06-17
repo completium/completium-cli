@@ -80,6 +80,10 @@ function parseCommand(args) {
   } else if (length > 5 && args[2] === "show" && args[3] === "keys" && args[4] === "from") {
     res = { command: "show_keys_from", value: args[5] };
     nargs = args.slice(6);
+    // show accounts
+  } else if (length > 3 && args[2] === "show" && args[3] === "accounts") {
+    res = { command: "show_accounts" };
+    nargs = args.slice(4);
     // show account
   } else if (length > 3 && args[2] === "show" && args[3] === "account") {
     res = { command: "show_account" };
