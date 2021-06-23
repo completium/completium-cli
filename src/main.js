@@ -1379,6 +1379,15 @@ async function showStorage(options) {
   return;
 }
 
+async function getContract(input) {
+  const contract_address = getContractAddress(input);
+
+  const tezos = getTezos();
+
+  var contract = await tezos.contract.at(contract_address);
+  return contract;
+}
+
 async function getStorage(input) {
   const contract_address = getContractAddress(input);
 
@@ -1581,6 +1590,7 @@ async function exec(options) {
 exports.deploy = deploy;
 exports.callContract = callContract;
 exports.getStorage = getStorage;
+exports.getContract = getContract;
 exports.getBalance = getBalance;
 exports.exec = exec;
 exports.setAccount = setAccount;
