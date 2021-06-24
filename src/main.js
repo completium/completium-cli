@@ -15,7 +15,7 @@ const codec = require('@taquito/michel-codec');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 
-const version = '0.1.18'
+const version = '0.1.19'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
