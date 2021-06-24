@@ -181,6 +181,7 @@ function parseCommand(args) {
       '--init': String,
       '--metadata-storage': String,
       '--metadata-uri': String,
+      '--test': Boolean,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -209,6 +210,7 @@ function parseCommand(args) {
     init: options['--init'],
     metadata_storage: options['--metadata-storage'],
     metadata_uri: options['--metadata-uri'],
+    test: options['--test'] || false,
   }
 }
 

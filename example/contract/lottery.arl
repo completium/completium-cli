@@ -1,0 +1,39 @@
+archetype lottery(bidAmount : tez, deadlineBet : date, deadlineReveal : date)
+
+variable sumValues : nat = 0
+variable nbRevealed : nat = 0
+
+asset bidder {
+ id        : address;
+ valueHash : bytes;
+ numBid    : nat;
+}
+
+entry bet (vh : bytes) {
+  require {
+    r1 : now < deadlineBet;
+    r2 otherwise "Mauvaise somme" : transferred = bidAmount;
+  }
+  effect { bidder.add({ caller; vh; bidder.count() }) }
+}
+
+entry reveal (v : nat) {
+  called by bidder
+  require {
+    r3 : deadlineBet < now < deadlineReveal;
+    r4 otherwise "Mauvais hash" : blake2b(pack(v)) = bidder[caller].valueHash;
+  }
+  effect {
+    sumValues += v;
+    nbRevealed += 1;
+  }
+}
+
+entry claim () {
+ called by bidder
+ require {
+   r5 : deadlineReveal < now;
+   r6 otherwise "Pas gagne" : bidder[caller].numBid = sumValues % nbRevealed
+ }
+ effect { transfer balance to caller }
+}

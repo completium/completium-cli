@@ -1,0 +1,32 @@
+archetype auction(owner : address, deadline : date)
+
+variable topBidder : address = owner
+
+asset bidder {
+ bowner : address;
+ amount : tez
+} initialized by { { owner; 0tz } }
+
+entry bid () {
+ require { r1 otherwise "Trop tard !" : now < deadline; }
+ effect {
+   bidder.add({ caller; transferred });
+   if transferred > bidder[topBidder].amount then
+     topBidder := caller
+ }
+}
+
+entry collectTopBid () {
+ called by owner
+ require { r2 otherwise "Trop tot !" : now > deadline; }
+ effect { transfer bidder[topBidder].amount to caller; }
+}
+
+entry claim () {
+ called by bidder
+ require {
+   r3 otherwise "Trop tot !" : now > deadline;
+   r4 otherwise "Vous avez gagne !" : caller <> topBidder;
+ }
+ effect { transfer bidder[caller].amount to caller }
+}

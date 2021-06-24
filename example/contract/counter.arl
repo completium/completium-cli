@@ -1,0 +1,5 @@
+archetype counter
+
+variable count : nat = 2
+
+entry increment() { count += 1 }

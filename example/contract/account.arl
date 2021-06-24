@@ -1,0 +1,16 @@
+archetype account
+
+variable owner       : address = tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+variable total       : int     = 0
+variable lastSubDate : date    = 1970-01-01
+
+entry add(value : nat) { total += value }
+
+entry sub () {
+  called by owner
+  require { r1 otherwise "Attendez 5 minutes avant de retirer 1" : now - lastSubDate > 5m }
+  effect {
+     total -= 1;
+     lastSubDate := now;
+  }
+}

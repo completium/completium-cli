@@ -1,0 +1,7 @@
+archetype concat
+
+variable s : string = "Bonjour"
+
+entry concat (prenom : string) {
+  s += ", " + prenom
+}

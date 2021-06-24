@@ -1,0 +1,23 @@
+archetype account
+
+constant owner : address = tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb
+variable lastTransfer : option<date> = none
+variable ratio : rational = 10%
+
+entry collect (requestedAmount : tez) {
+ called by owner
+ require {
+   r1 otherwise "Too soon!" :
+     match lastTransfer with | some d -> now - d > 20s | none   -> true end;
+   r2 otherwise "Too much requested!" : requestedAmount <= ratio * balance;
+ }
+ effect {
+   transfer requestedAmount to owner;
+   lastTransfer := some(now);
+ }
+}
+
+entry donate (newRatio : rational) {
+ require { r : transferred > 1tz; }
+ effect { ratio := newRatio; }
+}

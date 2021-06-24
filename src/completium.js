@@ -34,7 +34,7 @@ module.exports = class Completium {
   updateCost(op) {
     if (op !== undefined && op != null) {
       const cost = this.computeCost(op);
-      return {...op, cost: cost};
+      return { ...op, cost: cost };
     } else {
       return op;
     }
@@ -59,7 +59,7 @@ module.exports = class Completium {
   }
 
   async getContract(contract_id) {
-    return Main.getContract(contract_id);
+    return Main.getTezosContract(contract_id);
   }
 
   async getBalance(alias, obj) {
@@ -80,5 +80,31 @@ module.exports = class Completium {
   getAddress(alias) {
     const options = { alias: alias };
     return Main.getAddress(options);
+  }
+
+  pack(value) {
+    const options = { value: value };
+    return Main.pack(options);
+  }
+
+  packTyped(data, typ) {
+    const options = { data: data, typ: typ };
+    return Main.packTyped(options);
+  }
+
+  blake2b(value) {
+    const options = { value: value };
+    return Main.blake2b(options);
+  }
+
+  async setNow(contract_id, date) {
+    const options = { contract: contract_id, date: date, force: true, verbose: true };
+    var op = await Main.setNow(options);
+    op = this.updateCost(op);
+    return op;
+  }
+
+  formatDate(value) {
+    return Main.formatDate(value);
   }
 }

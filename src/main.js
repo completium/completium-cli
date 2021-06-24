@@ -11,6 +11,7 @@ const execa = require('execa');
 const path = require('path');
 const taquito = require('@taquito/taquito');
 const taquitoUtils = require('@taquito/utils');
+const codec = require('@taquito/michel-codec');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 
@@ -25,6 +26,8 @@ const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
+
+const docker_id = 'tqtezos/flextesa:20210602'
 
 ///////////
 // TOOLS //
@@ -177,6 +180,11 @@ async function callArchetype(options, args) {
   const metadata_storage = options.metadata_storage;
   const metadata_uri = options.metadata_uri;
   const no_print = options.no_print === undefined ? false : options.no_print;
+  const otest = options.test;
+
+  if (otest) {
+    args.push('--test-mode');
+  }
 
   if (init !== undefined) {
     args.push('--init');
@@ -389,6 +397,7 @@ async function initCompletium(options) {
       accounts: [{
         "name": "alice",
         "pkh": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb",
+        "pubk": "edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn",
         "key": {
           "kind": "private_key",
           "value": "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq"
@@ -397,6 +406,7 @@ async function initCompletium(options) {
       {
         "name": "bob",
         "pkh": "tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6",
+        "pubk": "edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4",
         "key": {
           "kind": "private_key",
           "value": "edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt"
@@ -442,7 +452,7 @@ async function startSandbox(options) {
   print('Waiting for sandbox to start ...');
   try {
     const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--cpus', '1', '-e', 'block_time=10', '--detach', '-p', '20000:20000',
-      'tqtezos/flextesa:20210316', 'flobox', 'start'], {});
+      docker_id, 'flobox', 'start'], {});
     if (verbose) {
       print(stdout);
     }
@@ -1192,6 +1202,16 @@ async function callContract(options) {
   return res;
 }
 
+function formatDate(date) {
+  return date.toISOString().split('.')[0]+"Z";
+}
+
+async function setNow(options) {
+  const date = formatDate(options.date);
+
+  return await callContract({...options, entry: "_set_now", with: date});
+}
+
 async function generateJavascript(options) {
   const value = options.path;
 
@@ -1379,7 +1399,7 @@ async function showStorage(options) {
   return;
 }
 
-async function getContract(input) {
+async function getTezosContract(input) {
   const contract_address = getContractAddress(input);
 
   const tezos = getTezos();
@@ -1459,6 +1479,57 @@ async function getBalanceFor(options) {
   const tezos = getTezos();
   var balance = await tezos.tz.getBalance(pkh);
   print(`${balance.toNumber() / 1000000} ꜩ`);
+}
+
+function packTyped(options) {
+  const data = options.data;
+  const typ = options.typ;
+
+  const packedBytes = codec.packDataBytes(data, typ).bytes;
+  return "0x" + packedBytes;
+}
+
+function pack(options) {
+  var value = options.value;
+  var data = {};
+  if (Number.isInteger(value)) {
+    data = {
+      int: value
+    };
+    typ = {
+      prim: "int"
+    }
+  } else if ((typeof value) === "string") {
+    if (value.startsWith('0x')) {
+      data = {
+        bytes: value.substring(2)
+      };
+      typ = {
+        prim: "bytes"
+      }
+    } else {
+      data = {
+        string: value
+      };
+      typ = {
+        prim: "string"
+      }
+    }
+  }
+  return packTyped({
+    ...options,
+    data: data,
+    typ: {
+      prim: "int"
+    }
+  });
+}
+
+function blake2b(options) {
+  const blake = require('blakejs');
+  const value = options.value;
+  const blakeHash = blake.blake2b(taquitoUtils.hex2buf(value), null, 32);
+  return "0x" + taquitoUtils.buf2hex(blakeHash);
 }
 
 async function commandNotFound(options) {
@@ -1590,9 +1661,15 @@ async function exec(options) {
 exports.deploy = deploy;
 exports.callContract = callContract;
 exports.getStorage = getStorage;
-exports.getContract = getContract;
+exports.getTezosContract = getTezosContract;
 exports.getBalance = getBalance;
 exports.exec = exec;
 exports.setAccount = setAccount;
 exports.setEndpoint = setEndpoint;
 exports.getAddress = getAddress;
+exports.blake2b = blake2b;
+exports.pack = pack;
+exports.packTyped = packTyped;
+exports.setNow = setNow;
+exports.formatDate = formatDate;
+
