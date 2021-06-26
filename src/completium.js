@@ -104,6 +104,12 @@ module.exports = class Completium {
     return op;
   }
 
+  async transfer(from, to, amount) {
+    const options = { from: from, to: to, vamount: amount, force: true, verbose: true };
+    var op = await Main.transfer(options);
+    return op;
+  }
+
   formatDate(value) {
     return Main.formatDate(value);
   }

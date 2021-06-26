@@ -29,6 +29,8 @@ const sources_dir = completium_dir + "/sources"
 
 const docker_id = 'tqtezos/flextesa:20210602'
 
+var config = null;
+
 ///////////
 // TOOLS //
 ///////////
@@ -52,7 +54,9 @@ function loadJS(path) {
 }
 
 function getConfig() {
-  return (loadJS(config_path));
+  if (config == null)
+    config = loadJS(config_path);
+  return config;
 }
 
 function saveFile(path, c, callback) {
@@ -861,18 +865,27 @@ async function transfer(options) {
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
   print(`Transfering ${amount / 1000000} ꜩ from ${accountFrom.pkh} to ${to_addr}...`);
-  tezos.contract
-    .transfer({ to: to_addr, amount: amount, mutez: true })
-    .then((op) => {
-      print(`Waiting for ${op.hash} to be confirmed...`);
-      return op.confirmation(1).then(() => op.hash);
-    })
-    .then((hash) => {
-      const op_inj = network.tzstat_url === undefined ? `${hash}` : `${network.tzstat_url}/${hash}`
-      print(`Operation injected: ${op_inj}`)
-    }
-    )
-    .catch((error) => print(`Error: ${error} ${JSON.stringify(error, null, 2)}`));
+  return new Promise(resolve => {
+    tezos.contract
+      .transfer({ to: to_addr, amount: amount, mutez: true })
+      .then((op) => {
+        print(`Waiting for ${op.hash} to be confirmed...`);
+        op.confirmation(1)
+          .then((hash) => {
+            const op_inj = network.tzstat_url === undefined ? `${hash}` : `${network.tzstat_url}/${hash}`
+            print(`Operation injected: ${op_inj}`);
+            resolve(op);
+          })
+          .catch((error) => {
+            print(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
+            resolve(null);
+          });
+      })
+      .catch((error) => {
+        print(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
+        resolve(null);
+      });
+  });
 }
 
 async function confirmContract(force, id) {
@@ -1203,13 +1216,13 @@ async function callContract(options) {
 }
 
 function formatDate(date) {
-  return date.toISOString().split('.')[0]+"Z";
+  return date.toISOString().split('.')[0] + "Z";
 }
 
 async function setNow(options) {
   const date = formatDate(options.date);
 
-  return await callContract({...options, entry: "_set_now", with: date});
+  return await callContract({ ...options, entry: "_set_now", with: date });
 }
 
 async function generateJavascript(options) {
@@ -1672,4 +1685,5 @@ exports.pack = pack;
 exports.packTyped = packTyped;
 exports.setNow = setNow;
 exports.formatDate = formatDate;
+exports.transfer = transfer;
 
