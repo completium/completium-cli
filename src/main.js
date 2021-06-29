@@ -1122,7 +1122,7 @@ async function callTransfer(options, contract_address, arg) {
 
   print(`Account '${account.pkh}' is calling ${entry} of ${contract_address} with ${amount / 1000000} ꜩ...`);
 
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     tezos.contract
       .transfer({ to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } })
       .then((op) => {
@@ -1138,7 +1138,7 @@ async function callTransfer(options, contract_address, arg) {
         error => {
           if (!quiet)
             print({ ...error, errors: '...' });
-          return resolve(null)
+          reject(error);
         }
       );
   });
