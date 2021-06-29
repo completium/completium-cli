@@ -1,7 +1,7 @@
 # completium-cli
 
 
-`$completium-cli` is a command line interface to interact (orginate, call, ...) with <a href='https://completium.com/docs/dapp-tools/archetype'>Archetype</a> smart contracts on the <a href='https://completium.com/docs/dapp-tools/tezos'>Tezos</a> blockchain.
+`$completium-cli` is a command line interface to interact (orginate, call, ...) with <a href='https://archetype-lang.org/'>Archetype</a> smart contracts on the <a href='https://completium.com/docs/dapp-tools/tezos'>Tezos</a> blockchain.
 
 ## Getting started
 
@@ -25,13 +25,13 @@ completium-cli help
 
 ## Archetype
 
-`$completium-cli` can install (or update) <a href='https://completium.com/docs/dapp-tools/archetype'>Archetype</a> compiler with the following command:
+`$completium-cli` can install (or update) <a href='https://archetype-lang.org/'>Archetype</a> compiler with the following command:
 
 ```
-completium-cli install archetype
+completium-cli install bin archetype
 ```
 
-If <a href='https://completium.com/docs/dapp-tools/archetype'>Archetype</a> binary is already installed, you can just set the path with:
+If <a href='https://archetype-lang.org/'>Archetype</a> binary is already installed, you can just set the path with:
 
 ```
 completium-cli set archetype <PATH_TO_ARCHETYPE_BIN>
