@@ -932,6 +932,12 @@ async function deploy(options) {
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
   const dry = options.dry;
   const oinit = options.init;
+  const otest = options.test;
+
+  if (otest && network.network === "main") {
+    const msg = `Cannot deploy or originate a contract in test mode on mainnet.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
 
   const account = getAccountFromIdOrAddr(isNull(as) ? config.account : as);
   if (isNull(account)) {
