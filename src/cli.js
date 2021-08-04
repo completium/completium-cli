@@ -28,6 +28,9 @@ function parseCommand(args) {
   } else if (length > 2 && args[2] === "version") {
     res = { command: "show_version" };
     nargs = args.slice(3);
+  } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
+    res = { command: "show_archetype_version" };
+    nargs = args.slice(4);
     // set bin
   } else if (length > 5 && args[2] === "set" && args[3] === "bin") {
     res = { command: "set_bin", bin: args[4], path: args[5] };

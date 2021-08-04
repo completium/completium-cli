@@ -14,6 +14,7 @@ const taquitoUtils = require('@taquito/utils');
 const codec = require('@taquito/michel-codec');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
+const archetype = require('@completium/archetype');
 
 const version = '0.1.21'
 
@@ -264,8 +265,8 @@ function retrieveContract(contract_address, callback) {
 
 async function getArchetypeVersion() {
   return new Promise(resolve => {
-    const output = callArchetype([], ['--version']);
-    resolve(output)
+    const v = archetype.version();
+    resolve(v)
   });
 }
 
@@ -279,6 +280,7 @@ async function help(options) {
   print("  init")
   print("  help");
   print("  version")
+  print("  archetype version")
 
   print("  set bin <BIN> <PATH>");
   print("  install bin <BIN>");
@@ -488,6 +490,11 @@ async function stopSandbox(options) {
 
 async function showVersion(options) {
   print(version);
+}
+
+async function showArchetypeVersion(options) {
+  const vers = await getArchetypeVersion();
+  print(vers);
 }
 
 async function showEndpoint(options) {
@@ -1567,6 +1574,9 @@ async function exec(options) {
       break;
     case "show_version":
       showVersion(options);
+      break;
+    case "show_archetype_version":
+      showArchetypeVersion(options);
       break;
     case "set_bin":
       setBin(options);
