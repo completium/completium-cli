@@ -28,17 +28,10 @@ function parseCommand(args) {
   } else if (length > 2 && args[2] === "version") {
     res = { command: "show_version" };
     nargs = args.slice(3);
+    // archetype version
   } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
     res = { command: "show_archetype_version" };
     nargs = args.slice(4);
-    // set bin
-  } else if (length > 5 && args[2] === "set" && args[3] === "bin") {
-    res = { command: "set_bin", bin: args[4], path: args[5] };
-    nargs = args.slice(6);
-    // update binaries
-  } else if (length > 4 && args[2] === "install" && args[3] === "bin") {
-    res = { command: "install_bin", bin: args[4] };
-    nargs = args.slice(5);
     // start sandbox
   } else if (length > 3 && args[2] === "start" && args[3] === "sandbox") {
     res = { command: "start_sandbox" };
@@ -118,11 +111,15 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "call") {
     res = { command: "call_contract", contract: args[3] };
     nargs = args.slice(4);
+    // generate michelson <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "michelson") {
+    res = { command: "generate_michelson", path: args[4] };
+    nargs = args.slice(5);
     // generate javascript <FILE.arl>
   } else if (length > 4 && args[2] === "generate" && args[3] === "javascript") {
     res = { command: "generate_javascript", path: args[4] };
     nargs = args.slice(5);
-    // generate javascript <FILE.arl>
+    // generate whyml <FILE.arl>
   } else if (length > 4 && args[2] === "generate" && args[3] === "whyml") {
     res = { command: "generate_whyml", path: args[4] };
     nargs = args.slice(5);

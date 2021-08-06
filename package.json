@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/edukera/completium-cli#readme",
   "dependencies": {
-    "@completium/archetype": "0.0.2",
+    "@completium/archetype": "0.0.5",
     "@taquito/michel-codec": "^9.1.1",
     "@taquito/signer": "^9.1.1",
     "@taquito/taquito": "^9.1.1",
@@ -47,11 +47,9 @@
     "cryptiles": ">=4.1.2",
     "enquirer": "^2.3.6",
     "esm": "^3.2.25",
-    "execa": "^4.0.3",
     "inquirer": "^7.3.3",
     "listr": "^0.14.3",
     "ncp": "^2.0.0",
-    "node-wget": "^0.4.3",
     "pkg-install": "^1.0.0",
     "prompt-confirm": "^2.0.4",
     "properties-reader": "^2.1.1"

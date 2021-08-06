@@ -15,6 +15,7 @@ const codec = require('@taquito/michel-codec');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const archetype = require('@completium/archetype');
+const { exit } = require('process');
 
 const version = '0.1.21'
 
@@ -178,8 +179,7 @@ function isNull(str) {
   return str === undefined || str === null || str === "";
 }
 
-async function callArchetype(options, args) {
-  const config = getConfig();
+function callArchetype(options, input, s) {
   const verbose = options.verbose;
   const init = options.init;
   const metadata_storage = options.metadata_storage;
@@ -187,44 +187,30 @@ async function callArchetype(options, args) {
   const no_print = options.no_print === undefined ? false : options.no_print;
   const otest = options.test;
 
-  if (otest) {
-    args.push('--test-mode');
+  const settings = {
+    ...s,
+    "test_mode": otest,
+    "init": init,
+    "metadata_storage": metadata_storage,
+    "metadata_uri": metadata_uri
   }
-
-  if (init !== undefined) {
-    args.push('--init');
-    args.push(init)
-  }
-
-  if (metadata_storage !== undefined) {
-    args.push('--metadata-storage');
-    args.push(metadata_storage)
-  }
-
-  if (metadata_uri !== undefined) {
-    args.push('--metadata-uri');
-    args.push(metadata_uri)
-  }
-
 
   if (verbose) {
-    var cmd = config.bin.archetype;
-    args.forEach(x => cmd += ' ' + x);
-    print(cmd);
+    print(settings);
   }
 
   try {
-    const { stdout } = await execa(config.bin.archetype, args, {});
-    if (verbose) {
-      print(stdout);
-    }
-    return stdout;
-
+    const res = archetype.compile(input.toString(), settings);
+    return res;
   } catch (error) {
     if (!no_print)
       print(error);
     throw error;
   }
+}
+
+function micheline_to_json(input) {
+  return (JSON.stringify((new codec.Parser()).parseMichelineExpression(input.toString())));
 }
 
 function getAmount(raw) {
@@ -307,6 +293,7 @@ async function help(options) {
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--init <MICHELSON_DATA>]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
+  print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
 
@@ -343,9 +330,6 @@ async function initCompletium(options) {
 
   const config = {
     account: '',
-    bin: {
-      archetype: 'archetype'
-    },
     tezos: {
       network: 'florence',
       endpoint: 'https://florencenet.smartpy.io',
@@ -972,27 +956,34 @@ async function deploy(options) {
     return new Promise(resolve => { resolve(null) });
   }
 
-  if (!originate) {
-    try {
-      const res = await callArchetype({ ...options, no_print: true }, ['--get-parameters', file]);
-      if (res !== "" && isNull(oinit)) {
-        print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
+  const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
+  if (!fs.existsSync(file)) {
+    print(`Error: file not found.`);
+    return new Promise(resolve => { resolve(null) });
+  }
+  const input = fs.readFileSync(file).toString();
+  try {
+    if (!originate) {
+      try {
+        const res = archetype.with_parameters(input);
+        if (res !== "" && isNull(oinit)) {
+          print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
+          return new Promise(resolve => { resolve(null) });
+        }
+      } catch (error) {
+        print_error(error.stderr);
         return new Promise(resolve => { resolve(null) });
       }
-    } catch (error) {
-      print_error(error.stderr);
-      return new Promise(resolve => { resolve(null) });
     }
-  }
 
-
-  const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
-  try {
     {
       const res = originate ?
-        "export const code = " + await callArchetype(options, ['-d', '-mici', file]) + ";" :
-        await callArchetype(options, ['-sci', account.pkh, '-t', 'javascript', '--no-js-header', file]);
-
+        "export const code = " + micheline_to_json(input) + ";" :
+        callArchetype(options, input, {
+          target: 'javascript',
+          no_js_header: true,
+          sci: account.pkh
+        });
       fs.writeFile(contract_script, res, function (err) {
         if (err) throw err;
         if (verbose)
@@ -1000,7 +991,7 @@ async function deploy(options) {
       });
     }
   } catch (error) {
-    return new Promise(resolve => { resolve(null) });
+    return new Promise((resolve) => { resolve(null) });
   }
 
   const ext = originate ? 'tz' : 'arl';
@@ -1019,16 +1010,18 @@ async function deploy(options) {
     if (isNull(oinit)) {
       tzstorage = { "prim": "Unit" };
     } else {
-      var args = [
-        '--to-micheline', oinit
-      ];
-      const output_raw = await callArchetype({ ...options, init: undefined }, args);
+      const output_raw = archetype.get_expr(oinit, {
+        json: true
+      });
       tzstorage = JSON.parse(output_raw);
     }
   } else {
     try {
       const account = getAccount(config.account);
-      const res = await callArchetype(options, ['-t', 'michelson-storage', '-sci', account.pkh, file]);
+      const res = callArchetype(options, input.toString(), {
+        target: "michelson-storage",
+        sci: account.pkh
+      });
       tzstorage = res;
     } catch (error) {
       return new Promise(resolve => { resolve(null) });
@@ -1158,36 +1151,51 @@ async function callTransfer(options, contract_address, arg) {
 }
 
 async function getArg(options, contract_address, entry) {
-  return new Promise(async (resolve) => {
+  return new Promise(async (resolve, reject) => {
     retrieveContract(contract_address, async (path) => {
-      var args = [
-        '--expr', options.with,
-        '--with-contract', path,
-        '--json',
-        '--only-expr'
-      ];
-      if (entry !== 'default') {
-        if (entry.charAt(0) !== '%') {
-          entry = "%" + entry;
+      // var args = [
+      //   '--expr', options.with,
+      //   '--with-contract', path,
+      //   '--json',
+      //   '--only-expr'
+      // ];
+      // if (entry !== 'default') {
+      //   if (entry.charAt(0) !== '%') {
+      //     entry = "%" + entry;
+      //   }
+      //   args.push('--entrypoint', entry);
+      // }
+
+      try {
+        if (!fs.existsSync(path)) {
+          print(`Error: file not found.`);
+          return new Promise(resolve => { resolve(null) });
         }
-        args.push('--entrypoint', entry);
+        const input = fs.readFileSync(path).toString();
+
+        const output_raw = archetype.get_expr_type(options.with, input, {
+          json: true,
+          expr_only: true,
+          entrypoint: entry !== 'default' ? (entry.charAt(0) !== '%' ? "%" + entry : entry) : undefined
+        });
+
+        const res = JSON.parse(output_raw);
+
+        resolve(res);
+
+      } catch (e) {
+        print_error(e);
+        reject(e)
       }
-
-      const output_raw = await callArchetype(options, args);
-      const res = JSON.parse(output_raw);
-
-      resolve(res);
     });
   });
 }
 
 async function getMicheline(options, input) {
   return new Promise(async (resolve) => {
-    var args = [
-      '--to-micheline', input
-    ];
-
-    const output_raw = await callArchetype(options, args);
+    const output_raw = archetype.get_expr(input, {
+      json: true
+    });
     const res = JSON.parse(output_raw);
 
     resolve(res);
@@ -1238,6 +1246,28 @@ async function setNow(options) {
   return await callContract({ ...options, entry: "_set_now", with: date });
 }
 
+async function generateMichelson(options) {
+  const value = options.path;
+
+  const contract = getContract(value);
+
+  var x = value;
+  if (!isNull(contract)) {
+    x = contract.source;
+  }
+
+  if (!fs.existsSync(x)) {
+    print(`Error: file not found.`);
+    return new Promise(resolve => { resolve(null) });
+  }
+  const input = fs.readFileSync(x).toString();
+
+  const res = callArchetype(options, input, {
+    target: 'michelson'
+  });
+  print(res);
+}
+
 async function generateJavascript(options) {
   const value = options.path;
 
@@ -1248,8 +1278,15 @@ async function generateJavascript(options) {
     x = contract.source;
   }
 
-  var args = ['-t', 'javascript', x];
-  const res = await callArchetype(options, args);
+  if (!fs.existsSync(x)) {
+    print(`Error: file not found.`);
+    return new Promise(resolve => { resolve(null) });
+  }
+  const input = fs.readFileSync(x).toString();
+
+  const res = callArchetype(options, input, {
+    target: 'javascript'
+  });
   print(res);
 }
 
@@ -1263,8 +1300,15 @@ async function generateWhyml(options) {
     x = contract.source;
   }
 
-  var args = ['-t', 'whyml', x];
-  const res = await callArchetype(options, args);
+  if (!fs.existsSync(x)) {
+    print(`Error: file not found.`);
+    return new Promise(resolve => { resolve(null) });
+  }
+  const input = fs.readFileSync(x).toString();
+
+  const res = callArchetype(options, input, {
+    target: 'whyml'
+  });
   print(res);
 }
 
@@ -1320,8 +1364,14 @@ async function showEntries(options) {
 
   retrieveContract(contract_address, x => {
     (async () => {
-      var args = ['--show-entries', '--json', x];
-      const res = await callArchetype(options, args);
+      if (!fs.existsSync(x)) {
+        print(`Error: file not found.`);
+        return new Promise(resolve => { resolve(null) });
+      }
+      const input = fs.readFileSync(x).toString();
+      const res = archetype.show_entries(input, {
+        json: true
+      });
       print(res);
     })();
   });
@@ -1646,6 +1696,9 @@ async function exec(options) {
       break;
     case "call_contract":
       callContract(options);
+      break;
+    case "generate_michelson":
+      generateMichelson(options);
       break;
     case "generate_javascript":
       generateJavascript(options);
