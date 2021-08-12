@@ -213,6 +213,10 @@ function micheline_to_json(input) {
   return (JSON.stringify((new codec.Parser()).parseMichelineExpression(input.toString())));
 }
 
+function expr_micheline_to_json(input) {
+  return (new codec.Parser()).parseMichelineExpression(input.toString());
+}
+
 function getAmount(raw) {
   var v = raw.endsWith('utz') ? { str: raw.slice(0, -3), utz: true } : (raw.endsWith('tz') ? { str: raw.slice(0, -2), utz: false } : null);
   if (isNull(v)) {
@@ -1010,10 +1014,7 @@ async function deploy(options) {
     if (isNull(oinit)) {
       tzstorage = { "prim": "Unit" };
     } else {
-      const output_raw = archetype.get_expr(oinit, {
-        json: true
-      });
-      tzstorage = JSON.parse(output_raw);
+      tzstorage = expr_micheline_to_json(oinit);
     }
   } else {
     try {
