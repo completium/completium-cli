@@ -345,8 +345,8 @@ async function initCompletium(options) {
       archetype: 'archetype'
     },
     tezos: {
-      network: 'florence',
-      endpoint: 'https://florencenet.smartpy.io',
+      network: 'granada',
+      endpoint: 'https://granadanet.smartpy.io',
       list: [
         {
           network: 'main',
@@ -443,7 +443,7 @@ async function installBin(options) {
     return print(`Error: expecting bin archetype`);
   }
 
-  const archetype_url = "https://github.com/edukera/archetype-lang/releases/latest/download/archetype-x64-linux";
+  const archetype_url = "https://github.com/edukera/archetype-lang/releases/download/1.2.6/archetype-x64-linux";
   const path_archetype = bin_dir + '/archetype';
   await download(archetype_url, path_archetype);
   fs.chmodSync(path_archetype, '711');
