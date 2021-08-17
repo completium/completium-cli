@@ -96,7 +96,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
     res = { command: "remove_account", account: args[4] };
     nargs = args.slice(5);
-    // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
+  // rename account <ACCOUNT_ALIAS> to <ACCOUNT_ALIAS>
+  } else if (length > 4 && args[2] === "rename" && args[3] === "account" && args[5] === "to") {
+    res = { command: "rename_account", from: args[4], to: args[6] };
+    nargs = args.slice(7);    // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
     res = { command: "transfer", vamount: args[3], from: args[5], to: args[7] };
     nargs = args.slice(8);

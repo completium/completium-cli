@@ -132,6 +132,12 @@ async function saveAccount(c, callback) {
   saveFile(accounts_path, obj, callback);
 }
 
+function renameAccountInternal(src, dst, callback) {
+  var obj = getAccounts();
+  obj.accounts = obj.accounts.map(x => x.name === src ? {...x, name: dst} : x)
+  saveFile(accounts_path, obj, callback);
+}
+
 function removeAccountInternal(name, callback) {
   var obj = getAccounts();
   obj.accounts = obj.accounts.filter(x => { return (name !== x.name) });
@@ -291,6 +297,7 @@ async function help(options) {
   print("  show keys from <PRIVATE_KEY>");
   print("  set account <ACCOUNT_ALIAS>");
   print("  switch account");
+  print("  rename account <ACCOUNT_ALIAS> to <ACCOUNT_ALIAS> [--force]");
   print("  remove account <ACCOUNT_ALIAS>");
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
@@ -796,6 +803,37 @@ async function setAccount(options) {
       resolve(true);
     })
   });
+}
+
+async function renameAccount(options) {
+  const from = options.from;
+  const to = options.to;
+  const force = options.force;
+
+  const accountFrom = getAccount(from);
+  if (isNull(accountFrom)) {
+    return print(`Error: '${from}' is not found.`);
+  }
+
+  const config = getConfig();
+  if (config.account === from) {
+    return print(`Error: cannot rename account '${from}' because it is currently set as the default account. Switch to another account before renaming.`);
+  }
+
+  var confirm = await confirmAccount(force, to);
+  if (!confirm) {
+    return;
+  }
+
+  var f = function() {renameAccountInternal(from, to, x => { print(`'${from}' has been renamed to '${to}'.`) })};
+
+
+  const accountTo = getAccount(to);
+  if (!isNull(accountTo)) {
+    removeAccountInternal(to, y => {f()});
+  } else {
+    f();
+  }
 }
 
 async function removeAccount(options) {
@@ -1679,6 +1717,9 @@ async function exec(options) {
       break;
     case "switch_account":
       switchAccount(options);
+      break;
+    case "rename_account":
+      renameAccount(options);
       break;
     case "remove_account":
       removeAccount(options);
