@@ -14,7 +14,8 @@ const taquitoUtils = require('@taquito/utils');
 const codec = require('@taquito/michel-codec');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
-const archetype = require('@completium/archetype');
+// const archetype = require('@completium/archetype');
+const archetype = require('/home/guillaume/archetype/archetype-lang/npm-package/dist/index.js');
 const { exit } = require('process');
 
 const version = '0.1.21'
@@ -1389,38 +1390,44 @@ async function showContract(options) {
   print(`Url:      ${url}`);
 }
 
-async function showEntries(options) {
-  const input = options.contract;
+async function getEntries(input, rjson, callback) {
   const contract = getContractFromIdOrAddress(input);
 
   var contract_address = input;
   if (!isNull(contract)) {
     const config = getConfig();
     if (contract.network !== config.tezos.network) {
-      print(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
-      return;
+      throw new Error(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
     }
     contract_address = contract.address;
   } else {
     if (!contract_address.startsWith('KT1')) {
-      print(`Error: '${contract_address}' bad contract address.`);
-      return;
+      throw new Error(`Error: '${contract_address}' bad contract address.`);
     }
   }
 
   retrieveContract(contract_address, x => {
     (async () => {
       if (!fs.existsSync(x)) {
-        print(`Error: file not found.`);
-        return new Promise(resolve => { resolve(null) });
+        throw new Error(`Error: file not found.`);
       }
       const input = fs.readFileSync(x).toString();
       const res = archetype.show_entries(input, {
-        json: true
+        json: true,
+        rjson: rjson
       });
-      print(res);
+      callback(res);
     })();
   });
+}
+
+async function showEntries(options) {
+  const input = options.contract;
+  try {
+    getEntries(input, false, print);
+  } catch (e) {
+    print_error(JSON.stringify(e));
+  }
 }
 
 async function renameContract(options) {
@@ -1440,7 +1447,7 @@ async function renameContract(options) {
 
   var f = function () {
     var obj = getContracts();
-    obj.contracts = obj.contracts.map(x => x.name === from ? {...x, name: to} : x);
+    obj.contracts = obj.contracts.map(x => x.name === from ? { ...x, name: to } : x);
     saveFile(contracts_path, obj, x => { print(`contract '${contractFrom.address}' has been renamed from '${contractFrom.name}' to '${to}'.`) });
   };
 
@@ -1554,6 +1561,7 @@ async function getTezosContract(input) {
   const tezos = getTezos();
 
   var contract = await tezos.contract.at(contract_address);
+  const entries = getEntries(contract_address, true, print);
   return contract;
 }
 
