@@ -134,7 +134,7 @@ async function saveAccount(c, callback) {
 
 function renameAccountInternal(src, dst, callback) {
   var obj = getAccounts();
-  obj.accounts = obj.accounts.map(x => x.name === src ? {...x, name: dst} : x)
+  obj.accounts = obj.accounts.map(x => x.name === src ? { ...x, name: dst } : x)
   saveFile(accounts_path, obj, callback);
 }
 
@@ -142,6 +142,12 @@ function removeAccountInternal(name, callback) {
   var obj = getAccounts();
   obj.accounts = obj.accounts.filter(x => { return (name !== x.name) });
   saveFile(accounts_path, obj, callback);
+}
+
+function removeContractInternal(input, callback) {
+  var obj = getContracts();
+  obj.contracts = obj.contracts.filter(x => { return (input !== x.name && input !== x.address) });
+  saveFile(contracts_path, obj, callback);
 }
 
 function getAccount(name) {
@@ -297,7 +303,7 @@ async function help(options) {
   print("  show keys from <PRIVATE_KEY>");
   print("  set account <ACCOUNT_ALIAS>");
   print("  switch account");
-  print("  rename account <ACCOUNT_ALIAS> to <ACCOUNT_ALIAS> [--force]");
+  print("  rename account <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> by <ACCOUNT_ALIAS> [--force]");
   print("  remove account <ACCOUNT_ALIAS>");
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
@@ -313,6 +319,7 @@ async function help(options) {
   print("  show contracts");
   print("  show contract <CONTRACT_ALIAS>");
   print("  show entries <CONTRACT_ADDRESS>");
+  print("  rename contract <CONTRACT_ALIAS|CONTRACT_ADDRESS> by <CONTRACT_ALIAS> [--force]");
   print("  remove contract <CONTRACT_ALIAS>");
   print("  show url <CONTRACT_ALIAS>");
   print("  show source <CONTRACT_ALIAS>");
@@ -810,7 +817,7 @@ async function renameAccount(options) {
   const to = options.to;
   const force = options.force;
 
-  const accountFrom = getAccount(from);
+  const accountFrom = getAccountFromIdOrAddr(from);
   if (isNull(accountFrom)) {
     return print(`Error: '${from}' is not found.`);
   }
@@ -825,12 +832,12 @@ async function renameAccount(options) {
     return;
   }
 
-  var f = function() {renameAccountInternal(from, to, x => { print(`'${from}' has been renamed to '${to}'.`) })};
+  var f = function () { renameAccountInternal(from, to, x => { print(`account '${accountFrom.pkh}' has been renamed from '${accountFrom.name}' to '${to}'.`) }) };
 
 
   const accountTo = getAccount(to);
   if (!isNull(accountTo)) {
-    removeAccountInternal(to, y => {f()});
+    removeAccountInternal(to, y => { f() });
   } else {
     f();
   }
@@ -1416,6 +1423,35 @@ async function showEntries(options) {
   });
 }
 
+async function renameContract(options) {
+  const from = options.from;
+  const to = options.to;
+  const force = options.force;
+
+  const contractFrom = getContractFromIdOrAddress(from);
+  if (isNull(contractFrom)) {
+    return print(`Error: '${from}' is not found.`);
+  }
+
+  var confirm = await confirmContract(force, to);
+  if (!confirm) {
+    return;
+  }
+
+  var f = function () {
+    var obj = getContracts();
+    obj.contracts = obj.contracts.map(x => x.name === from ? {...x, name: to} : x);
+    saveFile(contracts_path, obj, x => { print(`contract '${contractFrom.address}' has been renamed from '${contractFrom.name}' to '${to}'.`) });
+  };
+
+  const contractTo = getContract(to);
+  if (!isNull(contractTo)) {
+    removeContractInternal(to, y => { f() });
+  } else {
+    f();
+  }
+}
+
 async function removeContract(options) {
   const input = options.contract;
 
@@ -1426,9 +1462,7 @@ async function removeContract(options) {
     return;
   }
 
-  var obj = getContracts();
-  obj.contracts = obj.contracts.filter(x => { return (input !== x.name && input !== x.address) });
-  saveFile(contracts_path, obj, x => { print(`contract '${contract.name}' is removed (${contract.address}).`) });
+  removeContractInternal(input, x => { print(`contract '${contract.name}' is removed (${contract.address}).`) });
 }
 
 async function showUrl(options) {
@@ -1756,6 +1790,9 @@ async function exec(options) {
       break;
     case "show_entries":
       showEntries(options);
+      break;
+    case "rename_contract":
+      renameContract(options);
       break;
     case "remove_contract":
       removeContract(options);

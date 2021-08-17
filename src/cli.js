@@ -92,14 +92,15 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "switch" && args[3] === "account") {
     res = { command: "switch_account" };
     nargs = args.slice(4);
+    // rename account <ACCOUNT_ALIAS> to <ACCOUNT_ALIAS>
+  } else if (length > 4 && args[2] === "rename" && args[3] === "account" && args[5] === "by") {
+    res = { command: "rename_account", from: args[4], to: args[6] };
+    nargs = args.slice(7);
     // remove account <ACCOUNT_ALIAS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
     res = { command: "remove_account", account: args[4] };
     nargs = args.slice(5);
-  // rename account <ACCOUNT_ALIAS> to <ACCOUNT_ALIAS>
-  } else if (length > 4 && args[2] === "rename" && args[3] === "account" && args[5] === "to") {
-    res = { command: "rename_account", from: args[4], to: args[6] };
-    nargs = args.slice(7);    // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
+    // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
     res = { command: "transfer", vamount: args[3], from: args[5], to: args[7] };
     nargs = args.slice(8);
@@ -134,10 +135,14 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "show" && args[3] === "contracts") {
     res = { command: "show_contracts" };
     nargs = args.slice(4);
-    // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
+    // show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
     res = { command: "show_contract", contract: args[4] };
     nargs = args.slice(5);
+    // rename contract <CONTRACT_ALIAS> to <CONTRACT_ALIAS>
+  } else if (length > 4 && args[2] === "rename" && args[3] === "contract" && args[5] === "by") {
+    res = { command: "rename_contract", from: args[4], to: args[6] };
+    nargs = args.slice(7);
     // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "contract") {
     res = { command: "remove_contract", contract: args[4] };
