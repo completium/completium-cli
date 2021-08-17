@@ -1227,7 +1227,7 @@ async function callContract(options) {
   }
 
   if (argMichelson !== undefined) {
-    arg = await getMicheline(options, argMichelson);
+    arg = expr_micheline_to_json(argMichelson);
   } else if (arg !== undefined) {
     arg = await getArg(options, contract_address, entry);
   } else {
