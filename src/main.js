@@ -12,6 +12,7 @@ const path = require('path');
 const taquito = require('@taquito/taquito');
 const taquitoUtils = require('@taquito/utils');
 const codec = require('@taquito/michel-codec');
+const encoder = require('@taquito/michelson-encoder');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 // const archetype = require('@completium/archetype');
@@ -1238,6 +1239,13 @@ async function getArg(options, contract_address, entry) {
   });
 }
 
+function computeArg(args, sig) {
+  const paramType = new codec.Parser().parseMichelineExpression(sig.typ);
+  const paramSchema = new encoder.Schema(paramType);
+  const michelsonData = paramSchema.Encode(args);
+  return michelsonData;
+}
+
 async function getMicheline(options, input) {
   return new Promise(async (resolve) => {
     const output_raw = archetype.get_expr(input, {
@@ -1254,6 +1262,8 @@ async function callContract(options) {
   var arg = options.with;
   var argMichelson = options.withMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
+  const args = options.args;
+  const sig = options.sig;
 
   const contract = getContractFromIdOrAddress(input);
 
@@ -1276,6 +1286,8 @@ async function callContract(options) {
     arg = expr_micheline_to_json(argMichelson);
   } else if (arg !== undefined) {
     arg = await getArg(options, contract_address, entry);
+  } else if (args !== undefined && sig !== null) {
+    arg = computeArg(args, sig);
   } else {
     arg = { prim: "Unit" };
   }
