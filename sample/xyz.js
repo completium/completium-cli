@@ -8,9 +8,8 @@ async function test() {
     await deploy('./resources/xyz.arl', {
       parameters: {
         n: 0,
-        str: 'toto'
-      },
-      test: true
+        s: 'toto'
+      }
     });
     const storage = await contract.storage();
     console.log(storage);

@@ -962,6 +962,21 @@ async function copySource(arl, ext, contract_name) {
   });
 }
 
+function compute_tzstorage(input, storageType, parameters) {
+  const storage_values = archetype.get_storage_values(input);
+  const jsv = JSON.parse(storage_values);
+  const sv = jsv.map(x => x);
+  var obj = {};
+  sv.forEach(x => {
+    obj[x.id] = x.value
+  });
+  const data = { ...obj, ...parameters };
+
+  const paramSchema = new encoder.Schema(storageType);
+  const michelsonData = paramSchema.Encode(data);
+  return michelsonData;
+}
+
 async function deploy(options) {
   const config = getConfig();
 
@@ -974,6 +989,7 @@ async function deploy(options) {
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
   const dry = options.dry;
   const oinit = options.init;
+  const parameters = options.parameters;
   const otest = options.test;
 
   if (otest && network.network === "main") {
@@ -1017,7 +1033,7 @@ async function deploy(options) {
     if (!originate) {
       try {
         const res = archetype.with_parameters(input);
-        if (res !== "" && isNull(oinit)) {
+        if (res !== "" && (isNull(oinit) && isNull(parameters))) {
           print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
           return new Promise(resolve => { resolve(null) });
         }
@@ -1066,11 +1082,18 @@ async function deploy(options) {
   } else {
     try {
       const account = getAccount(config.account);
-      const res = callArchetype(options, input.toString(), {
-        target: "michelson-storage",
-        sci: account.pkh
-      });
-      tzstorage = res;
+      if (isNull(parameters)) {
+        const res = callArchetype(options, input.toString(), {
+          target: "michelson-storage",
+          sci: account.pkh
+        });
+        tzstorage = res;
+      } else {
+        const c = require(contract_script);
+        const storageType = c.code[0].args[0];
+        tzstorage = compute_tzstorage(input.toString(), storageType, parameters);
+        // tzstorage = codec.emitMicheline(a);
+      }
     } catch (error) {
       return new Promise(resolve => { resolve(null) });
     }
@@ -1086,7 +1109,7 @@ async function deploy(options) {
     require = require('esm')(module /*, options*/);
     const c = require(contract_script);
     const code = c.code;
-    const init = originate ? tzstorage : c.getStorage();
+    const init = originate || !isNull(parameters) ? tzstorage : c.getStorage();
     if (verbose) {
       const aaa = JSON.stringify(code);
       const bbb = JSON.stringify(init);
