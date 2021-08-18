@@ -1,29 +1,32 @@
 require = require('esm')(module /*, options*/);
 
-const { getContract } = require('../src/completium');
+const { getContract, call, setEndpoint } = require('../src/completium');
 const assert = require('assert');
 
 async function test() {
   try {
-    // const completium = new Completium();
-    // await completium.originate('xyz.arl', { init: "(" + alice + ", " + stop + ")", test: true });
-    // await completium.originate('./resources/xyz.arl', {
-    //   parameters: {
-    //     n: 0,
-    //     str: 'toto'
-    //   },
-    //   test: true
-    // });
+    setEndpoint('https://granadanet.smartpy.io');
     const contract = await getContract('abc');
     // const op = await contract.assign({as: 'guillaume', with:'2'});
-    const op = await contract.multi({
+
+    const op = await call('abc', {
+      entry: 'multi',
       args: {
-        a: 2,
+        a: 6,
         b: "abc",
-        c: -4
+        c: -8
       },
       as: 'guillaume'
     });
+
+    // const op = await contract.multi({
+    //   args: {
+    //     a: 2,
+    //     b: "abc",
+    //     c: -4
+    //   },
+    //   as: 'guillaume'
+    // });
     const storage = await contract.storage();
     console.log(storage);
   } catch (e) {
