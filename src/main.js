@@ -1129,16 +1129,28 @@ async function deploy(options) {
   }
 }
 
-async function confirmCall(force, account, contract_id, amount, entry, arg, network) {
+function print_settings(with_color, account, contract_id, amount, entry, arg, estimated_total_cost) {
+  const cyan = '36';
+  const start = with_color ? `\x1b[${cyan}m` : '';
+  const end = with_color ? `\x1b[0m` : '';
+  print(`Call settings:`);
+  print(`  ${start}network${end}\t: ${config.tezos.network}`);
+  print(`  ${start}contract${end}\t: ${contract_id}`);
+  print(`  ${start}by${end}\t\t: ${account.name}`);
+  print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
+  print(`  ${start}entrypoint${end}\t: ${entry}`);
+  print(`  ${start}argument${end}\t: ${arg}`);
+  print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+}
+
+async function confirmCall(force, account, contract_id, amount, entry, arg, estimated_total_cost) {
   if (force) { return true }
 
   const config = getConfig();
 
   const Confirm = require('prompt-confirm');
-
-  const arg_string = JSON.stringify(arg);
-  const str = `Confirm call to entrypoint ${entry} of contract ${contract_id} by '${account.name}' with ${amount / 1000000} ꜩ and argument ${arg_string} on ${config.tezos.network}?`;
-  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
+  print_settings(true, account, contract_id, amount, entry, arg, estimated_total_cost);
+  return new Promise(resolve => { new Confirm("Confirm settings").ask(answer => { resolve(answer); }) });
 }
 
 async function callTransfer(options, contract_address, arg) {
@@ -1165,20 +1177,31 @@ async function callTransfer(options, contract_address, arg) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  var confirm = await confirmCall(force, account, contract_id, amount, entry, arg);
-  if (!confirm) {
-    return;
-  }
-
   const tezos = getTezos(account.name);
 
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
-  print(`Account '${account.pkh}' is calling ${entry} of ${contract_address} with ${amount / 1000000} ꜩ...`);
+  const transferParam = { to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } };
+
+  const res = await tezos.estimate.transfer(transferParam);
+  const estimated_total_cost = res.totalCost + 100;
+  const arg_michelson = codec.emitMicheline(arg);
+  var confirm = await confirmCall(force, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+  if (!confirm) {
+    return;
+  }
+
+  if (!quiet) {
+    if (force) {
+      print_settings(false, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+    } else {
+      print(`Forging operation...`);
+    }
+  }
 
   return new Promise((resolve, reject) => {
     tezos.contract
-      .transfer({ to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } })
+      .transfer(transferParam)
       .then((op) => {
         print(`Waiting for ${op.hash} to be confirmed...`);
         return op.confirmation(1).then(() => op);
