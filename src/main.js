@@ -1262,8 +1262,11 @@ async function getArg(options, contract_address, entry) {
   });
 }
 
-function computeArg(args, sig) {
-  const paramType = new codec.Parser().parseMichelineExpression(sig.typ);
+async function computeArg(args, contract_address, entry) {
+  const tezos = getTezos();
+  const contract = await tezos.contract.at(contract_address);
+
+  const paramType = contract.entrypoints.entrypoints[entry];
   const paramSchema = new encoder.Schema(paramType);
   const michelsonData = paramSchema.Encode(args);
   return michelsonData;
@@ -1286,7 +1289,6 @@ async function callContract(options) {
   var argMichelson = options.withMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
   const args = options.args;
-  const sig = options.sig;
 
   const contract = getContractFromIdOrAddress(input);
 
@@ -1309,8 +1311,8 @@ async function callContract(options) {
     arg = expr_micheline_to_json(argMichelson);
   } else if (arg !== undefined) {
     arg = await getArg(options, contract_address, entry);
-  } else if (args !== undefined && sig !== null) {
-    arg = computeArg(args, sig);
+  } else if (args !== undefined) {
+    arg = await computeArg(args, contract_address, entry);
   } else {
     arg = { prim: "Unit" };
   }

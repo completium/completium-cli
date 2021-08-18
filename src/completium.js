@@ -34,8 +34,15 @@ function updateCost(op) {
   }
 }
 
-async function originate(path, obj) {
+async function deploy(path, obj) {
   const options = { ...obj, file: path, force: true, quiet: true };
+  var op = await Main.deploy(options);
+  op = updateCost(op);
+  return op;
+}
+
+async function originate(path, obj) {
+  const options = { ...obj, file: path, force: true, quiet: true, originate: true };
   var op = await Main.deploy(options);
   op = updateCost(op);
   return op;
@@ -66,8 +73,7 @@ async function getContract(contract_id) {
           const id = sig.name.startsWith("%") ? sig.name.substring(1) : sig.name;
           contract[id] = (settings => call(contract_id, {
             ...settings,
-            entry: id,
-            sig: sig
+            entry: id
           }))
         });
         resolve(contract);
@@ -127,6 +133,7 @@ function formatDate(value) {
   return Main.formatDate(value);
 }
 
+exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
 exports.getStorage = getStorage;
