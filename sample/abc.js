@@ -6,6 +6,14 @@ const assert = require('assert');
 async function test() {
   try {
     const completium = new Completium();
+    // await completium.originate('xyz.arl', { init: "(" + alice + ", " + stop + ")", test: true });
+    // await completium.originate('./resources/xyz.arl', {
+    //   parameters: {
+    //     n: 0,
+    //     str: 'toto'
+    //   },
+    //   test: true
+    // });
     const contract = await completium.getContract('abc');
     // const op = await contract.assign({as: 'guillaume', with:'2'});
     const op = await contract.multi({
