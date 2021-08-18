@@ -1,11 +1,11 @@
 require = require('esm')(module /*, options*/);
 
-const Completium = require('../src/completium');
+const { getContract } = require('../src/completium');
 const assert = require('assert');
 
 async function test() {
   try {
-    const completium = new Completium();
+    // const completium = new Completium();
     // await completium.originate('xyz.arl', { init: "(" + alice + ", " + stop + ")", test: true });
     // await completium.originate('./resources/xyz.arl', {
     //   parameters: {
@@ -14,13 +14,13 @@ async function test() {
     //   },
     //   test: true
     // });
-    const contract = await completium.getContract('abc');
+    const contract = await getContract('abc');
     // const op = await contract.assign({as: 'guillaume', with:'2'});
     const op = await contract.multi({
       args: {
-        a: 4,
+        a: 2,
         b: "abc",
-        c: -8
+        c: -4
       },
       as: 'guillaume'
     });
