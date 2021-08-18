@@ -1561,7 +1561,6 @@ async function getTezosContract(input) {
   const tezos = getTezos();
 
   var contract = await tezos.contract.at(contract_address);
-  const entries = getEntries(contract_address, true, print);
   return contract;
 }
 
@@ -1842,4 +1841,4 @@ exports.packTyped = packTyped;
 exports.setNow = setNow;
 exports.formatDate = formatDate;
 exports.transfer = transfer;
-
+exports.getEntries = getEntries;

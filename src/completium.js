@@ -59,7 +59,27 @@ module.exports = class Completium {
   }
 
   async getContract(contract_id) {
-    return Main.getTezosContract(contract_id);
+    const a = this;
+    return new Promise(async (resolve, reject) => {
+      const contract = await Main.getTezosContract(contract_id);
+      const contract_address = contract.address;
+      // resolve(contract);
+
+      Main.getEntries(contract_address, true,
+        x => {
+          const entries = JSON.parse(x);
+          const sigs = entries.map(x => x);
+          sigs.forEach(sig => {
+            const id = sig.name.startsWith("%") ? sig.name.substring(1) : sig.name;
+            contract[id] = (settings => a.call(contract_id, {
+              ...settings,
+              entry: id,
+              sig: sig
+            }))
+          });
+          resolve(contract);
+        });
+    });
   }
 
   async getBalance(alias, obj) {

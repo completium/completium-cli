@@ -1,0 +1,19 @@
+archetype abc
+
+variable n : nat = 0
+
+entry assign (i : nat) {
+  n := i
+}
+
+entry multi (a : nat, b : string, c : int) {
+  n := a + length(b) + abs(c)
+}
+
+entry inc () {
+  n += 1
+}
+
+entry f (str : string) {
+  fail(str)
+}
