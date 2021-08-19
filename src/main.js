@@ -309,8 +309,8 @@ async function help(options) {
   print("  remove account <ACCOUNT_ALIAS>");
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
-  print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--init <MICHELSON_DATA>]");
+  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
+  print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <INIT>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--init <MICHELSON_DATA>]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
@@ -989,7 +989,7 @@ async function deploy(options) {
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
   const dry = options.dry;
   const oinit = options.init;
-  const parameters = options.parameters;
+  const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
 
   if (otest && network.network === "main") {
@@ -1033,7 +1033,7 @@ async function deploy(options) {
     if (!originate) {
       try {
         const res = archetype.with_parameters(input);
-        if (res !== "" && (isNull(oinit) && isNull(parameters))) {
+        if (res !== "" && (isNull(parameters))) {
           print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
           return new Promise(resolve => { resolve(null) });
         }
@@ -1092,7 +1092,6 @@ async function deploy(options) {
         const c = require(contract_script);
         const storageType = c.code[0].args[0];
         tzstorage = compute_tzstorage(input.toString(), storageType, parameters);
-        // tzstorage = codec.emitMicheline(a);
       }
     } catch (error) {
       return new Promise(resolve => { resolve(null) });
