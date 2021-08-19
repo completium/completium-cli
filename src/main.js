@@ -311,7 +311,7 @@ async function help(options) {
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <INIT>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--init <MICHELSON_DATA>]");
-  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--with <ARG> | --with-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
+  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--args <ARGS> | --args-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
@@ -1243,46 +1243,46 @@ async function callTransfer(options, contract_address, arg) {
   });
 }
 
-async function getArg(options, contract_address, entry) {
-  return new Promise(async (resolve, reject) => {
-    retrieveContract(contract_address, async (path) => {
-      // var args = [
-      //   '--expr', options.with,
-      //   '--with-contract', path,
-      //   '--json',
-      //   '--only-expr'
-      // ];
-      // if (entry !== 'default') {
-      //   if (entry.charAt(0) !== '%') {
-      //     entry = "%" + entry;
-      //   }
-      //   args.push('--entrypoint', entry);
-      // }
+// async function getArg(options, contract_address, entry) {
+//   return new Promise(async (resolve, reject) => {
+//     retrieveContract(contract_address, async (path) => {
+//       // var args = [
+//       //   '--expr', options.with,
+//       //   '--with-contract', path,
+//       //   '--json',
+//       //   '--only-expr'
+//       // ];
+//       // if (entry !== 'default') {
+//       //   if (entry.charAt(0) !== '%') {
+//       //     entry = "%" + entry;
+//       //   }
+//       //   args.push('--entrypoint', entry);
+//       // }
 
-      try {
-        if (!fs.existsSync(path)) {
-          print(`Error: file not found.`);
-          return new Promise(resolve => { resolve(null) });
-        }
-        const input = fs.readFileSync(path).toString();
+//       try {
+//         if (!fs.existsSync(path)) {
+//           print(`Error: file not found.`);
+//           return new Promise(resolve => { resolve(null) });
+//         }
+//         const input = fs.readFileSync(path).toString();
 
-        const output_raw = archetype.get_expr_type(options.with, input, {
-          json: true,
-          expr_only: true,
-          entrypoint: entry !== 'default' ? (entry.charAt(0) !== '%' ? "%" + entry : entry) : undefined
-        });
+//         const output_raw = archetype.get_expr_type(options.with, input, {
+//           json: true,
+//           expr_only: true,
+//           entrypoint: entry !== 'default' ? (entry.charAt(0) !== '%' ? "%" + entry : entry) : undefined
+//         });
 
-        const res = JSON.parse(output_raw);
+//         const res = JSON.parse(output_raw);
 
-        resolve(res);
+//         resolve(res);
 
-      } catch (e) {
-        print_error(e);
-        reject(e)
-      }
-    });
-  });
-}
+//       } catch (e) {
+//         print_error(e);
+//         reject(e)
+//       }
+//     });
+//   });
+// }
 
 async function computeArg(args, contract_address, entry) {
   const tezos = getTezos();
@@ -1307,10 +1307,9 @@ async function getMicheline(options, input) {
 
 async function callContract(options) {
   const input = options.contract;
-  var arg = options.with;
-  var argMichelson = options.withMichelson;
+  const args = options.iargs !== undefined ? JSON.parse(options.iargs) : options.args;
+  var argMichelson = options.argsMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
-  const args = options.args;
 
   const contract = getContractFromIdOrAddress(input);
 
@@ -1331,8 +1330,8 @@ async function callContract(options) {
 
   if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
-  } else if (arg !== undefined) {
-    arg = await getArg(options, contract_address, entry);
+  // } else if (arg !== undefined) {
+  //   arg = await getArg(options, contract_address, entry);
   } else if (args !== undefined) {
     arg = await computeArg(args, contract_address, entry);
   } else {
@@ -1349,7 +1348,7 @@ function formatDate(date) {
 async function setNow(options) {
   const date = formatDate(options.date);
 
-  return await callContract({ ...options, entry: "_set_now", with: date });
+  return await callContract({ ...options, entry: "_set_now", args: date });
 }
 
 async function generateMichelson(options) {
