@@ -1025,7 +1025,7 @@ function build_from_js(type, jdata) {
       case 'pair':
         const pargs = [];
         if (jdata.length < type.args.length) {
-          throw new Error("Unknown type pair: lenhth error data:" + jdata.length + " type: " + type.args.length);
+          throw new Error("Unknown type pair: length error data:" + jdata.length + " type: " + type.args.length);
         }
         for (let i = 0; i < type.args.length; ++i) {
           const data = build_from_js(type.args[i], jdata[i]);
