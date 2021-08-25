@@ -962,12 +962,8 @@ async function copySource(arl, ext, contract_name) {
   });
 }
 
-const mk_pair = (x, y) => { return { "prim": "Pair", args: [x, y] } };
 
 function build_from_js(type, jdata) {
-  const mk_elt = (x, y) => { return { "prim": "Elt", args: [x, y] } };
-  const mk_left = (x) => { return { "prim": "Left", args: [x] } };
-  const mk_right = (x) => { return { "prim": "Right", args: [x] } };
 
   if (type.prim !== undefined) {
     const schema = new encoder.Schema(type);
@@ -1010,7 +1006,7 @@ function build_from_js(type, jdata) {
           }
           const k = build_from_js(kmtype, x.key);
           const v = build_from_js(vmtype, x.value);
-          return mk_elt(k, v);
+          return { "prim": "Elt", args: [k, v] };
         });
         return mdata;
       case 'or':
@@ -1020,16 +1016,24 @@ function build_from_js(type, jdata) {
         const odata = jdata.value;
         switch (jdata.kind.toLowerCase()) {
           case 'left':
-            return mk_left(build_from_js(type.args[0], odata))
+            const ldata = build_from_js(type.args[0], odata);
+            return { "prim": "Left", args: [ldata] };
           case 'right':
-            return mk_right(build_from_js(type.args[1], odata))
+            const rdata = build_from_js(type.args[1], odata);
+            return { "prim": "Right", args: [rdata] };
           default:
             throw new Error("Unknown type or: " + jdata.kind)
         }
       case 'pair':
-        const pldata = build_from_js(type.args[0], jdata[0])
-        const prdata = build_from_js(type.args[1], jdata[1])
-        return mk_pair(pldata, prdata);
+        const pargs = [];
+        if (jdata.length < type.args.length) {
+          throw new Error("Unknown type pair: lenhth error data:" + jdata.length + " type: " + type.args.length);
+        }
+        for (let i = 0; i < type.args.length; ++i) {
+          const data = build_from_js(type.args[i], jdata[i]);
+          pargs.push(data);
+        }
+        return { "prim": "Pair", args: pargs };
       default:
         throw new Error("Unknown type prim: " + prim)
     }
@@ -1039,7 +1043,7 @@ function build_from_js(type, jdata) {
   }
 }
 
-function build_data_storage(type, storage_values, parameters) {
+function build_data_michelson(type, storage_values, parameters) {
   if (type.annots !== undefined && type.annots.length > 0) {
     const annot1 = type.annots[0];
     const annot = annot1.startsWith("%") ? annot1.substring(1) : annot1;
@@ -1058,20 +1062,18 @@ function build_data_storage(type, storage_values, parameters) {
 
   } else if (type.prim !== undefined && type.prim === "pair" && type.annots === undefined) {
 
-    const left_type = type.args[0];
-    const left_data = build_data_storage(left_type, storage_values, parameters);
+    const args = type.args.map((t) => {
+      return build_data_michelson(t, storage_values, parameters);
+    });
 
-    const right_type = type.args[1];
-    const right_data = build_data_storage(right_type, storage_values, parameters);
-
-    return mk_pair(left_data, right_data)
+    return { "prim": "Pair", args: args };
   } else {
     throw new Error("Internal error.");
   }
 }
 
-function compute_tzstorage(input, storageType, parameters) {
-  const storage_values = archetype.get_storage_values(input);
+function compute_tzstorage(input, storageType, parameters, s) {
+  const storage_values = archetype.get_storage_values(input, s);
   const jsv = JSON.parse(storage_values);
   const sv = jsv.map(x => x);
   var obj = {};
@@ -1079,7 +1081,7 @@ function compute_tzstorage(input, storageType, parameters) {
     obj[x.id] = x.value
   });
 
-  const data = build_data_storage(storageType, obj, parameters);
+  const data = build_data_michelson(storageType, obj, parameters);
   const michelsonData = data;
 
   return michelsonData;
@@ -1199,7 +1201,7 @@ async function deploy(options) {
       } else {
         const c = require(contract_script);
         const storageType = c.code[0].args[0];
-        tzstorage = compute_tzstorage(input.toString(), storageType, parameters);
+        tzstorage = compute_tzstorage(input.toString(), storageType, parameters, { 'test_mode': otest });
       }
     } catch (error) {
       return new Promise(resolve => { resolve(null) });
@@ -1397,8 +1399,7 @@ async function computeArg(args, contract_address, entry) {
   const contract = await tezos.contract.at(contract_address);
 
   const paramType = contract.entrypoints.entrypoints[entry];
-  const paramSchema = new encoder.Schema(paramType);
-  const michelsonData = paramSchema.Encode(args);
+  const michelsonData = build_data_michelson(paramType, {}, args);
   return michelsonData;
 }
 
