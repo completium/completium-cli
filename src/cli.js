@@ -182,8 +182,8 @@ function parseCommand(args) {
       '--as': String,
       '--named': String,
       '--entry': String,
-      '--args': String,
-      '--args-michelson': String,
+      '--arg': String,
+      '--arg-michelson': String,
       '--force': Boolean,
       '--verbose': Boolean,
       '--init': String,
@@ -212,8 +212,8 @@ function parseCommand(args) {
     as: options['--as'],
     named: options['--named'],
     entry: options['--entry'],
-    iargs: options['--args'],
-    argsMichelson: options['--args-michelson'],
+    iargs: options['--arg'],
+    argsMichelson: options['--arg-michelson'],
     force: options['--force'] || false,
     verbose: options['--verbose'] || false,
     init: options['--init'],
@@ -237,11 +237,25 @@ async function promptForMissingOptions(options) {
 }
 
 export async function cli(args) {
-  let options = parseCommand(args);
-  // console.log(options);
-  // options = await promptForMissingOptions(options);
-  var r = await exec(options);
-  if (r != 0) {
-    process.exit(r);
+  try {
+    let options = parseCommand(args);
+
+    if (options.command === undefined) {
+      if (args.length > 2) {
+        console.log(`Invalid command: ${args[2]}`);
+      }
+      console.log(`Type "completium-cli help" for more information.`);
+    } else {
+      var r = await exec(options);
+      if (r != 0) {
+        process.exit(r);
+      }
+    }
+  } catch (e) {
+    if (e.message !== undefined) {
+      console.error(e.message);
+    } else {
+      throw e;
+    }
   }
 }

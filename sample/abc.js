@@ -11,7 +11,7 @@ async function test() {
 
     const op = await call('abc', {
       entry: 'multi',
-      args: {
+      arg: {
         a: 6,
         b: "abc",
         c: -8

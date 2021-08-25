@@ -1,4 +1,4 @@
-archetype xyz(n : nat, s : string)
+archetype xyz(n : nat)
 
 variable x : int = 0
 
@@ -16,4 +16,12 @@ entry inc () {
 
 entry f (str : string) {
   fail(str)
+}
+
+entry r (ra : rational) {
+  fail((ra, "ceci est un message d'erreur"))
+}
+
+entry s (ra : rational) {
+  x := 3
 }

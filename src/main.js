@@ -48,7 +48,6 @@ function print_error(msg) {
   return console.error(msg);
 }
 
-
 async function download(url, dest) {
   const request = wget({ url: url, dest: dest, timeout: 2000 });
   return request;
@@ -282,7 +281,7 @@ async function getArchetypeVersion() {
 // COMMANDS //
 //////////////
 
-async function help(options) {
+function help(options) {
   print("usage: [command] [options]")
   print("command:");
   print("  init")
@@ -997,7 +996,11 @@ function build_from_js(type, jdata) {
       case 'ticket':
       case 'timestamp':
       case 'unit':
-        return schema.Encode(jdata);
+        try {
+          return schema.Encode(jdata);
+        } catch (e) {
+          throw e;
+        }
       case 'big_map':
       case 'map':
         const kmtype = type.args[0];
@@ -1064,13 +1067,26 @@ function build_data_michelson(type, storage_values, parameters) {
 
   } else if (type.prim !== undefined && type.prim === "pair" && type.annots === undefined) {
 
-    const args = type.args.map((t) => {
-      return build_data_michelson(t, storage_values, parameters);
-    });
+    let args;
+    if (Object.keys(storage_values).length == 0 && Object.keys(parameters).length == 1) {
+      const ds = Object.values(parameters)[0];
+      args = [];
+      for (let i = 0; i < type.args.length; ++i) {
+        const d = ds[i];
+        const t = type.args[i];
+        const a = build_from_js(t, d);
+        args.push(a);
+      }
+    } else {
+      args = type.args.map((t) => {
+        return build_data_michelson(t, storage_values, parameters);
+      });
+    }
 
     return { "prim": "Pair", args: args };
   } else {
-    throw new Error("Internal error.");
+    const d = Object.values(parameters)[0];
+    return build_from_js(type, d);
   }
 }
 
@@ -1285,7 +1301,7 @@ async function deploy(options) {
             network: config.tezos.network,
             language: originate ? 'michelson' : 'archetype',
             compiler_version: originate ? '0' : version,
-            contract: contract_path,
+            path: contract_path,
             initial_storage: storage,
             source: source
           },
@@ -1355,19 +1371,48 @@ async function callTransfer(options, contract_address, arg) {
 
   const transferParam = { to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } };
 
-  const res = await tezos.estimate.transfer(transferParam);
-  const estimated_total_cost = res.totalCost + 100;
-  const arg_michelson = codec.emitMicheline(arg);
-  var confirm = await confirmCall(force, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
-  if (!confirm) {
-    return;
-  }
+  try {
+    const res = await tezos.estimate.transfer(transferParam);
+    const estimated_total_cost = res.totalCost + 100;
+    const arg_michelson = codec.emitMicheline(arg);
+    var confirm = await confirmCall(force, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+    if (!confirm) {
+      return;
+    }
 
-  if (!quiet) {
-    if (force) {
-      print_settings(false, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+    if (!quiet) {
+      if (force) {
+        print_settings(false, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+      } else {
+        print(`Forging operation...`);
+      }
+    }
+  } catch (e) {
+    if (e.errors != undefined && e.errors.length > 0) {
+      let msgs = [];
+      let contract_handle;
+      const errors = e.errors.map(x => x);
+      errors.forEach(x => {
+        if (x.contract_handle !== undefined) {
+          contract_handle = x.contract_handle;
+          const cid = getContractFromIdOrAddress(contract_handle);
+          let msg = `Error from contract ${contract_handle}`;
+          if (!isNull(cid)) {
+            msg += ` (${cid.name})`
+          }
+          msg += ":";
+          msgs.push(msg);
+        } else if (x.kind === "temporary" &&
+          x.location !== undefined &&
+          x.with !== undefined) {
+          const d = codec.emitMicheline(x.with);
+          const msg = `failed at ${x.location} with ${d}`;
+          msgs.push(msg);
+        }
+      })
+      throw new Error(msgs.join("\n"));
     } else {
-      print(`Forging operation...`);
+      throw e
     }
   }
 
@@ -1400,17 +1445,6 @@ async function computeArg(args, contract_address, entry) {
   const paramType = contract.entrypoints.entrypoints[entry];
   const michelsonData = build_data_michelson(paramType, {}, args);
   return michelsonData;
-}
-
-async function getMicheline(options, input) {
-  return new Promise(async (resolve) => {
-    const output_raw = archetype.get_expr(input, {
-      json: true
-    });
-    const res = JSON.parse(output_raw);
-
-    resolve(res);
-  });
 }
 
 async function callContract(options) {
@@ -1545,18 +1579,23 @@ async function showContract(options) {
   const network = config.tezos.list.find(x => x.network === contract.network);
   const url = network.bcd_url.replace('${address}', contract.address);
 
-  print(`Name:     ${contract.name}`);
-  print(`Network:  ${contract.network}`);
-  print(`Address:  ${contract.address}`);
-  print(`Source:   ${contract.source}`);
-  print(`Language: ${contract.language}`);
-  print(`Version:  ${contract.compiler_version}`);
-  print(`Url:      ${url}`);
+  const with_color = true;
+  const cyan = '36';
+  const start = with_color ? `\x1b[${cyan}m` : '';
+  const end = with_color ? `\x1b[0m` : '';
+
+  print(`${start}Name${end}     : ${contract.name}`);
+  print(`${start}Network${end}  : ${contract.network}`);
+  print(`${start}Address${end}  : ${contract.address}`);
+  print(`${start}Source${end}   : ${contract.source}`);
+  print(`${start}Language${end} : ${contract.language}`);
+  print(`${start}Version${end}  : ${contract.compiler_version}`);
+  print(`${start}Url${end}      : ${url}`);
   if (contract.path !== undefined) {
-    print(`Path: ${contract.contract}`);
+    print(`${start}Path${end}     : ${contract.path}`);
   }
   if (contract.initial_storage !== undefined) {
-    print(`Storage:  ${contract.initial_storage}`);
+    print(`${start}Storage${end}  : ${contract.initial_storage}`);
   }
 }
 
@@ -1858,7 +1897,7 @@ function blake2b(options) {
   return "0x" + taquitoUtils.buf2hex(blakeHash);
 }
 
-async function commandNotFound(options) {
+function commandNotFound(options) {
   print("commandNotFound: " + options.command);
   help(options);
   return 1;
@@ -1868,125 +1907,122 @@ async function exec(options) {
   try {
     switch (options.command) {
       case "init":
-        initCompletium(options);
+        await initCompletium(options);
         break;
       case "help":
         help(options);
         break;
       case "show_version":
-        showVersion(options);
+        await showVersion(options);
         break;
       case "show_archetype_version":
-        showArchetypeVersion(options);
+        await showArchetypeVersion(options);
         break;
       case "set_bin":
-        setBin(options);
+        await setBin(options);
         break;
       case "install_bin":
-        installBin(options);
+        await installBin(options);
         break;
       case "start_sandbox":
-        startSandbox(options);
+        await startSandbox(options);
         break;
       case "stop_sandbox":
-        stopSandbox(options);
+        await stopSandbox(options);
         break;
       case "show_endpoint":
-        showEndpoint(options);
+        await showEndpoint(options);
         break;
       case "switch_endpoint":
-        switchEndpoint(options);
+        await switchEndpoint(options);
         break;
       case "add_endpoint":
-        addEndpoint(options);
+        await addEndpoint(options);
         break;
       case "set_endpoint":
-        setEndpoint(options);
+        await setEndpoint(options);
         break;
       case "remove_endpoint":
-        removeEndpoint(options);
+        await removeEndpoint(options);
         break;
       case "generate_account":
-        generateAccount(options);
+        await generateAccount(options);
         break;
       case "import_faucet":
-        importFaucet(options);
+        await importFaucet(options);
         break;
       case "import_privatekey":
-        importPrivatekey(options);
+        await importPrivatekey(options);
         break;
       case "show_keys_from":
-        showKeysFrom(options);
+        await showKeysFrom(options);
         break;
       case "show_accounts":
-        showAccounts(options);
+        await showAccounts(options);
         break;
       case "show_account":
-        showAccount(options);
+        await showAccount(options);
         break;
       case "set_account":
-        setAccount(options);
+        await setAccount(options);
         break;
       case "switch_account":
-        switchAccount(options);
+        await switchAccount(options);
         break;
       case "rename_account":
-        renameAccount(options);
+        await renameAccount(options);
         break;
       case "remove_account":
-        removeAccount(options);
+        await removeAccount(options);
         break;
       case "transfer":
-        transfer(options);
+        await transfer(options);
         break;
       case "deploy":
       case "originate":
-        var op = await deploy(options);
-        if (op == null) {
-          return 1;
-        }
+        await deploy(options);
         break;
       case "call_contract":
-        callContract(options);
+        await callContract(options);
         break;
       case "generate_michelson":
-        generateMichelson(options);
+        await generateMichelson(options);
         break;
       case "generate_javascript":
-        generateJavascript(options);
+        await generateJavascript(options);
         break;
       case "generate_whyml":
-        generateWhyml(options);
+        await generateWhyml(options);
         break;
       case "show_contracts":
-        showContracts(options);
+        await showContracts(options);
         break;
       case "show_contract":
-        showContract(options);
+        await showContract(options);
         break;
       case "show_entries":
-        showEntries(options);
+        await showEntries(options);
         break;
       case "rename_contract":
-        renameContract(options);
+        await renameContract(options);
         break;
       case "remove_contract":
-        removeContract(options);
+        await removeContract(options);
         break;
       case "show_url":
-        showUrl(options);
+        await showUrl(options);
         break;
       case "show_source":
-        showSource(options);
+        await showSource(options);
         break;
       case "show_address":
-        showAddress(options);
+        await showAddress(options);
         break;
       case "show_storage":
-        showStorage(options);
+        await showStorage(options);
         break;
       case "get_balance_for":
-        getBalanceFor(options);
+        await getBalanceFor(options);
         break;
       default:
         commandNotFound(options);
