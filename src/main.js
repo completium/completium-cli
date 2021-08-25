@@ -17,6 +17,7 @@ const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const archetype = require('@completium/archetype');
 // const archetype = require('/home/dev/archetype/archetype-lang/npm-package/dist/index.js');
+const { BigNumber } = require('bignumber.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
 
@@ -937,6 +938,18 @@ async function copyContract(data, contract_name) {
   });
 }
 
+function is_number(v) {
+  try {
+    const bigNumber = new BigNumber(v);
+    if (bigNumber.isNaN()) {
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 function build_from_js(type, jdata) {
 
   if (type.prim !== undefined) {
@@ -967,13 +980,20 @@ function build_from_js(type, jdata) {
       case 'signature':
       case 'string':
       case 'ticket':
-      case 'timestamp':
       case 'unit':
-        try {
-          return schema.Encode(jdata);
-        } catch (e) {
-          throw e;
+        return schema.Encode(jdata);
+      case 'timestamp':
+        let vdate;
+        if (is_number(jdata)) {
+          vdate = jdata.toString();
+        } else {
+          const toTimestamp = (strDate) => {
+            var datum = Date.parse(strDate);
+            return (datum / 1000).toString();
+          }
+          vdate = toTimestamp(jdata);
         }
+        return schema.Encode(vdate);
       case 'big_map':
       case 'map':
         const kmtype = type.args[0];
