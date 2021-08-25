@@ -962,6 +962,114 @@ async function copySource(arl, ext, contract_name) {
   });
 }
 
+const mk_pair = (x, y) => { return { "prim": "Pair", args: [x, y] } };
+
+function build_from_js(type, jdata) {
+  const mk_elt = (x, y) => { return { "prim": "Elt", args: [x, y] } };
+  const mk_left = (x) => { return { "prim": "Left", args: [x] } };
+  const mk_right = (x) => { return { "prim": "Right", args: [x] } };
+
+  if (type.prim !== undefined) {
+    const schema = new encoder.Schema(type);
+    const prim = type.prim;
+    switch (prim) {
+      case 'address':
+      case 'bls12_381_fr':
+      case 'bls12_381_g1':
+      case 'bls12_381_g2':
+      case 'bool':
+      case 'bytes':
+      case 'chain_id':
+      case 'contract':
+      case 'int':
+      case 'key':
+      case 'key_hash':
+      case 'lambda':
+      case 'list':
+      case 'mutez':
+      case 'nat':
+      case 'never':
+      case 'operation':
+      case 'option':
+      case 'sapling_state':
+      case 'sapling_transaction':
+      case 'set':
+      case 'signature':
+      case 'string':
+      case 'ticket':
+      case 'timestamp':
+      case 'unit':
+        return schema.Encode(jdata);
+      case 'big_map':
+      case 'map':
+        const kmtype = type.args[0];
+        const vmtype = type.args[1];
+        const mdata = jdata.map((x) => {
+          if (x.key === undefined || x.value === undefined) {
+            throw new Error("Type map error: no 'key' or 'value' for one item")
+          }
+          const k = build_from_js(kmtype, x.key);
+          const v = build_from_js(vmtype, x.value);
+          return mk_elt(k, v);
+        });
+        return mdata;
+      case 'or':
+        if (jdata.kind === undefined || jdata.value === undefined) {
+          throw new Error("Type or error: no 'kind' or 'value' field")
+        }
+        const odata = jdata.value;
+        switch (jdata.kind.toLowerCase()) {
+          case 'left':
+            return mk_left(build_from_js(type.args[0], odata))
+          case 'right':
+            return mk_right(build_from_js(type.args[1], odata))
+          default:
+            throw new Error("Unknown type or: " + jdata.kind)
+        }
+      case 'pair':
+        const pldata = build_from_js(type.args[0], jdata[0])
+        const prdata = build_from_js(type.args[1], jdata[1])
+        return mk_pair(pldata, prdata);
+      default:
+        throw new Error("Unknown type prim: " + prim)
+    }
+
+  } else {
+    throw new Error("Unknown type")
+  }
+}
+
+function build_data_storage(type, storage_values, parameters) {
+  if (type.annots !== undefined && type.annots.length > 0) {
+    const annot1 = type.annots[0];
+    const annot = annot1.startsWith("%") ? annot1.substring(1) : annot1;
+
+    if (parameters[annot] !== undefined) {
+      const t = type;
+      const d = parameters[annot];
+      const data = build_from_js(t, d);
+      return data;
+    } else if (storage_values[annot] !== undefined) {
+      const data = expr_micheline_to_json(storage_values[annot]);
+      return data;
+    } else {
+      throw new Error(annot + " is not found.");
+    }
+
+  } else if (type.prim !== undefined && type.prim === "pair" && type.annots === undefined) {
+
+    const left_type = type.args[0];
+    const left_data = build_data_storage(left_type, storage_values, parameters);
+
+    const right_type = type.args[1];
+    const right_data = build_data_storage(right_type, storage_values, parameters);
+
+    return mk_pair(left_data, right_data)
+  } else {
+    throw new Error("Internal error.");
+  }
+}
+
 function compute_tzstorage(input, storageType, parameters) {
   const storage_values = archetype.get_storage_values(input);
   const jsv = JSON.parse(storage_values);
@@ -970,10 +1078,10 @@ function compute_tzstorage(input, storageType, parameters) {
   sv.forEach(x => {
     obj[x.id] = x.value
   });
-  const data = { ...obj, ...parameters };
 
-  const paramSchema = new encoder.Schema(storageType);
-  const michelsonData = paramSchema.Encode(data);
+  const data = build_data_storage(storageType, obj, parameters);
+  const michelsonData = data;
+
   return michelsonData;
 }
 
@@ -1330,8 +1438,6 @@ async function callContract(options) {
 
   if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
-  // } else if (arg !== undefined) {
-  //   arg = await getArg(options, contract_address, entry);
   } else if (args !== undefined) {
     arg = await computeArg(args, contract_address, entry);
   } else {

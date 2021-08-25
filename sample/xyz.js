@@ -5,7 +5,7 @@ const assert = require('assert');
 
 async function test() {
   try {
-    await deploy('./resources/xyz.arl', {
+    const [contract, op] = await deploy('./resources/xyz.arl', {
       parameters: {
         n: 0,
         s: 'toto'
