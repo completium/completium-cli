@@ -5,10 +5,10 @@ const assert = require('assert');
 
 async function test() {
   try {
-    const [contract, op] = await deploy('/home/guillaume/archetype/completium-cli/sample/resources/xyz.arl', {
+    const [contract, op] = await deploy('./resources/xyz.arl', {
       parameters: {
         n: 0,
-        s: 'toto'
+        s: 'mystr'
       }
     });
     const storage = await contract.storage();
