@@ -15,8 +15,8 @@ const codec = require('@taquito/michel-codec');
 const encoder = require('@taquito/michelson-encoder');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
-// const archetype = require('@completium/archetype');
-const archetype = require('/home/guillaume/archetype/archetype-lang/npm-package/dist/index.js');
+const archetype = require('@completium/archetype');
+// const archetype = require('/home/dev/archetype/archetype-lang/npm-package/dist/index.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
 
@@ -1393,47 +1393,6 @@ async function callTransfer(options, contract_address, arg) {
   });
 }
 
-// async function getArg(options, contract_address, entry) {
-//   return new Promise(async (resolve, reject) => {
-//     retrieveContract(contract_address, async (path) => {
-//       // var args = [
-//       //   '--expr', options.with,
-//       //   '--with-contract', path,
-//       //   '--json',
-//       //   '--only-expr'
-//       // ];
-//       // if (entry !== 'default') {
-//       //   if (entry.charAt(0) !== '%') {
-//       //     entry = "%" + entry;
-//       //   }
-//       //   args.push('--entrypoint', entry);
-//       // }
-
-//       try {
-//         if (!fs.existsSync(path)) {
-//           print(`Error: file not found.`);
-//           return new Promise(resolve => { resolve(null) });
-//         }
-//         const input = fs.readFileSync(path).toString();
-
-//         const output_raw = archetype.get_expr_type(options.with, input, {
-//           json: true,
-//           expr_only: true,
-//           entrypoint: entry !== 'default' ? (entry.charAt(0) !== '%' ? "%" + entry : entry) : undefined
-//         });
-
-//         const res = JSON.parse(output_raw);
-
-//         resolve(res);
-
-//       } catch (e) {
-//         print_error(e);
-//         reject(e)
-//       }
-//     });
-//   });
-// }
-
 async function computeArg(args, contract_address, entry) {
   const tezos = getTezos();
   const contract = await tezos.contract.at(contract_address);
@@ -1466,14 +1425,14 @@ async function callContract(options) {
   if (!isNull(contract)) {
     const config = getConfig();
     if (contract.network !== config.tezos.network) {
-      print(`Error: expecting network ${contract.network}. Switch endpoint and retry.`);
-      return;
+      const msg = `Error: expecting network ${contract.network}. Switch endpoint and retry.`;
+      throw new Error(msg);
     }
     contract_address = contract.address;
   } else {
     if (!contract_address.startsWith('KT1')) {
-      print(`Error: '${contract_address}' unknown contract alias or bad contract address.`);
-      return;
+      const msg = `Error: '${contract_address}' unknown contract alias or bad contract address.`;
+      throw new Error(msg);
     }
   }
 
@@ -1906,134 +1865,139 @@ async function commandNotFound(options) {
 }
 
 async function exec(options) {
-  switch (options.command) {
-    case "init":
-      initCompletium(options);
-      break;
-    case "help":
-      help(options);
-      break;
-    case "show_version":
-      showVersion(options);
-      break;
-    case "show_archetype_version":
-      showArchetypeVersion(options);
-      break;
-    case "set_bin":
-      setBin(options);
-      break;
-    case "install_bin":
-      installBin(options);
-      break;
-    case "start_sandbox":
-      startSandbox(options);
-      break;
-    case "stop_sandbox":
-      stopSandbox(options);
-      break;
-    case "show_endpoint":
-      showEndpoint(options);
-      break;
-    case "switch_endpoint":
-      switchEndpoint(options);
-      break;
-    case "add_endpoint":
-      addEndpoint(options);
-      break;
-    case "set_endpoint":
-      setEndpoint(options);
-      break;
-    case "remove_endpoint":
-      removeEndpoint(options);
-      break;
-    case "generate_account":
-      generateAccount(options);
-      break;
-    case "import_faucet":
-      importFaucet(options);
-      break;
-    case "import_privatekey":
-      importPrivatekey(options);
-      break;
-    case "show_keys_from":
-      showKeysFrom(options);
-      break;
-    case "show_accounts":
-      showAccounts(options);
-      break;
-    case "show_account":
-      showAccount(options);
-      break;
-    case "set_account":
-      setAccount(options);
-      break;
-    case "switch_account":
-      switchAccount(options);
-      break;
-    case "rename_account":
-      renameAccount(options);
-      break;
-    case "remove_account":
-      removeAccount(options);
-      break;
-
-
-    case "transfer":
-      transfer(options);
-      break;
-    case "deploy":
-    case "originate":
-      var op = await deploy(options);
-      if (op == null) {
-        return 1;
-      }
-      break;
-    case "call_contract":
-      callContract(options);
-      break;
-    case "generate_michelson":
-      generateMichelson(options);
-      break;
-    case "generate_javascript":
-      generateJavascript(options);
-      break;
-    case "generate_whyml":
-      generateWhyml(options);
-      break;
-    case "show_contracts":
-      showContracts(options);
-      break;
-    case "show_contract":
-      showContract(options);
-      break;
-    case "show_entries":
-      showEntries(options);
-      break;
-    case "rename_contract":
-      renameContract(options);
-      break;
-    case "remove_contract":
-      removeContract(options);
-      break;
-    case "show_url":
-      showUrl(options);
-      break;
-    case "show_source":
-      showSource(options);
-      break;
-    case "show_address":
-      showAddress(options);
-      break;
-    case "show_storage":
-      showStorage(options);
-      break;
-    case "get_balance_for":
-      getBalanceFor(options);
-      break;
-    default:
-      commandNotFound(options);
+  try {
+    switch (options.command) {
+      case "init":
+        initCompletium(options);
+        break;
+      case "help":
+        help(options);
+        break;
+      case "show_version":
+        showVersion(options);
+        break;
+      case "show_archetype_version":
+        showArchetypeVersion(options);
+        break;
+      case "set_bin":
+        setBin(options);
+        break;
+      case "install_bin":
+        installBin(options);
+        break;
+      case "start_sandbox":
+        startSandbox(options);
+        break;
+      case "stop_sandbox":
+        stopSandbox(options);
+        break;
+      case "show_endpoint":
+        showEndpoint(options);
+        break;
+      case "switch_endpoint":
+        switchEndpoint(options);
+        break;
+      case "add_endpoint":
+        addEndpoint(options);
+        break;
+      case "set_endpoint":
+        setEndpoint(options);
+        break;
+      case "remove_endpoint":
+        removeEndpoint(options);
+        break;
+      case "generate_account":
+        generateAccount(options);
+        break;
+      case "import_faucet":
+        importFaucet(options);
+        break;
+      case "import_privatekey":
+        importPrivatekey(options);
+        break;
+      case "show_keys_from":
+        showKeysFrom(options);
+        break;
+      case "show_accounts":
+        showAccounts(options);
+        break;
+      case "show_account":
+        showAccount(options);
+        break;
+      case "set_account":
+        setAccount(options);
+        break;
+      case "switch_account":
+        switchAccount(options);
+        break;
+      case "rename_account":
+        renameAccount(options);
+        break;
+      case "remove_account":
+        removeAccount(options);
+        break;
+      case "transfer":
+        transfer(options);
+        break;
+      case "deploy":
+      case "originate":
+        var op = await deploy(options);
+        if (op == null) {
+          return 1;
+        }
+        break;
+      case "call_contract":
+        callContract(options);
+        break;
+      case "generate_michelson":
+        generateMichelson(options);
+        break;
+      case "generate_javascript":
+        generateJavascript(options);
+        break;
+      case "generate_whyml":
+        generateWhyml(options);
+        break;
+      case "show_contracts":
+        showContracts(options);
+        break;
+      case "show_contract":
+        showContract(options);
+        break;
+      case "show_entries":
+        showEntries(options);
+        break;
+      case "rename_contract":
+        renameContract(options);
+        break;
+      case "remove_contract":
+        removeContract(options);
+        break;
+      case "show_url":
+        showUrl(options);
+        break;
+      case "show_source":
+        showSource(options);
+        break;
+      case "show_address":
+        showAddress(options);
+        break;
+      case "show_storage":
+        showStorage(options);
+        break;
+      case "get_balance_for":
+        getBalanceFor(options);
+        break;
+      default:
+        commandNotFound(options);
+    }
+  } catch (e) {
+    if (e.message !== undefined) {
+      print_error(e.message);
+    } else {
+      print_error(e);
+    }
   }
-
   return 0;
 }
 
