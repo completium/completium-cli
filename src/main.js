@@ -1363,13 +1363,13 @@ async function callTransfer(options, contract_address, arg) {
   } catch (e) {
     if (e.errors != undefined && e.errors.length > 0) {
       let msgs = [];
-      let contract_handle;
+      let contract;
       const errors = e.errors.map(x => x);
       errors.forEach(x => {
-        if (x.contract_handle !== undefined) {
-          contract_handle = x.contract_handle;
-          const cid = getContractFromIdOrAddress(contract_handle);
-          let msg = `Error from contract ${contract_handle}`;
+        if (x.contract_handle !== undefined || x.contract !== undefined) {
+          contract = x.contract_handle !== undefined ? x.contract_handle : x.contract;
+          const cid = getContractFromIdOrAddress(contract);
+          let msg = `Error from contract ${contract}`;
           if (!isNull(cid)) {
             msg += ` (${cid.name})`
           }
@@ -1380,6 +1380,12 @@ async function callTransfer(options, contract_address, arg) {
           x.with !== undefined) {
           const d = codec.emitMicheline(x.with);
           const msg = `failed at ${x.location} with ${d}`;
+          msgs.push(msg);
+        }
+        if (x.expected_type !== undefined && x.wrong_expression !== undefined) {
+          const etyp = codec.emitMicheline(x.expected_type);
+          const wexp = codec.emitMicheline(x.wrong_expression);
+          let msg = `Invalid argument value '${wexp}'; excepting value of type '${etyp}'`;
           msgs.push(msg);
         }
       })
@@ -1415,7 +1421,10 @@ async function computeArg(args, contract_address, entry) {
   const tezos = getTezos();
   const contract = await tezos.contract.at(contract_address);
 
-  const paramType = contract.entrypoints.entrypoints[entry];
+  let paramType = contract.entrypoints.entrypoints[entry];
+  if (isNull(paramType) && entry === "default") {
+    paramType = contract.parameterSchema.root.val;
+  }
   const michelsonData = build_data_michelson(paramType, {}, args);
   return michelsonData;
 }
@@ -1429,6 +1438,7 @@ async function callContract(options) {
   const contract = getContractFromIdOrAddress(input);
 
   var contract_address = input;
+
   if (!isNull(contract)) {
     const config = getConfig();
     if (contract.network !== config.tezos.network) {
@@ -1439,6 +1449,22 @@ async function callContract(options) {
   } else {
     if (!contract_address.startsWith('KT1')) {
       const msg = `'${contract_address}' unknown contract alias or bad contract address.`;
+      throw new Error(msg);
+    }
+  }
+
+  let ct;
+  try {
+    ct = await getTezosContract(contract_address);
+  } catch (e) {
+    const msg = `'${contract_address}' not found on ${config.tezos.network}.`;
+    throw new Error(msg);
+  }
+
+  if (entry !== 'default') {
+    if (ct.entrypoints === undefined ||
+      ct.entrypoints.entrypoints[entry] === undefined) {
+      const msg = `'${entry}' entrypoint not found.`;
       throw new Error(msg);
     }
   }
@@ -1605,11 +1631,7 @@ async function getEntries(input, rjson, callback) {
 
 async function showEntries(options) {
   const input = options.contract;
-  try {
-    getEntries(input, false, print);
-  } catch (e) {
-    print_error(JSON.stringify(e));
-  }
+  await getEntries(input, false, print);
 }
 
 async function renameContract(options) {
