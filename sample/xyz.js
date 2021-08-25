@@ -5,15 +5,14 @@ const assert = require('assert');
 
 async function test() {
   try {
-    const op = await deploy('./resources/xyz.arl', {
+    const [contract, op] = await deploy('/home/guillaume/archetype/completium-cli/sample/resources/xyz.arl', {
       parameters: {
         n: 0,
         s: 'toto'
       }
-      ,test: true
     });
-    // const storage = await contract.storage();
-    console.log(op);
+    const storage = await contract.storage();
+    console.log(storage);
   } catch (e) {
     console.error(e);
   }

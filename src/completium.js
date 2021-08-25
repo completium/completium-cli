@@ -34,18 +34,16 @@ function updateCost(op) {
   }
 }
 
-async function deploy(path, obj) {
-  const options = { ...obj, file: path, force: true, quiet: true };
-  var op = await Main.deploy(options);
+async function deploy(path, obj, originate = false) {
+  const options = { ...obj, file: path, force: true, quiet: true, originate: originate };
+  var [contract_id, op] = await Main.deploy(options);
   op = updateCost(op);
-  return op;
+  const contract = await getContract(contract_id)
+  return [contract, op];
 }
 
 async function originate(path, obj) {
-  const options = { ...obj, file: path, force: true, quiet: true, originate: true };
-  var op = await Main.deploy(options);
-  op = updateCost(op);
-  return op;
+  return await deploy(path, obj, true);
 }
 
 async function call(input, obj) {

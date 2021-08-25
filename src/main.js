@@ -18,6 +18,7 @@ const signer = require('@taquito/signer');
 // const archetype = require('@completium/archetype');
 const archetype = require('/home/guillaume/archetype/archetype-lang/npm-package/dist/index.js');
 const { exit } = require('process');
+const { emitMicheline } = require('@taquito/michel-codec');
 
 const version = '0.1.21'
 
@@ -193,21 +194,24 @@ function isNull(str) {
   return str === undefined || str === null || str === "";
 }
 
-function callArchetype(options, input, s) {
-  const verbose = options.verbose;
-  const init = options.init;
+function computeSettings(options, settings) {
   const metadata_storage = options.metadata_storage;
   const metadata_uri = options.metadata_uri;
-  const no_print = options.no_print === undefined ? false : options.no_print;
   const otest = options.test;
 
-  const settings = {
-    ...s,
+  return {
+    ...settings,
     "test_mode": otest,
-    "init": init,
     "metadata_storage": metadata_storage,
     "metadata_uri": metadata_uri
   }
+}
+
+function callArchetype(options, input, s) {
+  const verbose = options.verbose;
+  const no_print = options.no_print === undefined ? false : options.no_print;
+
+  const settings = computeSettings(options, s);
 
   if (verbose) {
     print(settings);
@@ -939,17 +943,6 @@ async function confirmContract(force, id) {
   return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
 }
 
-async function continueContract(force, id, from, amount) {
-  if (force) { return true }
-
-  const config = getConfig();
-
-  const Confirm = require('prompt-confirm');
-
-  const str = `Confirm contract ${id} origination by '${from.name}' with ${amount / 1000000} ꜩ on ${config.tezos.network}?`;
-  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
-}
-
 async function copySource(arl, ext, contract_name) {
   return new Promise(resolve => {
     fs.readFile(arl, 'utf8', (err, data) => {
@@ -962,6 +955,15 @@ async function copySource(arl, ext, contract_name) {
   });
 }
 
+async function copyContract(data, contract_name) {
+  return new Promise(resolve => {
+    const contract_path = contracts_dir + '/' + contract_name + ".tz";
+    fs.writeFile(contract_path, data, (err) => {
+      if (err) throw err;
+      resolve(contract_path);
+    });
+  });
+}
 
 function build_from_js(type, jdata) {
 
@@ -1087,6 +1089,27 @@ function compute_tzstorage(input, storageType, parameters, s) {
   return michelsonData;
 }
 
+function print_deploy_settings(with_color, account, contract_id, amount, storage, estimated_total_cost) {
+  const cyan = '36';
+  const start = with_color ? `\x1b[${cyan}m` : '';
+  const end = with_color ? `\x1b[0m` : '';
+  print(`Originate settings:`);
+  print(`  ${start}network${end}\t: ${config.tezos.network}`);
+  print(`  ${start}contract${end}\t: ${contract_id}`);
+  print(`  ${start}by${end}\t\t: ${account.name}`);
+  print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
+  print(`  ${start}storage${end}\t: ${storage}`);
+  print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+}
+
+async function confirmDeploy(force, account, contract_id, amount, storage, estimated_total_cost) {
+  if (force) { return true }
+
+  const Confirm = require('prompt-confirm');
+  print_deploy_settings(true, account, contract_id, amount, storage, estimated_total_cost);
+  return new Promise(resolve => { new Confirm("Confirm settings").ask(answer => { resolve(answer); }) });
+}
+
 async function deploy(options) {
   const config = getConfig();
 
@@ -1101,140 +1124,155 @@ async function deploy(options) {
   const oinit = options.init;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
+  const quiet = options.quiet === undefined ? false : options.quiet;
+
+  if (otest && originate) {
+    const msg = `Cannot originate a contract in test mode.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
 
   if (otest && network.network === "main") {
-    const msg = `Cannot deploy or originate a contract in test mode on mainnet.`;
+    const msg = `Cannot deploy a contract in test mode on mainnet.`;
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
   const account = getAccountFromIdOrAddr(isNull(as) ? config.account : as);
   if (isNull(account)) {
+    let msg;
     if (isNull(as)) {
-      print_error(`Error: invalid account ${as}.`);
+      msg = `Error: invalid account ${as}.`;
     } else {
       if (config.account === "") {
-        print_error(`Error: account is not set.`);
+        msg = `Error: account is not set.`;
       } else {
-        print_error(`Error: invalid account ${config.account}.`);
+        msg = `Error: invalid account ${config.account}.`;
       }
     }
-    return new Promise(resolve => { resolve(null) });
+    return new Promise((resolve, reject) => { reject(msg) });
   }
 
   const amount = isNull(options.amount) ? 0 : getAmount(options.amount);
-  if (isNull(amount)) { return new Promise(resolve => { resolve(null) }); };
+  if (isNull(amount)) {
+    const msg = `Error: invalid amount`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
 
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
-  if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
+  if (isNull(fee)) {
+    const msg = `Error: invalid fee`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
 
   const contract_name = named === undefined ? path.basename(file).split('.').slice(0, -1).join('.') : named;
   var confirm = await confirmContract(force, contract_name);
   if (!confirm) {
-    return new Promise(resolve => { resolve(null) });
+    const msg = `Not confirmed`
+    return new Promise((resolve, reject) => { reject(msg) });
   }
 
-  const contract_script = contracts_dir + '/' + contract_name + ".tz.js";
-  if (!fs.existsSync(file)) {
-    print(`Error: file not found.`);
-    return new Promise(resolve => { resolve(null) });
-  }
   const input = fs.readFileSync(file).toString();
-  try {
-    if (!originate) {
-      try {
-        const res = archetype.with_parameters(input);
-        if (res !== "" && (isNull(parameters))) {
-          print(`The contract has the following parameter:\n${res}\nPlease use '--init' to initialize.`)
-          return new Promise(resolve => { resolve(null) });
-        }
-      } catch (error) {
-        print_error(error.stderr);
-        return new Promise(resolve => { resolve(null) });
-      }
-    }
+  if (!fs.existsSync(file)) {
+    const msg = `Error: file not found.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
 
-    {
-      const res = originate ?
-        "export const code = " + micheline_to_json(input) + ";" :
-        callArchetype(options, input, {
-          target: 'javascript',
-          no_js_header: true,
+  let code;
+  if (originate) {
+    code = input;
+  } else {
+    try {
+      code = callArchetype(options, input.toString(), {
+        target: "michelson",
+        sci: account.pkh
+      });
+    } catch (e) {
+      return new Promise((resolve, reject) => { reject(e) });
+    }
+  }
+  const m_code = expr_micheline_to_json(code);
+
+  if (!originate && isNull(parameters)) {
+    const with_parameters = archetype.with_parameters(input);
+    if (with_parameters) {
+      const msg = `The contract has the following parameter:\n${res}\nPlease use '--parameters' to initialize.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+  }
+
+  let m_storage;
+  if (!isNull(oinit)) {
+    storage = oinit;
+  } if (!originate) {
+    if (isNull(parameters)) {
+      try {
+        const storage = callArchetype(options, input.toString(), {
+          target: "michelson-storage",
           sci: account.pkh
         });
-      fs.writeFile(contract_script, res, function (err) {
-        if (err) throw err;
-        if (verbose)
-          print(`JS script for contract ${contract_name} is saved.`);
-      });
+        m_storage = expr_micheline_to_json(storage);
+      } catch (e) {
+        return new Promise((resolve, reject) => { reject(e) });
+      }
+    } else {
+      try {
+        const obj_storage = m_code.find(x => x.prim === "storage");
+        const storageType = obj_storage.args[0];
+        m_storage = compute_tzstorage(input.toString(), storageType, parameters, computeSettings(options));
+      } catch (e) {
+        return new Promise((resolve, reject) => { reject(e) });
+      }
     }
-  } catch (error) {
-    return new Promise((resolve) => { resolve(null) });
+  } else {
+    m_storage = expr_micheline_to_json("Unit");
   }
 
   const ext = originate ? 'tz' : 'arl';
   const source = await copySource(file, ext, contract_name);
+  const contract_path = await copyContract(code, contract_name);
   const version = await getArchetypeVersion();
-
-  var cont = await continueContract(force, contract_name, account, amount);
-  if (!cont) {
-    return;
-  }
 
   const tezos = getTezos(account.name);
 
-  var tzstorage = "";
-  if (originate) {
-    if (isNull(oinit)) {
-      tzstorage = { "prim": "Unit" };
-    } else {
-      tzstorage = expr_micheline_to_json(oinit);
-    }
-  } else {
-    try {
-      const account = getAccount(config.account);
-      if (isNull(parameters)) {
-        const res = callArchetype(options, input.toString(), {
-          target: "michelson-storage",
-          sci: account.pkh
-        });
-        tzstorage = res;
-      } else {
-        const c = require(contract_script);
-        const storageType = c.code[0].args[0];
-        tzstorage = compute_tzstorage(input.toString(), storageType, parameters, { 'test_mode': otest });
-      }
-    } catch (error) {
-      return new Promise(resolve => { resolve(null) });
-    }
-  }
-
-  if (verbose)
-    print(tzstorage);
+  const originateParam = {
+    balance: amount,
+    fee: fee > 0 ? fee : undefined,
+    code: m_code,
+    init: m_storage,
+    mutez: true
+  };
 
   if (dry) {
-    taquito.RpcPacker.preapplyOperations();
+    // taquito.RpcPacker.preapplyOperations();
     print("TODO")
   } else {
-    require = require('esm')(module /*, options*/);
-    const c = require(contract_script);
-    const code = c.code;
-    const init = originate || !isNull(parameters) ? tzstorage : c.getStorage();
-    if (verbose) {
-      const aaa = JSON.stringify(code);
-      const bbb = JSON.stringify(init);
-      print(`code: ${aaa}`);
-      print(`init: ${bbb}`);
+
+    const storage = codec.emitMicheline(m_storage);
+
+    let cont;
+    try {
+      const res_estimate = await tezos.estimate.originate(originateParam);
+      const estimated_total_cost = res_estimate.totalCost + 100;
+      // const estimated_total_cost = 0;
+      cont = await confirmDeploy(force, account, contract_name, amount, storage, estimated_total_cost);
+      if (!cont) {
+        return new Promise((resolve, reject) => { resolve([null, null]) });
+      }
+      if (!quiet) {
+        if (force) {
+          print_deploy_settings(false, account, contract_name, amount, storage, estimated_total_cost);
+        } else {
+          print(`Forging operation...`);
+        }
+      }
+
+    } catch (e) {
+      return new Promise((resolve, reject) => { reject(e) });
     }
-    return new Promise(resolve => {
+
+    return new Promise((resolve, reject) => {
       var op = null;
       tezos.contract
-        .originate({
-          balance: amount,
-          fee: fee > 0 ? fee : undefined,
-          code: code,
-          init: init,
-          mutez: true
-        })
+        .originate(originateParam)
         .then((originationOp) => {
           print(`Waiting for confirmation of origination for ${originationOp.contractAddress} ...`);
           op = originationOp;
@@ -1247,16 +1285,20 @@ async function deploy(options) {
             network: config.tezos.network,
             language: originate ? 'michelson' : 'archetype',
             compiler_version: originate ? '0' : version,
+            contract: contract_path,
+            initial_storage: storage,
             source: source
           },
             x => {
               print(`Origination completed for ${contract.address} named ${contract_name}.`);
               const url = network.bcd_url.replace('${address}', contract.address);
               print(url);
-              return resolve(op)
+              return resolve([contract_name, op])
             });
         })
-        .catch((error) => { print(`Error: ${JSON.stringify(error, null, 2)}`); resolve(null); });
+        .catch((error) => {
+          reject(error);
+        });
     });
   }
 }
@@ -1277,8 +1319,6 @@ function print_settings(with_color, account, contract_id, amount, entry, arg, es
 
 async function confirmCall(force, account, contract_id, amount, entry, arg, estimated_total_cost) {
   if (force) { return true }
-
-  const config = getConfig();
 
   const Confirm = require('prompt-confirm');
   print_settings(true, account, contract_id, amount, entry, arg, estimated_total_cost);
@@ -1553,6 +1593,12 @@ async function showContract(options) {
   print(`Language: ${contract.language}`);
   print(`Version:  ${contract.compiler_version}`);
   print(`Url:      ${url}`);
+  if (contract.path !== undefined) {
+    print(`Path: ${contract.contract}`);
+  }
+  if (contract.initial_storage !== undefined) {
+    print(`Storage:  ${contract.initial_storage}`);
+  }
 }
 
 async function getEntries(input, rjson, callback) {
