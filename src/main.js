@@ -21,7 +21,7 @@ const { BigNumber } = require('bignumber.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
 
-const version = '0.1.21'
+const version = '0.2.0'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
