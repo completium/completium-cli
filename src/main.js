@@ -21,6 +21,7 @@ const { BigNumber } = require('bignumber.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
 const { resolve } = require('path');
+const c = require('args');
 
 const version = '0.2.1'
 
@@ -38,7 +39,7 @@ const docker_id = 'tqtezos/flextesa:20210602'
 
 var config = null;
 var mockup_mode = true;
-const mockup_path = "/tmp/mockup";
+const mockup_path = completium_dir + "/mockup";
 
 ///////////
 // TOOLS //
@@ -554,7 +555,40 @@ async function stopSandbox(options) {
 }
 
 async function mockupInit(options) {
+  fs.rmdirSync(mockup_path, { recursive: true });
+  const { stdout } = await execa("tezos-client", [
+    '--protocol', 'PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV',
+    '--base-dir', mockup_path,
+    '--mode', 'mockup',
+    'create', 'mockup'
+  ], {});
 
+  print(stdout);
+  print("Importing account ...");
+
+  const importAccount = async (name, key) => {
+    print(`Importing ${name}`)
+    const uri = "unencrypted:" + key.value;
+    await callTezosClient(["import", "secret", "key", name, uri, "--force"]);
+  };
+
+  const transferAccount = async (name, pkh) => {
+    if (name !== "bootstrap1") {
+      print(`Transfer ${pkh}`)
+      await callTezosClient(["transfer", "1000", "from", "bootstrap1", "to", pkh, "--burn-cap", "0.06425"]);
+    }
+  };
+
+  const accounts = getAccounts().accounts;;
+
+  for (const x of accounts) {
+    const name = x.name;
+    const pkh = x.pkh;
+    const key = x.key;
+
+    await importAccount(name, key);
+    await transferAccount(name, pkh);
+  }
 }
 
 async function showVersion(options) {
@@ -806,7 +840,6 @@ async function showAccount(options) {
     if (isNull(account)) {
       return print(`'${account}' is not found.`);
     }
-    const tezos = getTezos();
     print(`Current account:\t${account.name}`);
     showKeyInfo(account.pubk, account.pkh, withPrivateKey ? account.key.value : null);
     var balance = await retrieveBalanceFor(account.pkh);
@@ -966,33 +999,39 @@ async function transfer(options) {
   }
 
   const to_addr = isNull(accountTo) ? to : accountTo.pkh;
-  const tezos = getTezos(accountFrom.name);
 
   const config = getConfig();
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
   print(`Transfering ${amount / 1000000} ꜩ from ${accountFrom.pkh} to ${to_addr}...`);
-  return new Promise(resolve => {
-    tezos.contract
-      .transfer({ to: to_addr, amount: amount, mutez: true })
-      .then((op) => {
-        print(`Waiting for ${op.hash} to be confirmed...`);
-        op.confirmation(1)
-          .then((hash) => {
-            const op_inj = network.tzstat_url === undefined ? `${hash}` : `${network.tzstat_url}/${hash}`
-            print(`Operation injected: ${op_inj}`);
-            resolve(op);
-          })
-          .catch((error) => {
-            print(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
-            resolve(null);
-          });
-      })
-      .catch((error) => {
-        print(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
-        resolve(null);
-      });
-  });
+  if (isMockupMode()) {
+    const a = (amount / 1000000).toString();
+    const args = ["transfer", a, "from", accountFrom.pkh, "to", to_addr, "--burn-cap", "0.06425"];
+    const { stdout, stderr, failed } = await callTezosClient(args);
+    print(stdout);
+    return new Promise(resolve => { resolve(null) });
+  } else {
+    const tezos = getTezos(accountFrom.name);
+    return new Promise(resolve => {
+      tezos.contract
+        .transfer({ to: to_addr, amount: amount, mutez: true })
+        .then((op) => {
+          print(`Waiting for ${op.hash} to be confirmed...`);
+          op.confirmation(1)
+            .then((hash) => {
+              const op_inj = network.tzstat_url === undefined ? `${hash}` : `${network.tzstat_url}/${hash}`
+              print(`Operation injected: ${op_inj}`);
+              resolve(op);
+            })
+            .catch((error) => {
+              reject(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
+            });
+        })
+        .catch((error) => {
+          reject(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
+        });
+    });
+  }
 }
 
 async function confirmContract(force, id) {
@@ -1371,19 +1410,23 @@ async function deploy(options) {
     // taquito.RpcPacker.preapplyOperations();
     print("TODO")
   } else if (mockup_mode) {
+    const a = (amount / 1000000).toString();
     const storage = codec.emitMicheline(m_storage);
     print_deploy_settings(false, account, contract_name, amount, storage, null);
     const args = [
       "originate", "contract", contract_name,
-      "transferring", amount, "from", account.pkh,
+      "transferring", a, "from", account.pkh,
       "running", contract_path, "--init", storage,
       "--burn-cap", "20", "--force"
     ];
-
     const { stdout, stderr } = await callTezosClient(args);
     print(stdout);
     print_error(stderr);
-    return new Promise((resolve, reject) => { saveC(resolve, null, storage, "KT1") });
+    const inputContracts = fs.readFileSync(mockup_path + "/contracts", 'utf8');
+    const cobj = JSON.parse(inputContracts);
+    const o = cobj.find(x => { return (x.name === contract_name) });
+    const contract_address = isNull(o) ? null : o.value;
+    return new Promise((resolve, reject) => { saveC(resolve, null, storage, contract_address) });
   } else {
 
     const storage = codec.emitMicheline(m_storage);
@@ -1471,83 +1514,95 @@ async function callTransfer(options, contract_address, arg) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  const tezos = getTezos(account.name);
+  if (isMockupMode()) {
+    const a = (amount / 1000000).toString();
+    const b = codec.emitMicheline(arg);
+    const args = [
+      "transfer", a, "from", account.pkh, "to", contract_address,
+      "--entrypoint", entry, "--arg", b,
+      "--burn-cap", "20"];
+    const { stdout, stderr, failed } = await callTezosClient(args);
+    print(stdout);
+    return new Promise(resolve => { resolve(null) });
+  } else {
+    const tezos = getTezos(account.name);
 
-  const network = config.tezos.list.find(x => x.network === config.tezos.network);
+    const network = config.tezos.list.find(x => x.network === config.tezos.network);
 
-  const transferParam = { to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } };
+    const transferParam = { to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } };
 
-  try {
-    const res = await tezos.estimate.transfer(transferParam);
-    const estimated_total_cost = res.totalCost + 100;
-    const arg_michelson = codec.emitMicheline(arg);
-    var confirm = await confirmCall(force, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
-    if (!confirm) {
-      return;
-    }
+    try {
+      const res = await tezos.estimate.transfer(transferParam);
+      const estimated_total_cost = res.totalCost + 100;
+      const arg_michelson = codec.emitMicheline(arg);
+      var confirm = await confirmCall(force, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+      if (!confirm) {
+        return;
+      }
 
-    if (!quiet) {
-      if (force) {
-        print_settings(false, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+      if (!quiet) {
+        if (force) {
+          print_settings(false, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+        } else {
+          print(`Forging operation...`);
+        }
+      }
+    } catch (e) {
+      if (e.errors != undefined && e.errors.length > 0) {
+        let msgs = [];
+        let contract;
+        const errors = e.errors.map(x => x);
+        errors.forEach(x => {
+          if (x.contract_handle !== undefined || x.contract !== undefined) {
+            contract = x.contract_handle !== undefined ? x.contract_handle : x.contract;
+            const cid = getContractFromIdOrAddress(contract);
+            let msg = `Error from contract ${contract}`;
+            if (!isNull(cid)) {
+              msg += ` (${cid.name})`
+            }
+            msg += ":";
+            msgs.push(msg);
+          } else if (x.kind === "temporary" &&
+            x.location !== undefined &&
+            x.with !== undefined) {
+            const d = codec.emitMicheline(x.with);
+            const msg = `failed at ${x.location} with ${d}`;
+            msgs.push(msg);
+          }
+          if (x.expected_type !== undefined && x.wrong_expression !== undefined) {
+            const etyp = codec.emitMicheline(x.expected_type);
+            const wexp = codec.emitMicheline(x.wrong_expression);
+            let msg = `Invalid argument value '${wexp}'; excepting value of type '${etyp}'`;
+            msgs.push(msg);
+          }
+        })
+        throw new Error(msgs.join("\n"));
       } else {
-        print(`Forging operation...`);
+        throw e
       }
     }
-  } catch (e) {
-    if (e.errors != undefined && e.errors.length > 0) {
-      let msgs = [];
-      let contract;
-      const errors = e.errors.map(x => x);
-      errors.forEach(x => {
-        if (x.contract_handle !== undefined || x.contract !== undefined) {
-          contract = x.contract_handle !== undefined ? x.contract_handle : x.contract;
-          const cid = getContractFromIdOrAddress(contract);
-          let msg = `Error from contract ${contract}`;
-          if (!isNull(cid)) {
-            msg += ` (${cid.name})`
-          }
-          msg += ":";
-          msgs.push(msg);
-        } else if (x.kind === "temporary" &&
-          x.location !== undefined &&
-          x.with !== undefined) {
-          const d = codec.emitMicheline(x.with);
-          const msg = `failed at ${x.location} with ${d}`;
-          msgs.push(msg);
-        }
-        if (x.expected_type !== undefined && x.wrong_expression !== undefined) {
-          const etyp = codec.emitMicheline(x.expected_type);
-          const wexp = codec.emitMicheline(x.wrong_expression);
-          let msg = `Invalid argument value '${wexp}'; excepting value of type '${etyp}'`;
-          msgs.push(msg);
-        }
-      })
-      throw new Error(msgs.join("\n"));
-    } else {
-      throw e
-    }
-  }
 
-  return new Promise((resolve, reject) => {
-    tezos.contract
-      .transfer(transferParam)
-      .then((op) => {
-        print(`Waiting for ${op.hash} to be confirmed...`);
-        return op.confirmation(1).then(() => op);
-      })
-      .then((op) => {
-        const a = network.tzstat_url !== undefined ? `${network.tzstat_url}/${op.hash}` : `${op.hash}`;
-        print(`Operation injected: ${a}`);
-        return resolve(op)
-      })
-      .catch(
-        error => {
-          if (!quiet)
-            print({ ...error, errors: '...' });
-          reject(error);
-        }
-      );
-  });
+    return new Promise((resolve, reject) => {
+      tezos.contract
+        .transfer(transferParam)
+        .then((op) => {
+          print(`Waiting for ${op.hash} to be confirmed...`);
+          return op.confirmation(1).then(() => op);
+        })
+        .then((op) => {
+          const a = network.tzstat_url !== undefined ? `${network.tzstat_url}/${op.hash}` : `${op.hash}`;
+          print(`Operation injected: ${a}`);
+          return resolve(op)
+        })
+        .catch(
+          error => {
+            if (!quiet)
+              print({ ...error, errors: '...' });
+            reject(error);
+          }
+        );
+    });
+  }
 }
 
 async function computeArg(args, contract, entry) {
@@ -1902,9 +1957,13 @@ async function showStorage(options) {
 async function getTezosContract(input) {
   const contract_address = getContractAddress(input);
 
-  const tezos = getTezos();
-
-  var contract = await tezos.contract.at(contract_address);
+  let contract;
+  if (isMockupMode()) {
+    contract = {};
+  } else {
+    const tezos = getTezos();
+    contract = await tezos.contract.at(contract_address);
+  }
   return contract;
 }
 

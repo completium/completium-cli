@@ -41,6 +41,10 @@ function parseCommand(args) {
     res = { command: "stop_sandbox" };
     nargs = args.slice(4);
     // show endpoint
+  } else if (length > 3 && args[2] === "mockup" && args[3] === "init") {
+    res = { command: "mockup_init" };
+    nargs = args.slice(4);
+    // show endpoint
   } else if (length > 3 && args[2] === "show" && args[3] === "endpoint") {
     res = { command: "show_endpoint" };
     nargs = args.slice(4);
