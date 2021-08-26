@@ -969,7 +969,6 @@ function build_from_js(type, jdata) {
       case 'key_hash':
       case 'lambda':
       case 'list':
-      case 'mutez':
       case 'nat':
       case 'never':
       case 'operation':
@@ -980,6 +979,13 @@ function build_from_js(type, jdata) {
       case 'signature':
       case 'string':
       case 'ticket':
+      case 'mutez':
+        if (typeof jdata === "string" && jdata.endsWith("tz")) {
+          const v = getAmount(jdata);
+          return { "int" : v.toString () }
+        } else {
+          return schema.Encode(jdata);
+        }
       case 'unit':
         return schema.Encode(jdata);
       case 'timestamp':
