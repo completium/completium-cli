@@ -1505,10 +1505,6 @@ async function callContract(options) {
   return res;
 }
 
-function formatDate(date) {
-  return date.toISOString().split('.')[0] + "Z";
-}
-
 async function setNow(options) {
   const date = formatDate(options.date);
 

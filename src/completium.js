@@ -127,10 +127,6 @@ async function transfer(from, to, amount) {
   return op;
 }
 
-function formatDate(value) {
-  return Main.formatDate(value);
-}
-
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -145,4 +141,3 @@ exports.packTyped = packTyped;
 exports.blake2b = blake2b;
 exports.setNow = setNow;
 exports.transfer = transfer;
-exports.formatDate = formatDate;
