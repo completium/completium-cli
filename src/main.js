@@ -297,7 +297,7 @@ function help(options) {
 
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|edo|florence|granada|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|florence|granada|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
 
@@ -439,7 +439,7 @@ async function startSandbox(options) {
   print('Waiting for sandbox to start ...');
   try {
     const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--cpus', '1', '-e', 'block_time=10', '--detach', '-p', '20000:20000',
-      docker_id, 'flobox', 'start'], {});
+      docker_id, 'granabox', 'start'], {});
     if (verbose) {
       print(stdout);
     }
