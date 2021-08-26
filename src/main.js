@@ -1506,9 +1506,9 @@ async function callContract(options) {
 }
 
 async function setNow(options) {
-  const date = formatDate(options.date);
+  const vdate = options.date;
 
-  return await callContract({ ...options, entry: "_set_now", args: date });
+  return await callContract({ ...options, entry: "_set_now", args: {"": vdate} });
 }
 
 async function generateMichelson(options) {
@@ -2069,6 +2069,5 @@ exports.blake2b = blake2b;
 exports.pack = pack;
 exports.packTyped = packTyped;
 exports.setNow = setNow;
-exports.formatDate = formatDate;
 exports.transfer = transfer;
 exports.getEntries = getEntries;
