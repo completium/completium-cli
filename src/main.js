@@ -36,6 +36,7 @@ const sources_dir = completium_dir + "/sources"
 const docker_id = 'tqtezos/flextesa:20210602'
 
 var config = null;
+var mockup_mode = true;
 
 ///////////
 // TOOLS //
@@ -394,6 +395,13 @@ async function initCompletium(options) {
           bcd_url: "https://localhost:8080/sandbox/${address}",
           endpoints: [
             "http://localhost:20000"
+          ]
+        },
+        {
+          network: "mockup",
+          bcd_url: "",
+          endpoints: [
+            "mockup"
           ]
         }
       ]
@@ -982,7 +990,7 @@ function build_from_js(type, jdata) {
       case 'mutez':
         if (typeof jdata === "string" && jdata.endsWith("tz")) {
           const v = getAmount(jdata);
-          return { "int" : v.toString () }
+          return { "int": v.toString() }
         } else {
           return schema.Encode(jdata);
         }
@@ -1442,10 +1450,7 @@ async function callTransfer(options, contract_address, arg) {
   });
 }
 
-async function computeArg(args, contract_address, entry) {
-  const tezos = getTezos();
-  const contract = await tezos.contract.at(contract_address);
-
+async function computeArg(args, contract, entry) {
   let paramType = contract.entrypoints.entrypoints[entry];
   if (isNull(paramType) && entry === "default") {
     paramType = contract.parameterSchema.root.val;
@@ -1497,7 +1502,7 @@ async function callContract(options) {
   if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
   } else if (args !== undefined) {
-    arg = await computeArg(args, contract_address, entry);
+    arg = await computeArg(args, ct, entry);
   } else {
     arg = { prim: "Unit" };
   }
@@ -1508,7 +1513,7 @@ async function callContract(options) {
 async function setNow(options) {
   const vdate = options.date;
 
-  return await callContract({ ...options, entry: "_set_now", args: {"": vdate} });
+  return await callContract({ ...options, entry: "_set_now", args: { "": vdate } });
 }
 
 async function generateMichelson(options) {
