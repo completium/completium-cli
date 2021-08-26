@@ -191,6 +191,7 @@ function parseCommand(args) {
       '--metadata-storage': String,
       '--metadata-uri': String,
       '--test-mode': Boolean,
+      '--json': Boolean,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -221,6 +222,7 @@ function parseCommand(args) {
     metadata_storage: options['--metadata-storage'],
     metadata_uri: options['--metadata-uri'],
     test: options['--test-mode'] || false,
+    json: options['--json'] || false,
   }
 }
 

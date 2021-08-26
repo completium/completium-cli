@@ -329,7 +329,7 @@ function help(options) {
   print("  show url <CONTRACT_ALIAS>");
   print("  show source <CONTRACT_ALIAS>");
   print("  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>");
-  print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS>");
+  print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>");
 }
 
@@ -1766,6 +1766,7 @@ function getContractAddress(input) {
 
 async function showStorage(options) {
   const input = options.value;
+  const json = options.json || false;
 
   const contract_address = getContractAddress(input);
 
@@ -1775,7 +1776,12 @@ async function showStorage(options) {
   var request = require('request');
   request(url, function (error, response, body) {
     if (!error && response.statusCode == 200) {
-      print(JSON.stringify(JSON.parse(body), 0, 2));
+      const j = JSON.parse(body);
+      if (json) {
+        print(JSON.stringify(j, 0, 2));
+      } else {
+        print(codec.emitMicheline(j))
+      }
     } else {
       print(`Error: ${response.statusCode}`)
     }
