@@ -20,6 +20,7 @@ const archetype = require('@completium/archetype');
 const { BigNumber } = require('bignumber.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
+const { resolve } = require('path');
 
 const version = '0.2.1'
 
@@ -37,6 +38,7 @@ const docker_id = 'tqtezos/flextesa:20210602'
 
 var config = null;
 var mockup_mode = true;
+const mockup_path = "/tmp/mockup";
 
 ///////////
 // TOOLS //
@@ -279,6 +281,32 @@ async function getArchetypeVersion() {
   });
 }
 
+function isMockupMode() {
+  var config = getConfig();
+  const tezos_endpoint = config.tezos.endpoint;
+  return tezos_endpoint === "mockup";
+}
+
+async function callTezosClient(args) {
+  const arguments = ["--mode", "mockup", "--base-dir", mockup_path].concat(args);
+  return await execa("tezos-client", arguments, {});
+}
+
+async function retrieveBalanceFor(addr) {
+  if (isMockupMode()) {
+    const args = ["rpc", "get", "/chains/main/blocks/head/context/contracts/" + addr + "/balance"];
+    const { stdout } = await callTezosClient(args);
+    const val = JSON.parse(stdout);
+    const res = new BigNumber(val);
+    return res;
+  } else {
+    const tezos = getTezos();
+
+    var balance = await tezos.tz.getBalance(pkh);
+    return balance;
+  }
+}
+
 //////////////
 // COMMANDS //
 //////////////
@@ -295,6 +323,8 @@ function help(options) {
 
   print("  start sandbox");
   print("  stop sandbox");
+
+  print("  mockup init");
 
   print("  show endpoint");
   print("  switch endpoint");
@@ -407,6 +437,7 @@ async function initCompletium(options) {
       ]
     }
   };
+
   saveFile(config_path, config, (x => {
     saveFile(accounts_path, {
       accounts: [{
@@ -425,6 +456,51 @@ async function initCompletium(options) {
         "key": {
           "kind": "private_key",
           "value": "edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt"
+        }
+      },
+      {
+        "name": "bootstrap1",
+        "pkh": "tz1KqTpEZ7Yob7QbPE4Hy4Wo8fHG8LhKxZSx",
+        "pubk": "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9sDVC9yav",
+        "key": {
+          "kind": "private_key",
+          "value": "edsk3gUfUPyBSfrS9CCgmCiQsTCHGkviBDusMxDJstFtojtc1zcpsh"
+        }
+      },
+      {
+        "name": "bootstrap2",
+        "pkh": "tz1gjaF81ZRRvdzjobyfVNsAeSC6PScjfQwN",
+        "pubk": "edpktzNbDAUjUk697W7gYg2CRuBQjyPxbEg8dLccYYwKSKvkPvjtV9",
+        "key": {
+          "kind": "private_key",
+          "value": "edsk39qAm1fiMjgmPkw1EgQYkMzkJezLNewd7PLNHTkr6w9XA2zdfo"
+        }
+      },
+      {
+        "name": "bootstrap3",
+        "pkh": "tz1faswCTDciRzE4oJ9jn2Vm2dvjeyA9fUzU",
+        "pubk": "edpkuTXkJDGcFd5nh6VvMz8phXxU3Bi7h6hqgywNFi1vZTfQNnS1RV",
+        "key": {
+          "kind": "private_key",
+          "value": "edsk4ArLQgBTLWG5FJmnGnT689VKoqhXwmDPBuGx3z4cvwU9MmrPZZ"
+        }
+      },
+      {
+        "name": "bootstrap4",
+        "pkh": "tz1b7tUupMgCNw2cCLpKTkSD1NZzB5TkP2sv",
+        "pubk": "edpkuFrRoDSEbJYgxRtLx2ps82UdaYc1WwfS9sE11yhauZt5DgCHbU",
+        "key": {
+          "kind": "private_key",
+          "value": "edsk2uqQB9AY4FvioK2YMdfmyMrer5R8mGFyuaLLFfSRo8EoyNdht3"
+        }
+      },
+      {
+        "name": "bootstrap5",
+        "pkh": "tz1ddb9NMYHZi5UzPdzTZMYQQZoMub195zgv",
+        "pubk": "edpkv8EUUH68jmo3f7Um5PezmfGrRF24gnfLpH3sVNwJnV5bVCxL2n",
+        "key": {
+          "kind": "private_key",
+          "value": "edsk4QLrcijEffxV31gGdN2HU7UpyJjA8drFoNcmnB28n89YjPNRFm"
         }
       }]
     }, (y => {
@@ -475,6 +551,10 @@ async function stopSandbox(options) {
     print(error);
     throw error;
   }
+}
+
+async function mockupInit(options) {
+
 }
 
 async function showVersion(options) {
@@ -729,7 +809,7 @@ async function showAccount(options) {
     const tezos = getTezos();
     print(`Current account:\t${account.name}`);
     showKeyInfo(account.pubk, account.pkh, withPrivateKey ? account.key.value : null);
-    var balance = await tezos.tz.getBalance(account.pkh);
+    var balance = await retrieveBalanceFor(account.pkh);
     print(`Balance on ${config.tezos.network}:\t${balance.toNumber() / 1000000} ꜩ`);
   }
 }
@@ -1122,7 +1202,9 @@ function print_deploy_settings(with_color, account, contract_id, amount, storage
   print(`  ${start}by${end}\t\t: ${account.name}`);
   print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
   print(`  ${start}storage${end}\t: ${storage}`);
-  print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+  if (estimated_total_cost != null) {
+    print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+  }
 }
 
 async function confirmDeploy(force, account, contract_id, amount, storage, estimated_total_cost) {
@@ -1147,6 +1229,7 @@ async function deploy(options) {
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
   const quiet = options.quiet === undefined ? false : options.quiet;
+  const mockup_mode = isMockupMode();
 
   if (otest && originate) {
     const msg = `Cannot originate a contract in test mode.`;
@@ -1263,9 +1346,44 @@ async function deploy(options) {
     mutez: true
   };
 
+  const saveC = async (resolve, op, storage, contract_address) => {
+    saveContract({
+      name: contract_name,
+      address: contract_address,
+      network: config.tezos.network,
+      language: originate ? 'michelson' : 'archetype',
+      compiler_version: originate ? '0' : version,
+      path: contract_path,
+      initial_storage: storage,
+      source: source
+    },
+      x => {
+        print(`Origination completed for ${contract_address} named ${contract_name}.`);
+        if (!mockup_mode) {
+          const url = network.bcd_url.replace('${address}', contract_address);
+          print(url);
+        }
+        resolve([contract_name, op])
+      });
+  }
+
   if (dry) {
     // taquito.RpcPacker.preapplyOperations();
     print("TODO")
+  } else if (mockup_mode) {
+    const storage = codec.emitMicheline(m_storage);
+    print_deploy_settings(false, account, contract_name, amount, storage, null);
+    const args = [
+      "originate", "contract", contract_name,
+      "transferring", amount, "from", account.pkh,
+      "running", contract_path, "--init", storage,
+      "--burn-cap", "20", "--force"
+    ];
+
+    const { stdout, stderr } = await callTezosClient(args);
+    print(stdout);
+    print_error(stderr);
+    return new Promise((resolve, reject) => { saveC(resolve, null, storage, "KT1") });
   } else {
 
     const storage = codec.emitMicheline(m_storage);
@@ -1274,7 +1392,6 @@ async function deploy(options) {
     try {
       const res_estimate = await tezos.estimate.originate(originateParam);
       const estimated_total_cost = res_estimate.totalCost + 100;
-      // const estimated_total_cost = 0;
       cont = await confirmDeploy(force, account, contract_name, amount, storage, estimated_total_cost);
       if (!cont) {
         return new Promise((resolve, reject) => { resolve([null, null]) });
@@ -1300,24 +1417,7 @@ async function deploy(options) {
           op = originationOp;
           return originationOp.contract();
         })
-        .then((contract) => {
-          saveContract({
-            name: contract_name,
-            address: contract.address,
-            network: config.tezos.network,
-            language: originate ? 'michelson' : 'archetype',
-            compiler_version: originate ? '0' : version,
-            path: contract_path,
-            initial_storage: storage,
-            source: source
-          },
-            x => {
-              print(`Origination completed for ${contract.address} named ${contract_name}.`);
-              const url = network.bcd_url.replace('${address}', contract.address);
-              print(url);
-              return resolve([contract_name, op])
-            });
-        })
+        .then((contract) => { saveC(resolve, op, storage, contract.address) })
         .catch((error) => {
           reject(error);
         });
@@ -1771,23 +1871,31 @@ async function showStorage(options) {
 
   const contract_address = getContractAddress(input);
 
-  const config = getConfig();
-  const tezos_endpoint = config.tezos.endpoint;
-  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/storage';
-  var request = require('request');
-  request(url, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      const j = JSON.parse(body);
-      if (json) {
-        print(JSON.stringify(j, 0, 2));
-      } else {
-        print(codec.emitMicheline(j))
-      }
+  if (isMockupMode()) {
+    const storage = await getStorage(contract_address);
+    if (json) {
+      print(JSON.stringify(expr_micheline_to_json(storage), 0, 2));
     } else {
-      print(`Error: ${response.statusCode}`)
+      print(storage)
     }
-  })
-
+  } else {
+    const config = getConfig();
+    const tezos_endpoint = config.tezos.endpoint;
+    const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/storage';
+    var request = require('request');
+    request(url, function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+        const j = JSON.parse(body);
+        if (json) {
+          print(JSON.stringify(j, 0, 2));
+        } else {
+          print(codec.emitMicheline(j))
+        }
+      } else {
+        print(`Error: ${response.statusCode}`)
+      }
+    })
+  }
   return;
 }
 
@@ -1803,10 +1911,18 @@ async function getTezosContract(input) {
 async function getStorage(input) {
   const contract_address = getContractAddress(input);
 
-  const tezos = getTezos();
+  let storage;
+  if (isMockupMode()) {
+    const args = ["get", "contract", "storage", "for", contract_address];
+    const { stdout, stderr } = await callTezosClient(args);
+    storage = stdout;
+  } else {
+    const tezos = getTezos();
 
-  var contract = await tezos.contract.at(contract_address);
-  var storage = await contract.storage();
+    var contract = await tezos.contract.at(contract_address);
+    storage = await contract.storage();
+  }
+
   return storage;
 }
 
@@ -1837,9 +1953,7 @@ async function getBalance(options) {
     }
   }
 
-  const tezos = getTezos();
-
-  var balance = await tezos.tz.getBalance(pkh);
+  const balance = retrieveBalanceFor(pkh);
   return balance;
 }
 
@@ -1868,8 +1982,7 @@ async function getBalanceFor(options) {
     pkh = account.pkh;
   }
 
-  const tezos = getTezos();
-  var balance = await tezos.tz.getBalance(pkh);
+  var balance = await retrieveBalanceFor(pkh);
   print(`${balance.toNumber() / 1000000} ꜩ`);
 }
 
@@ -1953,6 +2066,9 @@ async function exec(options) {
         break;
       case "stop_sandbox":
         await stopSandbox(options);
+        break;
+      case "mockup_init":
+        await mockupInit(options);
         break;
       case "show_endpoint":
         await showEndpoint(options);

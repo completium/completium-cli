@@ -36,10 +36,15 @@ function updateCost(op) {
 
 async function deploy(path, obj, originate = false) {
   const options = { ...obj, file: path, force: true, quiet: true, originate: originate };
-  var [contract_id, op] = await Main.deploy(options);
-  op = updateCost(op);
-  const contract = await getContract(contract_id)
-  return [contract, op];
+  const x = await Main.deploy(options);
+  if (x != null) {
+    return [null, null];
+  } else {
+    var [contract_id, op] = x;
+    op = updateCost(op);
+    const contract = await getContract(contract_id)
+    return [contract, op];
+  }
 }
 
 async function originate(path, obj) {
