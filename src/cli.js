@@ -28,14 +28,10 @@ function parseCommand(args) {
   } else if (length > 2 && args[2] === "version") {
     res = { command: "show_version" };
     nargs = args.slice(3);
-    // set bin
-  } else if (length > 5 && args[2] === "set" && args[3] === "bin") {
-    res = { command: "set_bin", bin: args[4], path: args[5] };
-    nargs = args.slice(6);
-    // update binaries
-  } else if (length > 4 && args[2] === "install" && args[3] === "bin") {
-    res = { command: "install_bin", bin: args[4] };
-    nargs = args.slice(5);
+    // archetype version
+  } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
+    res = { command: "show_archetype_version" };
+    nargs = args.slice(4);
     // start sandbox
   } else if (length > 3 && args[2] === "start" && args[3] === "sandbox") {
     res = { command: "start_sandbox" };
@@ -96,6 +92,10 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "switch" && args[3] === "account") {
     res = { command: "switch_account" };
     nargs = args.slice(4);
+    // rename account <ACCOUNT_ALIAS> to <ACCOUNT_ALIAS>
+  } else if (length > 4 && args[2] === "rename" && args[3] === "account" && args[5] === "by") {
+    res = { command: "rename_account", from: args[4], to: args[6] };
+    nargs = args.slice(7);
     // remove account <ACCOUNT_ALIAS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
     res = { command: "remove_account", account: args[4] };
@@ -115,11 +115,15 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "call") {
     res = { command: "call_contract", contract: args[3] };
     nargs = args.slice(4);
+    // generate michelson <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "michelson") {
+    res = { command: "generate_michelson", path: args[4] };
+    nargs = args.slice(5);
     // generate javascript <FILE.arl>
   } else if (length > 4 && args[2] === "generate" && args[3] === "javascript") {
     res = { command: "generate_javascript", path: args[4] };
     nargs = args.slice(5);
-    // generate javascript <FILE.arl>
+    // generate whyml <FILE.arl>
   } else if (length > 4 && args[2] === "generate" && args[3] === "whyml") {
     res = { command: "generate_whyml", path: args[4] };
     nargs = args.slice(5);
@@ -131,10 +135,14 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "show" && args[3] === "contracts") {
     res = { command: "show_contracts" };
     nargs = args.slice(4);
-    // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
+    // show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
     res = { command: "show_contract", contract: args[4] };
     nargs = args.slice(5);
+    // rename contract <CONTRACT_ALIAS> to <CONTRACT_ALIAS>
+  } else if (length > 4 && args[2] === "rename" && args[3] === "contract" && args[5] === "by") {
+    res = { command: "rename_contract", from: args[4], to: args[6] };
+    nargs = args.slice(7);
     // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "contract") {
     res = { command: "remove_contract", contract: args[4] };
@@ -174,14 +182,16 @@ function parseCommand(args) {
       '--as': String,
       '--named': String,
       '--entry': String,
-      '--with': String,
-      '--with-michelson': String,
+      '--arg': String,
+      '--arg-michelson': String,
       '--force': Boolean,
       '--verbose': Boolean,
       '--init': String,
+      '--parameters': String,
       '--metadata-storage': String,
       '--metadata-uri': String,
-      '--test': Boolean,
+      '--test-mode': Boolean,
+      '--json': Boolean,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -203,14 +213,16 @@ function parseCommand(args) {
     as: options['--as'],
     named: options['--named'],
     entry: options['--entry'],
-    with: options['--with'],
-    withMichelson: options['--with-michelson'],
+    iargs: options['--arg'],
+    argsMichelson: options['--arg-michelson'],
     force: options['--force'] || false,
     verbose: options['--verbose'] || false,
     init: options['--init'],
+    iparameters: options['--parameters'],
     metadata_storage: options['--metadata-storage'],
     metadata_uri: options['--metadata-uri'],
-    test: options['--test'] || false,
+    test: options['--test-mode'] || false,
+    json: options['--json'] || false,
   }
 }
 
@@ -227,11 +239,25 @@ async function promptForMissingOptions(options) {
 }
 
 export async function cli(args) {
-  let options = parseCommand(args);
-  // console.log(options);
-  // options = await promptForMissingOptions(options);
-  var r = await exec(options);
-  if (r != 0) {
-    process.exit(r);
+  try {
+    let options = parseCommand(args);
+
+    if (options.command === undefined) {
+      if (args.length > 2) {
+        console.log(`Invalid command: ${args[2]}`);
+      }
+      console.log(`Type "completium-cli help" for more information.`);
+    } else {
+      var r = await exec(options);
+      if (r != 0) {
+        process.exit(r);
+      }
+    }
+  } catch (e) {
+    if (e.message !== undefined) {
+      console.error(e.message);
+    } else {
+      throw e;
+    }
   }
 }
