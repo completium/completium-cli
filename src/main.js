@@ -267,16 +267,25 @@ function isMockupMode() {
 
 async function callTezosClient(args) {
   const arguments = ["--mode", "mockup", "--base-dir", mockup_path].concat(args);
-  return await execa("tezos-client", arguments, {});
+  try {
+    const x = await execa("tezos-client", arguments, {});
+    return x;
+  } catch (e) {
+    return e;
+  }
 }
 
 async function retrieveBalanceFor(addr) {
   if (isMockupMode()) {
     const args = ["rpc", "get", "/chains/main/blocks/head/context/contracts/" + addr + "/balance"];
-    const { stdout } = await callTezosClient(args);
-    const val = JSON.parse(stdout);
-    const res = new BigNumber(val);
-    return res;
+    const { stdout, stderr, failed } = await callTezosClient(args);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      const val = JSON.parse(stdout);
+      const res = new BigNumber(val);
+      return res;
+    }
   } else {
     const tezos = getTezos();
 
@@ -287,9 +296,13 @@ async function retrieveBalanceFor(addr) {
 
 async function rpcGet(uri) {
   if (isMockupMode()) {
-    const { stdout } = await callTezosClient(["rpc", "get", uri]);
-    const res = JSON.parse(stdout);
-    return res;
+    const { stdout, stderr, failed } = await callTezosClient(["rpc", "get", uri]);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      const res = JSON.parse(stdout);
+      return res;
+    }
   } else {
     const config = getConfig();
     const tezos_endpoint = config.tezos.endpoint;
@@ -1009,7 +1022,11 @@ async function transfer(options) {
     const a = (amount / 1000000).toString();
     const args = ["transfer", a, "from", accountFrom.pkh, "to", to_addr, "--burn-cap", "0.06425"];
     const { stdout, stderr, failed } = await callTezosClient(args);
-    print(stdout);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      print(stdout);
+    }
     return new Promise(resolve => { resolve(null) });
   } else {
     const tezos = getTezos(accountFrom.name);
@@ -1226,7 +1243,7 @@ function replaceAll(data, objValues) {
       return objValues[data.prim];
     } else if (data.args !== undefined) {
       const nargs = data.args.map(x => replaceAll(x, objValues));
-      return {...data, args: nargs}
+      return { ...data, args: nargs }
     }
   } else if (data.length !== undefined) {
     return data.map(x => replaceAll(x, objValues))
@@ -1439,9 +1456,12 @@ async function deploy(options) {
       "running", contract_path, "--init", storage,
       "--burn-cap", "20", "--force"
     ];
-    const { stdout, stderr } = await callTezosClient(args);
-    print(stdout);
-    print_error(stderr);
+    const { stdout, stderr, failed } = await callTezosClient(args);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      print(stdout);
+    }
     const inputContracts = fs.readFileSync(mockup_path + "/contracts", 'utf8');
     const cobj = JSON.parse(inputContracts);
     const o = cobj.find(x => { return (x.name === contract_name) });
@@ -1543,7 +1563,11 @@ async function callTransfer(options, contract_address, arg) {
       "--entrypoint", entry, "--arg", b,
       "--burn-cap", "20"];
     const { stdout, stderr, failed } = await callTezosClient(args);
-    print(stdout);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      print(stdout);
+    }
     return new Promise(resolve => { resolve(null) });
   } else {
     const tezos = getTezos(account.name);
@@ -1989,7 +2013,7 @@ async function getTezosContract(input) {
 
   let contract;
   if (isMockupMode()) {
-    contract = {address: contract_address};
+    contract = { address: contract_address };
   } else {
     const tezos = getTezos();
     contract = await tezos.contract.at(contract_address);
