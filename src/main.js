@@ -1107,6 +1107,8 @@ function build_from_js(type, jdata) {
       case 'signature':
       case 'string':
       case 'ticket':
+      case 'unit':
+        return schema.Encode(jdata);
       case 'mutez':
         if (typeof jdata === "string" && jdata.endsWith("tz")) {
           const v = getAmount(jdata);
@@ -1114,8 +1116,6 @@ function build_from_js(type, jdata) {
         } else {
           return schema.Encode(jdata);
         }
-      case 'unit':
-        return schema.Encode(jdata);
       case 'timestamp':
         let vdate;
         if (is_number(jdata)) {
@@ -1175,6 +1175,8 @@ function build_from_js(type, jdata) {
   }
 }
 
+var objValues = {};
+
 function build_data_michelson(type, storage_values, parameters) {
   if (type.annots !== undefined && type.annots.length > 0) {
     const annot1 = type.annots[0];
@@ -1184,6 +1186,7 @@ function build_data_michelson(type, storage_values, parameters) {
       const t = type;
       const d = parameters[annot];
       const data = build_from_js(t, d);
+      objValues[annot] = data;
       return data;
     } else if (storage_values[annot] !== undefined) {
       const data = expr_micheline_to_json(storage_values[annot]);
@@ -1217,6 +1220,21 @@ function build_data_michelson(type, storage_values, parameters) {
   }
 }
 
+function replaceAll(data, objValues) {
+  if (data.prim !== undefined) {
+    if (objValues[data.prim] !== undefined) {
+      return objValues[data.prim];
+    } else if (data.args !== undefined) {
+      const nargs = data.args.map(x => replaceAll(x, objValues));
+      return {...data, args: nargs}
+    }
+  } else if (data.length !== undefined) {
+    return data.map(x => replaceAll(x, objValues))
+  } else {
+    return data;
+  }
+}
+
 function compute_tzstorage(input, storageType, parameters, s) {
   const storage_values = archetype.get_storage_values(input, s);
   const jsv = JSON.parse(storage_values);
@@ -1226,8 +1244,9 @@ function compute_tzstorage(input, storageType, parameters, s) {
     obj[x.id] = x.value
   });
 
+  objValues = {};
   const data = build_data_michelson(storageType, obj, parameters);
-  const michelsonData = data;
+  const michelsonData = replaceAll(data, objValues);
 
   return michelsonData;
 }

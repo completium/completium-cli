@@ -75,6 +75,12 @@ async function getContract(contract_id) {
     sigs.forEach(sig => {
       const id = sig.name.startsWith("%") ? sig.name.substring(1) : sig.name;
       with_default |= id === 'default';
+      if (id === "_set_now") {
+        contract['_setNow'] = (x => call(contract_id, {
+          arg: { "": x },
+          entry: "_set_now"
+        }))
+      }
       contract[id] = (settings => call(contract_id, {
         ...settings,
         entry: id
