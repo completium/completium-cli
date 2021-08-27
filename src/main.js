@@ -21,6 +21,7 @@ const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
 const { resolve } = require('path');
 const c = require('args');
+const { execFile } = require('child_process');
 
 const version = '0.2.2'
 
@@ -1630,14 +1631,14 @@ async function getParamTypeEntrypoint(entry, contract_address) {
   } else if (entry === "default") {
     const s = await getContractScript(contract_address);
     const p = s.code.find(x => x.prim === "parameter");
-    const t = p.args[0];;
+    const t = p.args[0];
     return t;
   }
 }
 
 async function callContract(options) {
   const input = options.contract;
-  const args = options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" };
+  const args = options.arg !== undefined ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
   var argMichelson = options.argsMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
 
@@ -1937,7 +1938,7 @@ async function showStorage(options) {
   const contract_address = getContractAddress(input);
 
   if (isMockupMode()) {
-    const storage = await getStorage(contract_address);
+    const storage = await getRawStorage(contract_address);
     if (json) {
       print(JSON.stringify(storage, 0, 2));
     } else {
@@ -1977,11 +1978,21 @@ async function getTezosContract(input) {
   return contract;
 }
 
-async function getStorage(input) {
-  const contract_address = getContractAddress(input);
+async function getRawStorage(contract_address) {
   const uri = "/chains/main/blocks/head/context/contracts/" + contract_address + "/storage";
   const storage = await rpcGet(uri);
   return storage;
+}
+
+async function getStorage(input) {
+  const contract_address = getContractAddress(input);
+  const data = await getRawStorage(contract_address);
+  const s = await getContractScript(contract_address);
+  const p = s.code.find(x => x.prim === "storage");
+  const storageType = p.args[0];
+  const schema = new encoder.Schema(storageType);
+  const r = schema.Execute(data);
+  return r;
 }
 
 async function getBalance(options) {
