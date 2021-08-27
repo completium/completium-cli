@@ -1521,8 +1521,8 @@ async function callTransfer(options, contract_address, arg) {
   const as = isNull(options.as) ? config.account : options.as;
   const account = getAccountFromIdOrAddr(as);
   if (isNull(account)) {
-    print(`Account '${as}' is not found.`);
-    return null;
+    const msg = `Account '${as}' is not found.`;
+    return new Promise((resolve, reject) => { reject(msg) });
   }
 
   const amount_raw = isNull(options.amount) ? '0tz' : options.amount;
