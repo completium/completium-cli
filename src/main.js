@@ -22,7 +22,7 @@ const { emitMicheline } = require('@taquito/michel-codec');
 const { resolve } = require('path');
 const c = require('args');
 
-const version = '0.2.1'
+const version = '0.2.2'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
