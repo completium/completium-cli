@@ -71,14 +71,22 @@ async function getContract(contract_id) {
     const x = await Main.getEntries(contract_address, true);
     const entries = JSON.parse(x);
     const sigs = entries.map(x => x);
+    let with_default = false;
     sigs.forEach(sig => {
       const id = sig.name.startsWith("%") ? sig.name.substring(1) : sig.name;
+      with_default |= id === 'default';
       contract[id] = (settings => call(contract_id, {
         ...settings,
         entry: id
       }))
     });
-    contract["getStorage"] = (p => {Main.getStorage(contract_id)});
+    if (!with_default) {
+      contract["default"] = (settings => call(contract_id, {
+        ...settings,
+        entry: "default"
+      }));
+    }
+    contract["getStorage"] = (p => { Main.getStorage(contract_id) });
     resolve(contract);
   });
 }
