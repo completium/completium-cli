@@ -38,7 +38,6 @@ const sources_dir = completium_dir + "/sources"
 const docker_id = 'tqtezos/flextesa:20210602'
 
 var config = null;
-var mockup_mode = true;
 const mockup_path = completium_dir + "/mockup";
 
 ///////////
@@ -255,24 +254,7 @@ function getAmount(raw) {
 
 function createScript(address, content, callback) {
   const path = scripts_dir + '/' + address + '.json';
-  fs.writeFile(path, content, function (err) {
-    if (err) throw err;
-    callback(path);
-  });
-}
-
-function retrieveContract(contract_address, callback) {
-  var config = getConfig();
-  const tezos_endpoint = config.tezos.endpoint;
-  const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/script';
-  var request = require('request');
-  request(url, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      createScript(contract_address, body, callback);
-    } else {
-      print(`Error: ${response.statusCode}`)
-    }
-  })
+  fs.writeFileSync(path, content);
 }
 
 async function getArchetypeVersion() {
@@ -305,6 +287,30 @@ async function retrieveBalanceFor(addr) {
 
     var balance = await tezos.tz.getBalance(pkh);
     return balance;
+  }
+}
+
+async function rpcGet(uri) {
+  if (isMockupMode()) {
+    const { stdout } = await callTezosClient(["rpc", "get", uri]);
+    const res = JSON.parse(stdout);
+    return res;
+  } else {
+    const config = getConfig();
+    const tezos_endpoint = config.tezos.endpoint;
+    const request = require('request');
+    const url = tezos_endpoint + uri;
+    return new Promise((resolve, reject) => {
+      request(url, function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+          const res = JSON.parse(body);
+          resolve(res);
+        } else {
+          const msg = (`Error get status code : ${response.statusCode}`);
+          reject(msg);
+        }
+      })
+    });
   }
 }
 
@@ -1439,12 +1445,10 @@ async function deploy(options) {
       if (!cont) {
         return new Promise((resolve, reject) => { resolve([null, null]) });
       }
-      if (!quiet) {
-        if (force) {
-          print_deploy_settings(false, account, contract_name, amount, storage, estimated_total_cost);
-        } else {
-          print(`Forging operation...`);
-        }
+      if (force) {
+        print_deploy_settings(false, account, contract_name, amount, storage, estimated_total_cost);
+      } else {
+        print(`Forging operation...`);
       }
 
     } catch (e) {
@@ -1605,13 +1609,35 @@ async function callTransfer(options, contract_address, arg) {
   }
 }
 
-async function computeArg(args, contract, entry) {
-  let paramType = contract.entrypoints.entrypoints[entry];
-  if (isNull(paramType) && entry === "default") {
-    paramType = contract.parameterSchema.root.val;
-  }
+async function computeArg(args, paramType) {
   const michelsonData = build_data_michelson(paramType, {}, args);
   return michelsonData;
+}
+
+async function isContractExists(contract_address) {
+  const uri = "/chains/main/blocks/head/context/contracts/" + contract_address;
+  const res = await rpcGet(uri);
+  return res !== undefined;
+}
+
+async function getContractScript(contract_address) {
+  const uri = '/chains/main/blocks/head/context/contracts/' + contract_address + '/script';
+  const res = await rpcGet(uri);
+  return res;
+}
+
+async function getParamTypeEntrypoint(entry, contract_address) {
+  const uri = "/chains/main/blocks/head/context/contracts/" + contract_address + "/entrypoints";
+  const res = await rpcGet(uri);
+  const a = res.entrypoints[entry];
+  if (!isNull(a)) {
+    return a;
+  } else if (entry === "default") {
+    const s = await getContractScript(contract_address);
+    const p = s.code.find(x => x.prim === "parameter");
+    const t = p.args[0];;
+    return t;
+  }
 }
 
 async function callContract(options) {
@@ -1638,26 +1664,22 @@ async function callContract(options) {
     }
   }
 
-  let ct;
-  try {
-    ct = await getTezosContract(contract_address);
-  } catch (e) {
+  const e = await isContractExists(contract_address);
+  if (!e) {
     const msg = `'${contract_address}' not found on ${config.tezos.network}.`;
     throw new Error(msg);
   }
 
-  if (entry !== 'default') {
-    if (ct.entrypoints === undefined ||
-      ct.entrypoints.entrypoints[entry] === undefined) {
-      const msg = `'${entry}' entrypoint not found.`;
-      throw new Error(msg);
-    }
+  const paramType = await getParamTypeEntrypoint(entry, contract_address);
+  if (isNull(paramType)) {
+    const msg = `'${entry}' entrypoint not found.`;
+    throw new Error(msg);
   }
 
   if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
   } else if (args !== undefined) {
-    arg = await computeArg(args, ct, entry);
+    arg = await computeArg(args, paramType);
   } else {
     arg = { prim: "Unit" };
   }
@@ -1779,7 +1801,7 @@ async function showContract(options) {
   }
 }
 
-async function getEntries(input, rjson, callback) {
+async function getEntries(input, rjson) {
   const contract = getContractFromIdOrAddress(input);
 
   var contract_address = input;
@@ -1795,24 +1817,19 @@ async function getEntries(input, rjson, callback) {
     }
   }
 
-  retrieveContract(contract_address, x => {
-    (async () => {
-      if (!fs.existsSync(x)) {
-        throw new Error(`File not found.`);
-      }
-      const input = fs.readFileSync(x).toString();
-      const res = archetype.show_entries(input, {
-        json: true,
-        rjson: rjson
-      });
-      callback(res);
-    })();
+  const script = await getContractScript(contract_address);
+  const i = JSON.stringify(script);
+  const res = archetype.show_entries(i, {
+    json: true,
+    rjson: rjson
   });
+  return res;
 }
 
 async function showEntries(options) {
   const input = options.contract;
-  await getEntries(input, false, print);
+  const res = await getEntries(input, false);
+  print(res);
 }
 
 async function renameContract(options) {
@@ -1929,9 +1946,9 @@ async function showStorage(options) {
   if (isMockupMode()) {
     const storage = await getStorage(contract_address);
     if (json) {
-      print(JSON.stringify(expr_micheline_to_json(storage), 0, 2));
+      print(JSON.stringify(storage, 0, 2));
     } else {
-      print(storage)
+      print(codec.emitMicheline(storage))
     }
   } else {
     const config = getConfig();
@@ -1969,19 +1986,8 @@ async function getTezosContract(input) {
 
 async function getStorage(input) {
   const contract_address = getContractAddress(input);
-
-  let storage;
-  if (isMockupMode()) {
-    const args = ["get", "contract", "storage", "for", contract_address];
-    const { stdout, stderr } = await callTezosClient(args);
-    storage = stdout;
-  } else {
-    const tezos = getTezos();
-
-    var contract = await tezos.contract.at(contract_address);
-    storage = await contract.storage();
-  }
-
+  const uri = "/chains/main/blocks/head/context/contracts/" + contract_address + "/storage";
+  const storage = await rpcGet(uri);
   return storage;
 }
 

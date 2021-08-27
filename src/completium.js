@@ -68,19 +68,18 @@ async function getContract(contract_id) {
     const contract_address = contract.address;
     // resolve(contract);
 
-    Main.getEntries(contract_address, true,
-      x => {
-        const entries = JSON.parse(x);
-        const sigs = entries.map(x => x);
-        sigs.forEach(sig => {
-          const id = sig.name.startsWith("%") ? sig.name.substring(1) : sig.name;
-          contract[id] = (settings => call(contract_id, {
-            ...settings,
-            entry: id
-          }))
-        });
-        resolve(contract);
-      });
+    const x = await Main.getEntries(contract_address, true);
+    const entries = JSON.parse(x);
+    const sigs = entries.map(x => x);
+    sigs.forEach(sig => {
+      const id = sig.name.startsWith("%") ? sig.name.substring(1) : sig.name;
+      contract[id] = (settings => call(contract_id, {
+        ...settings,
+        entry: id
+      }))
+    });
+    contract["getStorage"] = (p => {Main.getStorage(contract_id)});
+    resolve(contract);
   });
 }
 
