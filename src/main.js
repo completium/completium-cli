@@ -6,7 +6,6 @@
  */
 
 const fs = require('fs');
-const wget = require('node-wget');
 const execa = require('execa');
 const path = require('path');
 const taquito = require('@taquito/taquito');
@@ -21,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
 
-const version = '0.2.0'
+const version = '0.2.1'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -48,11 +47,6 @@ function print(msg) {
 function print_error(msg) {
   return console.error(msg);
 }
-
-async function download(url, dest) {
-  const request = wget({ url: url, dest: dest, timeout: 2000 });
-  return request;
-};
 
 function loadJS(path) {
   return JSON.parse(fs.readFileSync(path, 'utf8'));
