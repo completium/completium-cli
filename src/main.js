@@ -1239,7 +1239,7 @@ function print_deploy_settings(with_color, account, contract_id, amount, storage
   print(`Originate settings:`);
   print(`  ${start}network${end}\t: ${config.tezos.network}`);
   print(`  ${start}contract${end}\t: ${contract_id}`);
-  print(`  ${start}by${end}\t\t: ${account.name}`);
+  print(`  ${start}as${end}\t\t: ${account.name}`);
   print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
   print(`  ${start}storage${end}\t: ${storage}`);
   if (estimated_total_cost != null) {
@@ -1474,7 +1474,7 @@ function print_settings(with_color, account, contract_id, amount, entry, arg, es
   print(`Call settings:`);
   print(`  ${start}network${end}\t: ${config.tezos.network}`);
   print(`  ${start}contract${end}\t: ${contract_id}`);
-  print(`  ${start}by${end}\t\t: ${account.name}`);
+  print(`  ${start}as${end}\t\t: ${account.name}`);
   print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
   print(`  ${start}entrypoint${end}\t: ${entry}`);
   print(`  ${start}argument${end}\t: ${arg}`);

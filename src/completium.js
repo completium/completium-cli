@@ -37,7 +37,7 @@ function updateCost(op) {
 async function deploy(path, obj, originate = false) {
   const options = { ...obj, file: path, force: true, quiet: true, originate: originate };
   const x = await Main.deploy(options);
-  if (x != null) {
+  if (x == null) {
     return [null, null];
   } else {
     var [contract_id, op] = x;
@@ -86,7 +86,7 @@ async function getContract(contract_id) {
         entry: "default"
       }));
     }
-    contract["getStorage"] = (p => { Main.getStorage(contract_id) });
+    contract["getStorage"] = (p => getStorage(contract_id));
     resolve(contract);
   });
 }
