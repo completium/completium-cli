@@ -41,7 +41,9 @@ async function deploy(path, obj, originate = false) {
     return [null, null];
   } else {
     var [contract_id, op] = x;
-    op = updateCost(op);
+    if (op != null) {
+      op = updateCost(op);
+    }
     const contract = await getContract(contract_id)
     return [contract, op];
   }

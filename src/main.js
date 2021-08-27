@@ -1989,7 +1989,7 @@ async function getTezosContract(input) {
 
   let contract;
   if (isMockupMode()) {
-    contract = {};
+    contract = {address: contract_address};
   } else {
     const tezos = getTezos();
     contract = await tezos.contract.at(contract_address);
