@@ -1483,7 +1483,9 @@ function print_settings(with_color, account, contract_id, amount, entry, arg, es
   print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
   print(`  ${start}entrypoint${end}\t: ${entry}`);
   print(`  ${start}argument${end}\t: ${arg}`);
-  print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+  if (estimated_total_cost !== undefined) {
+    print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+  }
 }
 
 async function confirmCall(force, account, contract_id, amount, entry, arg, estimated_total_cost) {
@@ -1521,6 +1523,7 @@ async function callTransfer(options, contract_address, arg) {
   if (isMockupMode()) {
     const a = (amount / 1000000).toString();
     const b = codec.emitMicheline(arg);
+    print_settings(false, account, contract_id, amount, entry, b);
     const args = [
       "transfer", a, "from", account.pkh, "to", contract_address,
       "--entrypoint", entry, "--arg", b,
@@ -1544,12 +1547,10 @@ async function callTransfer(options, contract_address, arg) {
         return;
       }
 
-      if (!quiet) {
-        if (force) {
-          print_settings(false, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
-        } else {
-          print(`Forging operation...`);
-        }
+      if (force) {
+        print_settings(false, account, contract_id, amount, entry, arg_michelson, estimated_total_cost);
+      } else {
+        print(`Forging operation...`);
       }
     } catch (e) {
       if (e.errors != undefined && e.errors.length > 0) {
@@ -1642,7 +1643,7 @@ async function getParamTypeEntrypoint(entry, contract_address) {
 
 async function callContract(options) {
   const input = options.contract;
-  const args = options.iargs !== undefined ? JSON.parse(options.iargs) : options.args;
+  const args = options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" };
   var argMichelson = options.argsMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
 
@@ -1678,10 +1679,8 @@ async function callContract(options) {
 
   if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
-  } else if (args !== undefined) {
-    arg = await computeArg(args, paramType);
   } else {
-    arg = { prim: "Unit" };
+    arg = await computeArg(args, paramType);
   }
   const res = await callTransfer(options, contract_address, arg);
   return res;
