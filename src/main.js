@@ -23,7 +23,7 @@ const { resolve } = require('path');
 const c = require('args');
 const { execFile } = require('child_process');
 
-const version = '0.2.6'
+const version = '0.2.7'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
