@@ -23,7 +23,7 @@ const { resolve } = require('path');
 const c = require('args');
 const { execFile } = require('child_process');
 
-const version = '0.2.5'
+const version = '0.2.6'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -289,7 +289,7 @@ async function retrieveBalanceFor(addr) {
   } else {
     const tezos = getTezos();
 
-    var balance = await tezos.tz.getBalance(pkh);
+    var balance = await tezos.tz.getBalance(addr);
     return balance;
   }
 }
@@ -2108,7 +2108,8 @@ function packTyped(options) {
 
 function pack(options) {
   var value = options.value;
-  var data = {};
+  let data;
+  let typ;
   if (Number.isInteger(value)) {
     data = {
       int: value
@@ -2136,9 +2137,7 @@ function pack(options) {
   return packTyped({
     ...options,
     data: data,
-    typ: {
-      prim: "int"
-    }
+    typ: typ
   });
 }
 
