@@ -219,9 +219,12 @@ function callArchetype(options, input, s) {
     const res = archetype.compile(input.toString(), settings);
     return res;
   } catch (error) {
-    if (!no_print)
-      print(error);
-    throw error;
+    if (error.message) {
+      const msg = "Archetype compiler: " + error.message;
+      throw new Error(msg);
+    } else {
+      throw error;
+    }
   }
 }
 
