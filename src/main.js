@@ -1103,14 +1103,11 @@ function build_from_js(type, jdata) {
       case 'key':
       case 'key_hash':
       case 'lambda':
-      case 'list':
       case 'nat':
       case 'never':
       case 'operation':
-      case 'option':
       case 'sapling_state':
       case 'sapling_transaction':
-      case 'set':
       case 'signature':
       case 'string':
       case 'ticket':
@@ -1173,6 +1170,26 @@ function build_from_js(type, jdata) {
           pargs.push(data);
         }
         return { "prim": "Pair", args: pargs };
+      case 'set':
+      case 'list':
+        const largs = [];
+        if (type.args.length == 0) {
+          throw new Error("Unknown type list");
+        }
+        for (let i = 0; i < jdata.length; ++i) {
+          const data = build_from_js(type.args[0], jdata[i]);
+          largs.push(data);
+        }
+        return largs;
+      case 'option':
+        if (jdata == null) {
+          return schema.Encode(jdata);
+        } else {
+          if (type.args.length == 0) {
+            throw new Error("Unknown type option");
+          }
+          return build_from_js(type.args[0], jdata[0]);
+        }
       default:
         throw new Error("Unknown type prim: " + prim)
     }
