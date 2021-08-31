@@ -104,12 +104,12 @@ async function getBalance(alias, obj) {
   return Main.getBalance(options);
 }
 
-async function setAccount(account, obj) {
+function setAccount(account, obj) {
   const options = obj === undefined ? { account: account, quiet: true } : { ...obj, account: account, quiet: true };
   return Main.setAccount(options);
 }
 
-async function setEndpoint(endpoint, obj) {
+function setEndpoint(endpoint, obj) {
   const options = obj === undefined ? { endpoint: endpoint, quiet: true } : { ...obj, endpoint: endpoint, quiet: true };
   return Main.setEndpoint(options);
 }

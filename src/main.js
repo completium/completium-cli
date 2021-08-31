@@ -64,17 +64,14 @@ function getConfig() {
 
 function saveFile(path, c, callback) {
   const content = JSON.stringify(c, null, 2);
-  fs.writeFile(path, content, (err) => {
-    if (err) return print(err);
-    if (callback !== undefined) {
-      callback();
-    }
+  fs.writeFileSync(path, content);
+  if (callback !== undefined) {
+    callback();
   }
-  );
 }
 
-async function saveConfig(config, callback) {
-  await saveFile(config_path, config, callback);
+function saveConfig(config, callback) {
+  saveFile(config_path, config, callback);
 }
 
 function getContracts() {
@@ -686,7 +683,7 @@ async function addEndpoint(options) {
   saveConfig(config, x => { print(`endpoint '${endpoint}' for network ${network} registered.`) });
 }
 
-async function setEndpoint(options) {
+function setEndpoint(options) {
   const endpoint = options.endpoint;
   const quiet = options.quiet === undefined ? false : options.quiet;
 
@@ -702,14 +699,9 @@ async function setEndpoint(options) {
   config.tezos.network = network.network;
   config.tezos.endpoint = endpoint;
 
-  return new Promise(resolve => {
-    saveConfig(config, x => {
-      if (!quiet)
-        print(`endpoint '${endpoint}' for network ${network.network} set.`);
-      resolve(true);
-    }
-    )
-  });
+  saveConfig(config);
+  // if (!quiet)
+  print(`endpoint '${endpoint}' for network ${network.network} set.`);
 }
 
 async function removeEndpoint(options) {
@@ -908,7 +900,7 @@ async function switchAccount(options) {
     .catch(console.error);
 }
 
-async function setAccount(options) {
+function setAccount(options) {
   const value = options.account;
   const quiet = options.quiet === undefined ? false : options.quiet;
 
@@ -920,13 +912,8 @@ async function setAccount(options) {
   }
   const config = getConfig();
   config.account = value;
-  return new Promise(resolve => {
-    saveConfig(config, x => {
-      if (!quiet)
-        print(`'${value}' is set as current account.`);
-      resolve(true);
-    })
-  });
+  saveConfig(config)
+  print(`'${value}' is set as current account.`);
 }
 
 async function renameAccount(options) {
@@ -1247,6 +1234,8 @@ function replaceAll(data, objValues) {
     } else if (data.args !== undefined) {
       const nargs = data.args.map(x => replaceAll(x, objValues));
       return { ...data, args: nargs }
+    } else {
+      return data;
     }
   } else if (data.length !== undefined) {
     return data.map(x => replaceAll(x, objValues))
