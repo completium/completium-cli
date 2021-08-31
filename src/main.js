@@ -1096,7 +1096,6 @@ function build_from_js(type, jdata) {
       case 'bls12_381_g1':
       case 'bls12_381_g2':
       case 'bool':
-      case 'bytes':
       case 'chain_id':
       case 'contract':
       case 'int':
@@ -1113,6 +1112,12 @@ function build_from_js(type, jdata) {
       case 'ticket':
       case 'unit':
         return schema.Encode(jdata);
+      case 'bytes':
+        let bdata = jdata;
+        if (bdata.startsWith && bdata.startsWith("0x")) {
+          bdata = bdata.substring(2);
+        }
+        return {bytes: bdata}
       case 'mutez':
         if (typeof jdata === "string" && jdata.endsWith("tz")) {
           const v = getAmount(jdata);
