@@ -35,7 +35,7 @@ function updateCost(op) {
 }
 
 async function deploy(path, obj, originate = false) {
-  const options = { ...obj, file: path, force: true, quiet: true, originate: originate };
+  const options = { ...obj, file: path, force: true, originate: originate };
   const x = await Main.deploy(options);
   if (x == null) {
     return [null, null];
@@ -105,12 +105,12 @@ async function getBalance(alias, obj) {
 }
 
 function setAccount(account, obj) {
-  const options = obj === undefined ? { account: account, quiet: true } : { ...obj, account: account, quiet: true };
+  const options = obj === undefined ? { account: account } : { ...obj, account: account };
   return Main.setAccount(options);
 }
 
 function setEndpoint(endpoint, obj) {
-  const options = obj === undefined ? { endpoint: endpoint, quiet: true } : { ...obj, endpoint: endpoint, quiet: true };
+  const options = obj === undefined ? { endpoint: endpoint } : { ...obj, endpoint: endpoint };
   return Main.setEndpoint(options);
 }
 

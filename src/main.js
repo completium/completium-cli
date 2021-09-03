@@ -14,8 +14,8 @@ const codec = require('@taquito/michel-codec');
 const encoder = require('@taquito/michelson-encoder');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
-const archetype = require('@completium/archetype');
-// const archetype = require('/home/dev/archetype/archetype-lang/npm-package/dist/index.js');
+// const archetype = require('@completium/archetype');
+const archetype = require('/home/dev/archetype/archetype-lang/npm-package/dist/index.js');
 const { BigNumber } = require('bignumber.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
@@ -44,12 +44,16 @@ const mockup_path = completium_dir + "/mockup";
 // TOOLS //
 ///////////
 
+let settings_quiet = false
+
 function print(msg) {
-  return console.log(msg);
+  if (!settings_quiet)
+    console.log(msg);
 }
 
 function print_error(msg) {
-  return console.error(msg);
+  if (!settings_quiet)
+    console.error(msg);
 }
 
 function loadJS(path) {
@@ -380,6 +384,7 @@ function help(options) {
 }
 
 async function initCompletium(options) {
+  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   if (!fs.existsSync(bin_dir)) {
     fs.mkdirSync(bin_dir, { recursive: true });
@@ -685,7 +690,7 @@ async function addEndpoint(options) {
 
 function setEndpoint(options) {
   const endpoint = options.endpoint;
-  const quiet = options.quiet === undefined ? false : options.quiet;
+  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const config = getConfig();
   const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
@@ -700,7 +705,6 @@ function setEndpoint(options) {
   config.tezos.endpoint = endpoint;
 
   saveConfig(config);
-  // if (!quiet)
   print(`endpoint '${endpoint}' for network ${network.network} set.`);
 }
 
@@ -979,6 +983,7 @@ async function transfer(options) {
   const from_raw = options.from;
   const to_raw = options.to;
   const force = options.force;
+  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const amount = getAmount(amount_raw);
   if (isNull(amount)) {
@@ -1318,7 +1323,7 @@ async function deploy(options) {
   const oinit = options.init;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
-  const quiet = options.quiet === undefined ? false : options.quiet;
+  settings_quiet = options.quiet === undefined ? false : options.quiet;
   const mockup_mode = isMockupMode();
 
   if (otest && originate) {
@@ -1698,6 +1703,7 @@ async function callContract(options) {
   const args = options.arg !== undefined ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
   var argMichelson = options.argsMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
+  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const contract = getContractFromIdOrAddress(input);
 
