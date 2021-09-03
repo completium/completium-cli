@@ -696,9 +696,7 @@ function setEndpoint(options) {
   const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
 
   if (isNull(network)) {
-    if (!quiet)
-      print(`'${endpoint}' is not found.`);
-    return false;
+    throw new Error(`'${endpoint}' is not found.`);
   }
 
   config.tezos.network = network.network;
@@ -906,13 +904,11 @@ async function switchAccount(options) {
 
 function setAccount(options) {
   const value = options.account;
-  const quiet = options.quiet === undefined ? false : options.quiet;
+  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const account = getAccount(value);
   if (isNull(account)) {
-    if (!quiet)
-      print(`'${value}' is not found.`);
-    return false;
+    throw new Error(`'${value}' is not found.`);
   }
   const config = getConfig();
   config.account = value;
