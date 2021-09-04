@@ -196,7 +196,7 @@ function isNull(str) {
 function computeSettings(options, settings) {
   const metadata_storage = options.metadata_storage;
   const metadata_uri = options.metadata_uri;
-  const otest = options.test;
+  const otest = options.test || settings.test_mode;
 
   return {
     ...settings,
@@ -233,7 +233,7 @@ function computeArgsSettings(options, settings, path) {
         args.push('--metadata-uri');
         args.push(options.metadata_uri);
       }
-      if (options.test) {
+      if (options.test || settings.test_mode) {
         args.push('--test-mode');
       }
     }
