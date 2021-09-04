@@ -147,6 +147,10 @@ async function transfer(from, to, amount) {
   return op;
 }
 
+function expr_micheline_to_json(v) {
+  return Main.expr_micheline_to_json(v);
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -161,3 +165,4 @@ exports.packTyped = packTyped;
 exports.blake2b = blake2b;
 exports.setNow = setNow;
 exports.transfer = transfer;
+exports.expr_micheline_to_json = expr_micheline_to_json;

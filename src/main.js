@@ -205,27 +205,48 @@ function computeSettings(options, settings) {
   }
 }
 
-function callArchetype(options, input, s) {
+async function callArchetype(options, path, s) {
   const verbose = options.verbose;
   const no_print = options.no_print === undefined ? false : options.no_print;
+  const config = getConfig();
+  const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
 
-  const settings = computeSettings(options, s);
+  return new Promise(async (resolve, reject) => {
+    if (isFrombin) {
+      const bin = config.bin.archetype;
+      const args = []; // TODO: from settings and options
 
-  if (verbose) {
-    print(settings);
-  }
-
-  try {
-    const res = archetype.compile(input.toString(), settings);
-    return res;
-  } catch (error) {
-    if (error.message) {
-      const msg = "Archetype compiler: " + error.message;
-      throw new Error(msg);
+      args.push(path);
+      try {
+        const { stdout, stderr, failed } = await execa(bin, args, {});
+        if (failed) {
+          reject(stderr);
+        } else {
+          resolve(stdout);
+        }
+      } catch (e) {
+        reject(e);
+      }
     } else {
-      throw error;
+      try {
+        const settings = computeSettings(options, s);
+
+        if (verbose) {
+          print(settings);
+        }
+
+        const res = archetype.compile(path, settings);
+        resolve(res);
+      } catch (error) {
+        if (error.message) {
+          const msg = "Archetype compiler: " + error.message;
+          reject(msg);
+        } else {
+          reject(error);
+        }
+      }
     }
-  }
+  });
 }
 
 function micheline_to_json(input) {
@@ -271,7 +292,8 @@ function isMockupMode() {
 async function callTezosClient(args) {
   const arguments = ["--mode", "mockup", "--base-dir", mockup_path].concat(args);
   try {
-    const x = await execa("tezos-client", arguments, {});
+    const bin = config.bin['tezos-client'];
+    const x = await execa(bin, arguments, {});
     return x;
   } catch (e) {
     return e;
@@ -403,7 +425,9 @@ async function initCompletium(options) {
 
   const config = {
     account: '',
+    archetype_from_bin: false,
     bin: {
+      "archetype": "archetype",
       "tezos-client": "tezos-client"
     },
     tezos: {
@@ -1117,7 +1141,7 @@ function build_from_js(type, jdata) {
         if (bdata.startsWith && bdata.startsWith("0x")) {
           bdata = bdata.substring(2);
         }
-        return {bytes: bdata}
+        return { bytes: bdata }
       case 'mutez':
         if (typeof jdata === "string" && jdata.endsWith("tz")) {
           const v = getAmount(jdata);
@@ -1365,7 +1389,6 @@ async function deploy(options) {
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
-  const input = fs.readFileSync(file).toString();
   if (!fs.existsSync(file)) {
     const msg = `File not found.`;
     return new Promise((resolve, reject) => { reject(msg) });
@@ -1373,10 +1396,11 @@ async function deploy(options) {
 
   let code;
   if (originate) {
+    const input = fs.readFileSync(file).toString();
     code = input;
   } else {
     try {
-      code = callArchetype(options, input.toString(), {
+      code = await callArchetype(options, file, {
         target: "michelson",
         sci: account.pkh
       });
@@ -1387,6 +1411,7 @@ async function deploy(options) {
   const m_code = expr_micheline_to_json(code);
 
   if (!originate && isNull(parameters)) {
+    const input = fs.readFileSync(file).toString();
     const with_parameters = archetype.with_parameters(input);
     if (with_parameters) {
       const msg = `The contract has the following parameter:\n${res}\nPlease use '--parameters' to initialize.`;
@@ -1400,7 +1425,7 @@ async function deploy(options) {
   } else if (!originate) {
     if (isNull(parameters)) {
       try {
-        const storage = callArchetype(options, input.toString(), {
+        const storage = await callArchetype(options, file, {
           target: "michelson-storage",
           sci: account.pkh
         });
@@ -1759,9 +1784,7 @@ async function generateMichelson(options) {
     print(`File not found.`);
     return new Promise(resolve => { resolve(null) });
   }
-  const input = fs.readFileSync(x).toString();
-
-  const res = callArchetype(options, input, {
+  const res = await callArchetype(options, x, {
     target: 'michelson'
   });
   print(res);
@@ -1781,9 +1804,8 @@ async function generateJavascript(options) {
     print(`File not found.`);
     return new Promise(resolve => { resolve(null) });
   }
-  const input = fs.readFileSync(x).toString();
 
-  const res = callArchetype(options, input, {
+  const res = await callArchetype(options, x, {
     target: 'javascript'
   });
   print(res);
@@ -1803,9 +1825,8 @@ async function generateWhyml(options) {
     print(`File not found.`);
     return new Promise(resolve => { resolve(null) });
   }
-  const input = fs.readFileSync(x).toString();
 
-  const res = callArchetype(options, input, {
+  const res = await callArchetype(options, x, {
     target: 'whyml'
   });
   print(res);
@@ -2318,3 +2339,4 @@ exports.packTyped = packTyped;
 exports.setNow = setNow;
 exports.transfer = transfer;
 exports.getEntries = getEntries;
+exports.expr_micheline_to_json = expr_micheline_to_json;
