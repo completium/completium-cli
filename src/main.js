@@ -15,12 +15,6 @@ const encoder = require('@taquito/michelson-encoder');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
-const { exit } = require('process');
-const { emitMicheline } = require('@taquito/michel-codec');
-const { resolve } = require('path');
-const c = require('args');
-const { execFile } = require('child_process');
-const { arch } = require('os');
 let archetype = null;
 
 const version = '0.2.10'
@@ -196,7 +190,7 @@ function isNull(str) {
 function computeSettings(options, settings) {
   const metadata_storage = options.metadata_storage;
   const metadata_uri = options.metadata_uri;
-  const otest = options.test || settings.test_mode;
+  const otest = options.test || (settings !== undefined && settings.test_mode);
 
   return {
     ...settings,
@@ -233,7 +227,7 @@ function computeArgsSettings(options, settings, path) {
         args.push('--metadata-uri');
         args.push(options.metadata_uri);
       }
-      if (options.test || settings.test_mode) {
+      if (options.test || (settings !== undefined && settings.test_mode)) {
         args.push('--test-mode');
       }
     }
@@ -301,16 +295,23 @@ function expr_micheline_to_json(input) {
   return (new codec.Parser()).parseMichelineExpression(input.toString());
 }
 
+function json_micheline_to_expr(input) {
+  return codec.emitMicheline(input);
+}
+
 function getAmount(raw) {
+  if (typeof raw !== "string") {
+    throw ('amount must be a string')
+  }
   var v = raw.endsWith('utz') ? { str: raw.slice(0, -3), utz: true } : (raw.endsWith('tz') ? { str: raw.slice(0, -2), utz: false } : null);
   if (isNull(v)) {
-    print_error(`'${raw}' is an invalid value; expecting for example, 1tz or 2utz.`);
-    return null;
+    const msg = `'${raw}' is an invalid value; expecting for example, 1tz or 2utz.`;
+    throw msg;
   }
   var value = Math.abs(v.str) * (v.utz ? 1 : 1000000);
   if (!Number.isInteger(value)) {
-    print(`'${raw}' is an invalid value; '${value}' is not an integer.`);
-    return null;
+    const msg = `'${raw}' is an invalid value; '${value}' is not an integer.`;
+    throw msg;
   }
   return value;
 }
@@ -442,7 +443,6 @@ function help(options) {
 }
 
 async function initCompletium(options) {
-  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   if (!fs.existsSync(bin_dir)) {
     fs.mkdirSync(bin_dir, { recursive: true });
@@ -753,7 +753,6 @@ async function addEndpoint(options) {
 
 function setEndpoint(options) {
   const endpoint = options.endpoint;
-  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const config = getConfig();
   const network = config.tezos.list.find(x => x.endpoints.includes(endpoint));
@@ -967,7 +966,6 @@ async function switchAccount(options) {
 
 function setAccount(options) {
   const value = options.account;
-  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const account = getAccount(value);
   if (isNull(account)) {
@@ -1042,7 +1040,6 @@ async function transfer(options) {
   const from_raw = options.from;
   const to_raw = options.to;
   const force = options.force;
-  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const amount = getAmount(amount_raw);
   if (isNull(amount)) {
@@ -1382,7 +1379,6 @@ async function deploy(options) {
   const oinit = options.init;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
-  settings_quiet = options.quiet === undefined ? false : options.quiet;
   const mockup_mode = isMockupMode();
 
   if (otest && originate) {
@@ -1625,10 +1621,10 @@ async function callTransfer(options, contract_address, arg) {
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
-  const amount_raw = isNull(options.amount) ? '0tz' : options.amount;
-  const amount = getAmount(amount_raw);
+  const amount = isNull(options.amount) ? 0 : getAmount(options.amount);
   if (isNull(amount)) {
-    return;
+    const msg = `Invalid amount`;
+    return new Promise((resolve, reject) => { reject(msg) });
   }
 
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
@@ -1764,7 +1760,6 @@ async function callContract(options) {
   const args = options.arg !== undefined ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
   var argMichelson = options.argsMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
-  settings_quiet = options.quiet === undefined ? false : options.quiet;
 
   const contract = getContractFromIdOrAddress(input);
 
@@ -1933,6 +1928,9 @@ async function getEntries(input, rjson) {
 
   const script = await getContractScript(contract_address);
   const i = JSON.stringify(script);
+  if (archetype == null) {
+    archetype = require('@completium/archetype');
+  }
   const res = archetype.show_entries(i, {
     json: true,
     rjson: rjson
@@ -2160,6 +2158,19 @@ function getAddress(options) {
     }
   }
   return address;
+}
+
+function getAccountExt(options) {
+  const alias = options.alias;
+  const account = getAccountFromIdOrAddr(alias);
+  if (account !== undefined) {
+    return {
+      name: account.name,
+      pkh: account.pkh,
+      pubk: account.pubk,
+      sk: account.key.value
+    }
+  }
 }
 
 async function getBalanceFor(options) {
@@ -2396,6 +2407,7 @@ exports.exec = exec;
 exports.setAccount = setAccount;
 exports.setEndpoint = setEndpoint;
 exports.getAddress = getAddress;
+exports.getAccountExt = getAccountExt;
 exports.blake2b = blake2b;
 exports.sign = sign;
 exports.pack = pack;
@@ -2404,4 +2416,5 @@ exports.setNow = setNow;
 exports.transfer = transfer;
 exports.getEntries = getEntries;
 exports.expr_micheline_to_json = expr_micheline_to_json;
+exports.json_micheline_to_expr = json_micheline_to_expr;
 exports.setQuiet = setQuiet

@@ -119,6 +119,11 @@ function getAddress(alias) {
   return Main.getAddress(options);
 }
 
+function getAccount(alias) {
+  const options = { alias: alias };
+  return Main.getAccountExt(options);
+}
+
 function pack(value) {
   const options = { value: value };
   return Main.pack(options);
@@ -160,6 +165,10 @@ function expr_micheline_to_json(v) {
   return Main.expr_micheline_to_json(v);
 }
 
+function json_micheline_to_expr(v) {
+  return Main.json_micheline_to_expr(v);
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -169,6 +178,7 @@ exports.getBalance = getBalance;
 exports.setAccount = setAccount;
 exports.setEndpoint = setEndpoint;
 exports.getAddress = getAddress;
+exports.getAccount = getAccount;
 exports.pack = pack;
 exports.packTyped = packTyped;
 exports.blake2b = blake2b;
@@ -176,4 +186,5 @@ exports.setNow = setNow;
 exports.transfer = transfer;
 exports.sign = sign;
 exports.expr_micheline_to_json = expr_micheline_to_json;
+exports.json_micheline_to_expr = json_micheline_to_expr;
 exports.setQuiet = setQuiet;
