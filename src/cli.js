@@ -32,6 +32,14 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
     res = { command: "show_archetype_version" };
     nargs = args.slice(4);
+    // set bin (archetype|tezos-client)
+  } else if (length > 3 && args[2] === "set" && args[3] === "bin") {
+    res = { command: "set_bin", bin: args[4], path: args[5] };
+    nargs = args.slice(6);
+    // set archetype bin (true|false)
+  } else if (length > 4 && args[2] === "set" && args[3] === "archetype" && args[4] === "bin") {
+    res = { command: "set_archetype_bin", value: args[5] };
+    nargs = args.slice(6);
     // start sandbox
   } else if (length > 3 && args[2] === "start" && args[3] === "sandbox") {
     res = { command: "start_sandbox" };

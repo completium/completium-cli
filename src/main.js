@@ -14,13 +14,14 @@ const codec = require('@taquito/michel-codec');
 const encoder = require('@taquito/michelson-encoder');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
-const archetype = require('@completium/archetype');
 const { BigNumber } = require('bignumber.js');
 const { exit } = require('process');
 const { emitMicheline } = require('@taquito/michel-codec');
 const { resolve } = require('path');
 const c = require('args');
 const { execFile } = require('child_process');
+const { arch } = require('os');
+let archetype = null;
 
 const version = '0.2.10'
 
@@ -205,18 +206,56 @@ function computeSettings(options, settings) {
   }
 }
 
+function computeArgsSettings(options, settings, path) {
+  const args = []
+  if (settings.version) {
+    args.push('--version')
+  } else {
+    if (settings.with_parameters) {
+      args.push('--with-parameters')
+    } else {
+      if (settings.target) {
+        args.push('--target');
+        args.push(settings.target);
+      }
+      if (settings.sci) {
+        args.push('--set-caller-init');
+        args.push(settings.sci);
+      }
+      if (settings.get_storage_values) {
+        args.push('--get-storage-values')
+      }
+      if (options.metadata_storage) {
+        args.push('--metadata-storage');
+        args.push(options.metadata_storage);
+      }
+      if (options.metadata_uri) {
+        args.push('--metadata-uri');
+        args.push(options.metadata_uri);
+      }
+      if (options.test) {
+        args.push('--test-mode');
+      }
+    }
+    args.push(path);
+  }
+  return args;
+}
+
 async function callArchetype(options, path, s) {
   const verbose = options.verbose;
-  const no_print = options.no_print === undefined ? false : options.no_print;
   const config = getConfig();
   const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
 
   return new Promise(async (resolve, reject) => {
     if (isFrombin) {
       const bin = config.bin.archetype;
-      const args = []; // TODO: from settings and options
+      const args = computeArgsSettings(options, s, path);
 
-      args.push(path);
+      if (verbose) {
+        print(args);
+      }
+
       try {
         const { stdout, stderr, failed } = await execa(bin, args, {});
         if (failed) {
@@ -228,21 +267,28 @@ async function callArchetype(options, path, s) {
         reject(e);
       }
     } else {
-      try {
-        const settings = computeSettings(options, s);
+      if (archetype == null) {
+        archetype = require('@completium/archetype');
+      }
+      if (s.version) {
+        return archetype.version()
+      } else {
+        try {
+          const settings = computeSettings(options, s);
 
-        if (verbose) {
-          print(settings);
-        }
+          if (verbose) {
+            print(settings);
+          }
 
-        const res = archetype.compile(path, settings);
-        resolve(res);
-      } catch (error) {
-        if (error.message) {
-          const msg = "Archetype compiler: " + error.message;
-          reject(msg);
-        } else {
-          reject(error);
+          const res = archetype.compile(path, settings);
+          resolve(res);
+        } catch (error) {
+          if (error.message) {
+            const msg = "Archetype compiler: " + error.message;
+            reject(msg);
+          } else {
+            reject(error);
+          }
         }
       }
     }
@@ -270,17 +316,9 @@ function getAmount(raw) {
   }
   return value;
 }
-
-function createScript(address, content, callback) {
-  const path = scripts_dir + '/' + address + '.json';
-  fs.writeFileSync(path, content);
-}
-
 async function getArchetypeVersion() {
-  return new Promise(resolve => {
-    const v = archetype.version();
-    resolve(v)
-  });
+  const v = await callArchetype({}, null, { version: true });
+  return v;
 }
 
 function isMockupMode() {
@@ -360,6 +398,7 @@ function help(options) {
   print("  archetype version")
 
   print("  set bin <BIN> <PATH>");
+  print("  set archetype bin (true|false)")
 
   print("  start sandbox");
   print("  stop sandbox");
@@ -554,11 +593,14 @@ async function initCompletium(options) {
 
 async function setBin(options) {
   const bin = options.bin;
-  if (bin !== 'tezos-client') {
-    return print(`Expecting bin 'tezos-client'`);
+  if (bin !== 'tezos-client' && bin !== 'archetype') {
+    const msg = `Expecting bin 'tezos-client' or 'archetype'`;
+    throw msg;
   }
   const path = options.path;
-  setBinConfig(bin, path, "'tezos-client' path set.");
+  const config = getConfig();
+  config.bin[bin] = path;
+  saveConfig(config, x => {print(`'${bin}' is set to ${path}.`)})
 }
 
 async function startSandbox(options) {
@@ -1290,8 +1332,8 @@ function replaceAll(data, objValues) {
   }
 }
 
-function compute_tzstorage(input, storageType, parameters, s) {
-  const storage_values = archetype.get_storage_values(input, s);
+async function compute_tzstorage(file, storageType, parameters, s) {
+  const storage_values = await callArchetype({}, file, { ...s, get_storage_values: true });
   const jsv = JSON.parse(storage_values);
   const sv = jsv.map(x => x);
   var obj = {};
@@ -1393,10 +1435,10 @@ async function deploy(options) {
     const msg = `File not found.`;
     return new Promise((resolve, reject) => { reject(msg) });
   }
-  const input = fs.readFileSync(file).toString();
 
   let code;
   if (originate) {
+    const input = fs.readFileSync(file).toString();
     code = input;
   } else {
     try {
@@ -1411,7 +1453,9 @@ async function deploy(options) {
   const m_code = expr_micheline_to_json(code);
 
   if (!originate && isNull(parameters)) {
-    const with_parameters = archetype.with_parameters(input);
+    const with_parameters = await callArchetype(options, file, {
+      with_parameters: true
+    });
     if (with_parameters) {
       const msg = `The contract has the following parameter:\n${res}\nPlease use '--parameters' to initialize.`;
       return new Promise((resolve, reject) => { reject(msg) });
@@ -1436,7 +1480,7 @@ async function deploy(options) {
       try {
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
-        m_storage = compute_tzstorage(input.toString(), storageType, parameters, computeSettings(options));
+        m_storage = await compute_tzstorage(file, storageType, parameters, computeSettings(options));
       } catch (e) {
         return new Promise((resolve, reject) => { reject(e) });
       }
@@ -2183,10 +2227,21 @@ function blake2b(options) {
   return "0x" + taquitoUtils.buf2hex(blakeHash);
 }
 
+function setQuiet(v) {
+  settings_quiet = v;
+}
+
 function commandNotFound(options) {
   print("commandNotFound: " + options.command);
   help(options);
   return 1;
+}
+
+async function setArchetypeBin(options) {
+  const value = options.value;
+  const config = getConfig();
+  config.archetype_from_bin = (value === 'true');
+  saveConfig(config, x => {print(`archetype bin is ${value}`)});
 }
 
 async function exec(options) {
@@ -2206,6 +2261,9 @@ async function exec(options) {
         break;
       case "set_bin":
         await setBin(options);
+        break;
+      case "set_archetype_bin":
+        await setArchetypeBin(options);
         break;
       case "start_sandbox":
         await startSandbox(options);
@@ -2339,3 +2397,4 @@ exports.setNow = setNow;
 exports.transfer = transfer;
 exports.getEntries = getEntries;
 exports.expr_micheline_to_json = expr_micheline_to_json;
+exports.setQuiet = setQuiet

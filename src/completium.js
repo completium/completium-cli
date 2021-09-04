@@ -134,6 +134,10 @@ function blake2b(value) {
   return Main.blake2b(options);
 }
 
+function setQuiet(value) {
+  Main.setQuiet(value);
+}
+
 async function setNow(contract_id, date) {
   const options = { contract: contract_id, date: date, force: true, verbose: true };
   var op = await Main.setNow(options);
@@ -166,3 +170,4 @@ exports.blake2b = blake2b;
 exports.setNow = setNow;
 exports.transfer = transfer;
 exports.expr_micheline_to_json = expr_micheline_to_json;
+exports.setQuiet = setQuiet;
