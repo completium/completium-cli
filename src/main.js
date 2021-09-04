@@ -2225,6 +2225,14 @@ function blake2b(options) {
   return "0x" + taquitoUtils.buf2hex(blakeHash);
 }
 
+async function sign(options) {
+  const value = options.value;
+  const as = options.as;
+
+  const signer = getSigner(as);
+  return await signer.signer.sign(value);
+}
+
 function setQuiet(v) {
   settings_quiet = v;
 }
@@ -2389,6 +2397,7 @@ exports.setAccount = setAccount;
 exports.setEndpoint = setEndpoint;
 exports.getAddress = getAddress;
 exports.blake2b = blake2b;
+exports.sign = sign;
 exports.pack = pack;
 exports.packTyped = packTyped;
 exports.setNow = setNow;

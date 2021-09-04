@@ -134,6 +134,11 @@ function blake2b(value) {
   return Main.blake2b(options);
 }
 
+async function sign(value, obj) {
+  const options = {...obj, value: value };
+  return await Main.sign(options);
+}
+
 function setQuiet(value) {
   Main.setQuiet(value);
 }
@@ -169,5 +174,6 @@ exports.packTyped = packTyped;
 exports.blake2b = blake2b;
 exports.setNow = setNow;
 exports.transfer = transfer;
+exports.sign = sign;
 exports.expr_micheline_to_json = expr_micheline_to_json;
 exports.setQuiet = setQuiet;
