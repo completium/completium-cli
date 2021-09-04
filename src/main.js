@@ -244,59 +244,57 @@ function computeArgsSettings(options, settings, path) {
 
 async function callArchetype(options, path, s) {
   const verbose = options.verbose;
+
   const config = getConfig();
   const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
 
-  return new Promise(async (resolve, reject) => {
-    if (isFrombin) {
-      const bin = config.bin.archetype;
-      const args = computeArgsSettings(options, s, path);
+  if (isFrombin) {
+    const bin = config.bin.archetype;
+    const args = computeArgsSettings(options, s, path);
 
-      if (verbose) {
-        print(args);
-      }
+    if (verbose) {
+      print(args);
+    }
 
+    return new Promise(async (resolve, reject) => {
       try {
         const { stdout, stderr, failed } = await execa(bin, args, {});
         if (failed) {
-          reject(stderr);
+          const msg = "Archetype compiler: " + stderr;
+          reject(msg);
         } else {
           resolve(stdout);
         }
       } catch (e) {
         reject(e);
       }
+    });
+  } else {
+    if (archetype == null) {
+      archetype = require('@completium/archetype');
+    }
+    if (s.version) {
+      return archetype.version()
     } else {
-      if (archetype == null) {
-        archetype = require('@completium/archetype');
-      }
-      if (s.version) {
-        return archetype.version()
-      } else {
-        try {
-          const settings = computeSettings(options, s);
+      try {
+        const settings = computeSettings(options, s);
 
-          if (verbose) {
-            print(settings);
-          }
+        if (verbose) {
+          print(settings);
+        }
 
-          const res = archetype.compile(path, settings);
-          resolve(res);
-        } catch (error) {
-          if (error.message) {
-            const msg = "Archetype compiler: " + error.message;
-            reject(msg);
-          } else {
-            reject(error);
-          }
+        const a = await archetype.compile(path, settings);
+        return a;
+      } catch (error) {
+        if (error.message) {
+          const msg = "Archetype compiler: " + error.message;
+          throw msg;
+        } else {
+          throw error;
         }
       }
     }
-  });
-}
-
-function micheline_to_json(input) {
-  return (JSON.stringify((new codec.Parser()).parseMichelineExpression(input.toString())));
+  }
 }
 
 function expr_micheline_to_json(input) {
@@ -600,7 +598,7 @@ async function setBin(options) {
   const path = options.path;
   const config = getConfig();
   config.bin[bin] = path;
-  saveConfig(config, x => {print(`'${bin}' is set to ${path}.`)})
+  saveConfig(config, x => { print(`'${bin}' is set to ${path}.`) })
 }
 
 async function startSandbox(options) {
@@ -1456,8 +1454,8 @@ async function deploy(options) {
     const with_parameters = await callArchetype(options, file, {
       with_parameters: true
     });
-    if (with_parameters) {
-      const msg = `The contract has the following parameter:\n${res}\nPlease use '--parameters' to initialize.`;
+    if (with_parameters !== "") {
+      const msg = `The contract has the following parameter:\n${with_parameters}\nPlease use '--parameters' to initialize.`;
       return new Promise((resolve, reject) => { reject(msg) });
     }
   }
@@ -2241,7 +2239,7 @@ async function setArchetypeBin(options) {
   const value = options.value;
   const config = getConfig();
   config.archetype_from_bin = (value === 'true');
-  saveConfig(config, x => {print(`archetype bin is ${value}`)});
+  saveConfig(config, x => { print(`archetype bin is ${value}`) });
 }
 
 async function exec(options) {
