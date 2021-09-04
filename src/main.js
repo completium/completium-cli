@@ -1393,10 +1393,10 @@ async function deploy(options) {
     const msg = `File not found.`;
     return new Promise((resolve, reject) => { reject(msg) });
   }
+  const input = fs.readFileSync(file).toString();
 
   let code;
   if (originate) {
-    const input = fs.readFileSync(file).toString();
     code = input;
   } else {
     try {
@@ -1411,7 +1411,6 @@ async function deploy(options) {
   const m_code = expr_micheline_to_json(code);
 
   if (!originate && isNull(parameters)) {
-    const input = fs.readFileSync(file).toString();
     const with_parameters = archetype.with_parameters(input);
     if (with_parameters) {
       const msg = `The contract has the following parameter:\n${res}\nPlease use '--parameters' to initialize.`;
