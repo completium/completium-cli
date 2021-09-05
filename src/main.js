@@ -637,8 +637,9 @@ async function stopSandbox(options) {
 }
 
 async function mockupInit(options) {
+  const config = getConfig();
   fs.rmdirSync(mockup_path, { recursive: true });
-  const { stdout } = await execa("tezos-client", [
+  const { stdout } = await execa(config.bin['tezos-client'], [
     '--protocol', 'PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV',
     '--base-dir', mockup_path,
     '--mode', 'mockup',
@@ -655,7 +656,7 @@ async function mockupInit(options) {
   };
 
   const transferAccount = async (name, pkh) => {
-    if (name !== "bootstrap1") {
+    if (name !== "bootstrap1" && name !== "bootstrap2" && name !== "bootstrap3" && name !== "bootstrap4" && name !== "bootstrap5") {
       print(`Transfer ${pkh}`)
       await callTezosClient(["transfer", "1000", "from", "bootstrap1", "to", pkh, "--burn-cap", "0.06425"]);
     }
@@ -1254,7 +1255,12 @@ function build_from_js(type, jdata) {
           if (type.args.length == 0) {
             throw new Error("Unknown type option");
           }
-          return build_from_js(type.args[0], jdata[0]);
+          let arg = jdata;
+          if (typeof jdata !== "string" && jdata.length && jdata.length > 0) {
+            arg = jdata[0];
+          }
+          const v = build_from_js(type.args[0], arg);
+          return {prim: "Some", args: [v]};
         }
       default:
         throw new Error("Unknown type prim: " + prim)
