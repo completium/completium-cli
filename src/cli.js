@@ -139,6 +139,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "generate" && args[3] === "whyml") {
     res = { command: "generate_whyml", path: args[4] };
     nargs = args.slice(5);
+    // check michelson <FILE.arl>
+  } else if (length > 4 && args[2] === "check" && args[3] === "michelson") {
+    res = { command: "check_michelson", path: args[4] };
+    nargs = args.slice(5);
     // show entries of <CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
     res = { command: "show_entries", contract: args[4] };

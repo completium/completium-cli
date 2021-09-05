@@ -1260,7 +1260,7 @@ function build_from_js(type, jdata) {
             arg = jdata[0];
           }
           const v = build_from_js(type.args[0], arg);
-          return {prim: "Some", args: [v]};
+          return { prim: "Some", args: [v] };
         }
       default:
         throw new Error("Unknown type prim: " + prim)
@@ -1874,6 +1874,33 @@ async function generateWhyml(options) {
   print(res);
 }
 
+async function checkMichelson(options) {
+  const path = options.path;
+
+  if (!fs.existsSync(path)) {
+    print(`File not found.`);
+    return new Promise(resolve => { resolve(null) });
+  }
+
+  const res = await callArchetype(options, path, {
+    target: 'michelson'
+  });
+
+  const tmp = require('tmp');
+  const tmpobj = tmp.fileSync();
+
+  const michelson_path = tmpobj.name;
+  fs.writeFileSync(michelson_path, res);
+
+  const args = [ "typecheck", "script", michelson_path ];
+  const { stdout, stderr, failed } = await callTezosClient(args);
+  if (failed) {
+    throw (stderr)
+  } else {
+    print(stdout);
+  }
+}
+
 async function showContracts(options) {
   const contracts = getContracts();
 
@@ -2360,6 +2387,9 @@ async function exec(options) {
         break;
       case "generate_whyml":
         await generateWhyml(options);
+        break;
+      case "check_michelson":
+        await checkMichelson(options);
         break;
       case "show_contracts":
         await showContracts(options);
