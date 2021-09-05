@@ -208,6 +208,7 @@ function parseCommand(args) {
       '--metadata-uri': String,
       '--test-mode': Boolean,
       '--json': Boolean,
+      '--trace': Boolean,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -239,6 +240,7 @@ function parseCommand(args) {
     metadata_uri: options['--metadata-uri'],
     test: options['--test-mode'] || false,
     json: options['--json'] || false,
+    trace: options['--trace'] || false,
   }
 }
 

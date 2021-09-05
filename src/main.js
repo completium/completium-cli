@@ -1617,6 +1617,9 @@ async function callTransfer(options, contract_address, arg) {
   const force = options.force;
   const entry = options.entry === undefined ? 'default' : options.entry;
   const quiet = options.quiet === undefined ? false : options.quiet;
+  const dry = options.dry === undefined ? false : options.dry;
+  const trace = options.trace === undefined ? false : options.trace;
+  const verbose = options.verbose === undefined ? false : options.verbose;
 
   const contract_id = options.contract;
 
@@ -1636,7 +1639,37 @@ async function callTransfer(options, contract_address, arg) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  if (isMockupMode()) {
+  if (dry) {
+    const script_raw_json = await getRawScript(contract_address);
+    const script_raw = json_micheline_to_expr(script_raw_json.code)
+
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync();
+
+    const d_path_script = tmpobj.name;
+    fs.writeFileSync(d_path_script, script_raw);
+
+    const d_storage_raw = await getRawStorage(contract_address);
+    const d_storage = json_micheline_to_expr(d_storage_raw);
+    const d_arg = codec.emitMicheline(arg);
+
+    const args = [
+      "run", "script", d_path_script, "on", "storage", d_storage, "and", "input", d_arg, "--entrypoint", entry
+    ];
+    if (trace) {
+      args.push("--trace-stack");
+    }
+    if (verbose) {
+      print(args);
+    }
+    const { stdout, stderr, failed } = await callTezosClient(args);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      print(stdout);
+    }
+    return new Promise(resolve => { resolve(null) });
+  } else if (isMockupMode()) {
     const a = (amount / 1000000).toString();
     const b = codec.emitMicheline(arg);
     print_settings(false, account, contract_id, amount, entry, b);
@@ -1892,7 +1925,7 @@ async function checkMichelson(options) {
   const michelson_path = tmpobj.name;
   fs.writeFileSync(michelson_path, res);
 
-  const args = [ "typecheck", "script", michelson_path ];
+  const args = ["typecheck", "script", michelson_path];
   const { stdout, stderr, failed } = await callTezosClient(args);
   if (failed) {
     throw (stderr)
@@ -2133,6 +2166,12 @@ async function getRawStorage(contract_address) {
   const uri = "/chains/main/blocks/head/context/contracts/" + contract_address + "/storage";
   const storage = await rpcGet(uri);
   return storage;
+}
+
+async function getRawScript(contract_address) {
+  const uri = "/chains/main/blocks/head/context/contracts/" + contract_address + "/script";
+  const script = await rpcGet(uri);
+  return script;
 }
 
 async function getStorage(input) {
