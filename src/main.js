@@ -1652,9 +1652,10 @@ async function callTransfer(options, contract_address, arg) {
     const d_storage_raw = await getRawStorage(contract_address);
     const d_storage = json_micheline_to_expr(d_storage_raw);
     const d_arg = codec.emitMicheline(arg);
+    const d_amount = (amount / 1000000).toString();
 
     const args = [
-      "run", "script", d_path_script, "on", "storage", d_storage, "and", "input", d_arg, "--entrypoint", entry
+      "run", "script", d_path_script, "on", "storage", d_storage, "and", "input", d_arg, "--entrypoint", entry, "--amount", d_amount
     ];
     if (trace) {
       args.push("--trace-stack");
