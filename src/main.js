@@ -12,6 +12,7 @@ const taquito = require('@taquito/taquito');
 const taquitoUtils = require('@taquito/utils');
 const codec = require('@taquito/michel-codec');
 const encoder = require('@taquito/michelson-encoder');
+const utils = require('@taquito/utils');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
@@ -2327,6 +2328,12 @@ function commandNotFound(options) {
   return 1;
 }
 
+async function getValueFromBigMap(id, data) {
+  const expr = utils.encodeExpr(data);
+  const a = await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
+  return a;
+}
+
 async function setArchetypeBin(options) {
   const value = options.value;
   const config = getConfig();
@@ -2493,4 +2500,5 @@ exports.transfer = transfer;
 exports.getEntries = getEntries;
 exports.expr_micheline_to_json = expr_micheline_to_json;
 exports.json_micheline_to_expr = json_micheline_to_expr;
-exports.setQuiet = setQuiet
+exports.setQuiet = setQuiet;
+exports.getValueFromBigMap = getValueFromBigMap;

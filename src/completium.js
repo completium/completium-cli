@@ -193,6 +193,11 @@ async function checkBalanceDelta(a, d, f) {
   }
 }
 
+async function getValueFromBigMap(id, k) {
+  var v = await Main.getValueFromBigMap(id, k);
+  return v;
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -213,3 +218,4 @@ exports.expr_micheline_to_json = expr_micheline_to_json;
 exports.json_micheline_to_expr = json_micheline_to_expr;
 exports.setQuiet = setQuiet;
 exports.checkBalanceDelta = checkBalanceDelta;
+exports.getValueFromBigMap = getValueFromBigMap;
