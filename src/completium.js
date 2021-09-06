@@ -169,6 +169,30 @@ function json_micheline_to_expr(v) {
   return Main.json_micheline_to_expr(v);
 }
 
+async function checkBalanceDelta(a, d, f) {
+  const balance_before = (await (getBalance(a))).toNumber();
+  try {
+    await f ();
+    const balance_after = (await (getBalance(a))).toNumber();
+    // After Minus Before
+    const delta = balance_after - balance_before;
+    const errorMsg = "Invalid delta balance of " + (delta / 1000000) + "XTZ for " + a.toString();
+    try {
+      if (!d((balance_after - balance_before) / 1000000)) {
+        throw (new Error(errorMsg))
+      }
+    } catch (e) {
+      if (isNaN(d) || !(typeof d === 'number')) {
+        throw e
+      } else if (delta !== d * 1000000) {
+        throw (new Error(errorMsg))
+      }
+    }
+   } catch (e) {
+     throw e
+   }
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -188,3 +212,4 @@ exports.sign = sign;
 exports.expr_micheline_to_json = expr_micheline_to_json;
 exports.json_micheline_to_expr = json_micheline_to_expr;
 exports.setQuiet = setQuiet;
+exports.checkBalanceDelta = checkBalanceDelta;
