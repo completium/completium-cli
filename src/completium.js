@@ -188,9 +188,9 @@ async function checkBalanceDelta(a, d, f) {
         throw (new Error(errorMsg))
       }
     }
-   } catch (e) {
-     throw e
-   }
+  } catch (e) {
+    throw e
+  }
 }
 
 exports.deploy = deploy;
