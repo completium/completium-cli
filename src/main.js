@@ -2328,10 +2328,14 @@ function commandNotFound(options) {
   return 1;
 }
 
-async function getValueFromBigMap(id, data) {
-  const expr = utils.encodeExpr(data);
-  const a = await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
-  return a;
+async function getValueFromBigMap(id, data, type) {
+  const input = packTyped({data: data, type: type});
+  const expr = utils.encodeExpr(input);
+  try {
+    return await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
+  } catch (e) {
+    return null;
+  }
 }
 
 async function setArchetypeBin(options) {
