@@ -2265,7 +2265,7 @@ function packTyped(options) {
   const typ = options.typ;
 
   const packedBytes = codec.packDataBytes(data, typ).bytes;
-  return "0x" + packedBytes;
+  return packedBytes;
 }
 
 function pack(options) {
