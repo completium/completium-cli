@@ -176,7 +176,9 @@ async function checkBalanceDelta(a, d, f) {
     const balance_after = (await (getBalance(a))).toNumber();
     // After Minus Before
     const delta = balance_after - balance_before;
-    const errorMsg = "Invalid delta balance of " + (delta / 1000000) + "XTZ for " + a.toString();
+    const account = getAccount(a);
+    const account_id = (account !== undefined && account != null) ? account.name : a;
+    const errorMsg = "Invalid delta balance of " + (delta / 1000000) + "XTZ for " + account_id.toString();
     try {
       if (!d((balance_after - balance_before) / 1000000)) {
         throw (new Error(errorMsg))
@@ -196,6 +198,18 @@ async function checkBalanceDelta(a, d, f) {
 async function getValueFromBigMap(id, data, type) {
   var v = await Main.getValueFromBigMap(id, data, type);
   return v;
+}
+
+async function expectToThrow(f) {
+  const m = "Failed to throw";
+  try {
+    await f();
+    throw new Error(m)
+  } catch (e) {
+    if (e.message === m) {
+      throw e
+    }
+  }
 }
 
 exports.deploy = deploy;
@@ -219,3 +233,4 @@ exports.json_micheline_to_expr = json_micheline_to_expr;
 exports.setQuiet = setQuiet;
 exports.checkBalanceDelta = checkBalanceDelta;
 exports.getValueFromBigMap = getValueFromBigMap;
+exports.expectToThrow = expectToThrow;
