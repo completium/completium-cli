@@ -540,6 +540,15 @@ async function initCompletium(options) {
         }
       },
       {
+        "name": "carl",
+        "pubk": "edpkugep78JxqeTzJ6N2dvAUKBGdHrHVbytAzUHGLLHrfXweSzX2oG",
+        "pkh": "tz1aGDrJ58LbcnD47CkwSk3myfTxJxipYJyk",
+        "key": {
+          "kind": "private_key",
+          "value": "edskS8eMgJopZofUWiuzRTrQJPGRoR3mcYEhhp2BTpR91ZMjmvHMEdfoPFfGaiXSV9M1NG21r4zQcz5QYPY1BtqigMSrd8eVUv"
+        }
+      },
+      {
         "name": "bootstrap1",
         "pkh": "tz1KqTpEZ7Yob7QbPE4Hy4Wo8fHG8LhKxZSx",
         "pubk": "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9sDVC9yav",
@@ -2332,7 +2341,7 @@ function commandNotFound(options) {
 }
 
 async function getValueFromBigMap(id, data, type) {
-  const input = packTyped({data: data, type: type});
+  const input = packTyped({ data: data, type: type });
   const expr = utils.encodeExpr(input);
   try {
     return await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
