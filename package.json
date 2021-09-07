@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/edukera/completium-cli#readme",
   "dependencies": {
-    "@completium/archetype": "0.1.4",
+    "@completium/archetype": "0.3.0",
     "@taquito/michel-codec": "^10.1.0",
     "@taquito/michelson-encoder": "^10.1.0",
     "@taquito/signer": "^10.1.0",

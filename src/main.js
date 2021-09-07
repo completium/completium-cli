@@ -2254,8 +2254,7 @@ function getAccountExt(options) {
     return {
       name: account.name,
       pkh: account.pkh,
-      pubk: account.pubk,
-      sk: account.key.value
+      pubk: account.pubk
     }
   }
 }
@@ -2320,7 +2319,7 @@ function blake2b(options) {
   const blake = require('blakejs');
   const value = options.value;
   const blakeHash = blake.blake2b(taquitoUtils.hex2buf(value), null, 32);
-  return "0x" + taquitoUtils.buf2hex(blakeHash);
+  return taquitoUtils.buf2hex(blakeHash);
 }
 
 async function sign(options) {
