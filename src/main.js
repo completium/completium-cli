@@ -462,7 +462,7 @@ async function initCompletium(options) {
   }
 
   const config = {
-    account: '',
+    account: 'alice',
     archetype_from_bin: false,
     bin: {
       "archetype": "archetype",
@@ -672,7 +672,7 @@ async function mockupInit(options) {
     }
   };
 
-  const accounts = getAccounts().accounts;;
+  const accounts = getAccounts().accounts;
 
   for (const x of accounts) {
     const name = x.name;
@@ -682,6 +682,7 @@ async function mockupInit(options) {
     await importAccount(name, key);
     await transferAccount(name, pkh);
   }
+  setEndpoint({endpoint : "mockup"})
 }
 
 async function showVersion(options) {
