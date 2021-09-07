@@ -1799,7 +1799,8 @@ async function getParamTypeEntrypoint(entry, contract_address) {
 async function callContract(options) {
   const input = options.contract;
   const args = options.arg !== undefined ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
-  var argMichelson = options.argsMichelson;
+  var argJsonMichelson = options.argJsonMichelson;
+  var argMichelson = options.argMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
 
   const contract = getContractFromIdOrAddress(input);
@@ -1832,7 +1833,9 @@ async function callContract(options) {
     throw new Error(msg);
   }
 
-  if (argMichelson !== undefined) {
+  if (argJsonMichelson !== undefined) {
+    arg = argJsonMichelson;
+  } else if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
   } else {
     arg = await computeArg(args, paramType);
