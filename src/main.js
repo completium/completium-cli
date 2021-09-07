@@ -2342,7 +2342,7 @@ function commandNotFound(options) {
 }
 
 async function getValueFromBigMap(id, data, type) {
-  const input = packTyped({ data: data, type: type });
+  const input = packTyped({ data: data, typ: type });
   const expr = utils.encodeExpr(input);
   try {
     return await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
