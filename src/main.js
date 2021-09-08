@@ -668,7 +668,7 @@ async function mockupInit(options) {
   const transferAccount = async (name, pkh) => {
     if (name !== "bootstrap1" && name !== "bootstrap2" && name !== "bootstrap3" && name !== "bootstrap4" && name !== "bootstrap5") {
       print(`Transfer ${pkh}`)
-      await callTezosClient(["transfer", "1000", "from", "bootstrap1", "to", pkh, "--burn-cap", "0.06425"]);
+      await callTezosClient(["transfer", "10000", "from", "bootstrap1", "to", pkh, "--burn-cap", "0.06425"]);
     }
   };
 
