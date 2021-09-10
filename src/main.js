@@ -143,13 +143,19 @@ function removeAccountInternal(name, callback) {
 }
 
 function removeContractInternal(input, callback) {
-  var obj = getContracts();
+  const obj = getContracts();
   obj.contracts = obj.contracts.filter(x => { return (input !== x.name && input !== x.address) });
   saveFile(contracts_path, obj, callback);
 }
 
+function getAccountGlobal(alias) {
+  const obj = getAccounts();
+  const r = obj.accounts.find(x => { return x.name === alias });
+  return r;
+}
+
 function getAccountInternal(with_address, input) {
-  var obj = getAccounts();
+  const obj = getAccounts();
   const r = obj.accounts.find(x => { return x.name === input || (with_address ? x.pkh === input : false) });
   if (r == null)
     return undefined;
@@ -839,13 +845,45 @@ function mkAccount(alias, pubk, pkh, prik, source) {
   }
 }
 
-async function saveAccountWithId(alias, pubk, pkh, prik, source) {
-  saveAccount(mkAccount(alias, pubk, pkh, prik, source),
+async function saveAccountWithId(alias, pubk, pkh, prik, source, network) {
+  let a = mkAccount(alias, pubk, pkh, prik, source);
+  const ac = getAccountGlobal(alias);
+  if (network) {
+    if (ac) {
+      if (ac.networks) {
+        ac.networks.map(x => x.network === network ? {...a, network: network} : x);
+      } else {
+        ac.networks = [{...a, network: network}]
+      }
+      a = ac;
+    } else {
+      if (network) {
+        const c = {...a, network: network};
+        const v = a;
+        v['networks'] = [];
+        v.networks.push(c);
+        a = v
+      } else {
+        // nothing
+      }
+    }
+  } else {
+    if (ac) {
+      v['networks'] = ac.networks;
+    } else {
+      // nothing
+    }
+  }
+  saveAccount(a,
     x => { print(`Account ${pkh} is registered as '${alias}'.`) });
 }
 
-async function confirmAccount(force, account) {
-  if (force || isNull(getAccount(account))) { return true }
+async function confirmAccount(force, account, network) {
+  const a = getAccount(account);
+  const b = isNull(a);
+  // const v = network ? (b ? ) : b;
+  const v = b;
+  if (force || v) { return true }
 
   const Confirm = require('prompt-confirm');
 
@@ -856,8 +894,9 @@ async function confirmAccount(force, account) {
 async function generateAccount(options) {
   const alias = options.alias;
   const force = options.force;
+  const network = options.network;
 
-  var confirm = await confirmAccount(force, alias);
+  var confirm = await confirmAccount(force, alias, network);
   if (!confirm) {
     return;
   }
@@ -872,7 +911,7 @@ async function generateAccount(options) {
   const pubk = await signer_.publicKey();
   const pkh = await signer_.publicKeyHash();
   const prik = await signer_.secretKey();
-  saveAccountWithId(alias, pubk, pkh, prik, "generated");
+  saveAccountWithId(alias, pubk, pkh, prik, "generated", network);
 }
 
 async function importAccount(kind, options) {
@@ -933,7 +972,7 @@ async function importAccount(kind, options) {
     const p = faucets_dir + "/" + pkh + ".json";
     saveFile(p, content);
   }
-  await saveAccountWithId(account, pubk, pkh, sk, source)
+  await saveAccountWithId(account, pubk, pkh, sk, source, network)
 }
 
 async function importFaucet(options) {
