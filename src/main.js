@@ -147,14 +147,29 @@ function removeContractInternal(input, callback) {
   saveFile(contracts_path, obj, callback);
 }
 
-function getAccount(name) {
+function getAccountInternal(with_address, input) {
   var obj = getAccounts();
-  return obj.accounts.find(x => x.name === name);
+  const r = obj.accounts.find(x => { return x.name === input || (with_address ? x.pkh === input : false) });
+  if (r == null)
+    return undefined;
+  else {
+    if (r.networks !== undefined) {
+      const config = getConfig();
+      const network = config.tezos.network;
+      const s = r.networks.find(x => x.network === network);
+        return (s !== undefined) ? {...s, name: r.name} : r;
+    } else {
+      return {...r, networks: undefined}
+    }
+  }
+}
+
+function getAccount(name) {
+  return getAccountInternal(false, name)
 }
 
 function getAccountFromIdOrAddr(input) {
-  var obj = getAccounts();
-  return obj.accounts.find(x => x.name === input || x.pkh === input);
+  return getAccountInternal(true, input)
 }
 
 function getSigner(forceAccount) {
@@ -682,7 +697,7 @@ async function mockupInit(options) {
     await importAccount(name, key);
     await transferAccount(name, pkh);
   }
-  setEndpoint({endpoint : "mockup"})
+  setEndpoint({ endpoint: "mockup" })
 }
 
 async function showVersion(options) {
@@ -847,13 +862,19 @@ async function importAccount(kind, options) {
   const account = options.account;
   const force = options.force;
 
+  const config = getConfig();
+  const tezos_network = config.tezos.network;
+  const tezos_endpoint = config.tezos.endpoint;
+
+  if (tezos_network === "mockup" || tezos_network === "mainnet") {
+    return new Promise((_, reject) => reject(`Bad network : ${tezos_network}, expected a testnet network.`));
+  }
+
   var confirm = await confirmAccount(force, account);
   if (!confirm) {
     return;
   }
 
-  const config = getConfig();
-  const tezos_endpoint = config.tezos.endpoint;
   const tezos = new taquito.TezosToolkit(tezos_endpoint);
   switch (kind) {
     case "faucet":
@@ -883,11 +904,11 @@ async function importAccount(kind, options) {
 }
 
 async function importFaucet(options) {
-  importAccount("faucet", options);
+  await importAccount("faucet", options);
 }
 
 async function importPrivatekey(options) {
-  importAccount("privatekey", options);
+  await importAccount("privatekey", options);
 }
 
 async function showKeysFrom(options) {
@@ -1367,7 +1388,7 @@ function print_deploy_settings(with_color, account, contract_id, amount, storage
   print(`Originate settings:`);
   print(`  ${start}network${end}\t: ${config.tezos.network}`);
   print(`  ${start}contract${end}\t: ${contract_id}`);
-  print(`  ${start}as${end}\t\t: ${account.name}`);
+  print(`  ${start}as${end}\t\t: ${account.name} (${account.pkh})`);
   print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
   print(`  ${start}storage${end}\t: ${storage}`);
   if (estimated_total_cost != null) {
@@ -1606,7 +1627,7 @@ function print_settings(with_color, account, contract_id, amount, entry, arg, es
   print(`Call settings:`);
   print(`  ${start}network${end}\t: ${config.tezos.network}`);
   print(`  ${start}contract${end}\t: ${contract_id}`);
-  print(`  ${start}as${end}\t\t: ${account.name}`);
+  print(`  ${start}as${end}\t\t: ${account.name} (${account.pkh})`);
   print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
   print(`  ${start}entrypoint${end}\t: ${entry}`);
   print(`  ${start}argument${end}\t: ${arg}`);
@@ -2321,6 +2342,13 @@ function blake2b(options) {
   const blakeHash = blake.blake2b(taquitoUtils.hex2buf(value), null, 32);
   return taquitoUtils.buf2hex(blakeHash);
 }
+
+// function keccak(options) {
+//   const blake = require('keccak');
+//   const value = options.value;
+//   const blakeHash = blake.blake2b(taquitoUtils.hex2buf(value), null, 32);
+//   return taquitoUtils.buf2hex(blakeHash);
+// }
 
 async function sign(options) {
   const value = options.value;
