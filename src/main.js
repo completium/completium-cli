@@ -29,6 +29,7 @@ const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
+const faucets_dir = completium_dir + "/faucets"
 
 const docker_id = 'tqtezos/flextesa:20210602'
 
@@ -157,9 +158,9 @@ function getAccountInternal(with_address, input) {
       const config = getConfig();
       const network = config.tezos.network;
       const s = r.networks.find(x => x.network === network);
-        return (s !== undefined) ? {...s, name: r.name} : r;
+      return (s !== undefined) ? { ...s, name: r.name } : r;
     } else {
-      return {...r, networks: undefined}
+      return { ...r, networks: undefined }
     }
   }
 }
@@ -474,6 +475,10 @@ async function initCompletium(options) {
 
   if (!fs.existsSync(sources_dir)) {
     fs.mkdirSync(sources_dir, { recursive: true });
+  }
+
+  if (!fs.existsSync(faucets_dir)) {
+    fs.mkdirSync(faucets_dir, { recursive: true });
   }
 
   const config = {
@@ -821,6 +826,24 @@ async function removeEndpoint(options) {
   saveConfig(config, x => { print(`'${endpoint}' is removed, configuration file updated.`) });
 }
 
+function mkAccount(alias, pubk, pkh, prik, source) {
+  return {
+    name: alias,
+    pubk: pubk,
+    pkh: pkh,
+    key: {
+      kind: 'private_key',
+      value: prik
+    },
+    source: source
+  }
+}
+
+async function saveAccountWithId(alias, pubk, pkh, prik, source) {
+  saveAccount(mkAccount(alias, pubk, pkh, prik, source),
+    x => { print(`Account ${pkh} is registered as '${alias}'.`) });
+}
+
 async function confirmAccount(force, account) {
   if (force || isNull(getAccount(account))) { return true }
 
@@ -849,25 +872,29 @@ async function generateAccount(options) {
   const pubk = await signer_.publicKey();
   const pkh = await signer_.publicKeyHash();
   const prik = await signer_.secretKey();
-  saveAccountWithId(alias, pubk, pkh, prik);
-}
-
-async function saveAccountWithId(alias, pubk, pkh, prik) {
-  saveAccount({ name: alias, pubk: pubk, pkh: pkh, key: { kind: 'private_key', value: prik } },
-    x => { print(`Account ${pkh} is registered as '${alias}'.`) });
+  saveAccountWithId(alias, pubk, pkh, prik, "generated");
 }
 
 async function importAccount(kind, options) {
   const value = options.value;
   const account = options.account;
   const force = options.force;
+  const network = options.network;
 
   const config = getConfig();
   const tezos_network = config.tezos.network;
   const tezos_endpoint = config.tezos.endpoint;
 
-  if (tezos_network === "mockup" || tezos_network === "mainnet") {
-    return new Promise((_, reject) => reject(`Bad network : ${tezos_network}, expected a testnet network.`));
+  switch (kind) {
+    case "faucet":
+      if (tezos_network === "mockup" || tezos_network === "mainnet") {
+        return new Promise((_, reject) => reject(`Bad network : ${tezos_network}, expected a testnet network.`));
+      }
+      break;
+    case "privatekey":
+      break;
+    default:
+      break;
   }
 
   var confirm = await confirmAccount(force, account);
@@ -875,9 +902,11 @@ async function importAccount(kind, options) {
     return;
   }
 
+  let source = "";
   const tezos = new taquito.TezosToolkit(tezos_endpoint);
   switch (kind) {
     case "faucet":
+      source = kind;
       const faucet = loadJS(value);
       print(`Importing key ...`);
       await signer.importKey(tezos,
@@ -888,6 +917,7 @@ async function importAccount(kind, options) {
         .catch(console.error);
       break;
     case "privatekey":
+      source = "sk_import";
       tezos.setProvider({
         signer: new signer.InMemorySigner(value),
       });
@@ -897,10 +927,13 @@ async function importAccount(kind, options) {
   }
   const pubk = await tezos.signer.publicKey();
   const pkh = await tezos.signer.publicKeyHash();
-  tezos.signer.secretKey().then(x => {
-    saveAccountWithId(account, pubk, pkh, x)
-  })
-    .catch(console.error);
+  const sk = await tezos.signer.secretKey();
+  if (kind === "faucet") {
+    const content = fs.readFileSync(value, 'utf8');
+    const p = faucets_dir + "/" + pkh + ".json";
+    saveFile(p, content);
+  }
+  await saveAccountWithId(account, pubk, pkh, sk, source)
 }
 
 async function importFaucet(options) {

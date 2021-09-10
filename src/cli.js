@@ -209,6 +209,7 @@ function parseCommand(args) {
       '--test-mode': Boolean,
       '--json': Boolean,
       '--trace': Boolean,
+      '--network': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -242,6 +243,7 @@ function parseCommand(args) {
     test: options['--test-mode'] || false,
     json: options['--json'] || false,
     trace: options['--trace'] || false,
+    network: options['--network'] || false,
   }
 }
 
