@@ -1844,7 +1844,7 @@ async function callContract(options) {
   }
 
   if (argJsonMichelson !== undefined) {
-    arg = argJsonMichelson;
+    arg = expr_micheline_to_json(json_micheline_to_expr(argJsonMichelson));
   } else if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
   } else {
