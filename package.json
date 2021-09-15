@@ -58,6 +58,7 @@
     "properties-reader": "^2.1.1",
     "request": "^2.88.2",
     "set-getter": ">=0.1.1",
+    "set-value": ">=4.0.1",
     "tmp": "^0.2.1"
   },
   "devDependencies": {}
