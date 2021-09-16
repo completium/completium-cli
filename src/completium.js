@@ -231,8 +231,8 @@ function isMockup() {
   return getEndpoint() === "mockup";
 }
 
-async function exprMichelineFromArg() {
-  var v = await Main.exprMichelineFromArg();
+async function exprMichelineFromArg(arg, type) {
+  var v = await Main.exprMichelineFromArg(arg, type);
   return v;
 }
 
