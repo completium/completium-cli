@@ -1549,7 +1549,7 @@ async function deploy(options) {
       "originate", "contract", contract_name,
       "transferring", a, "from", account.pkh,
       "running", contract_path, "--init", storage,
-      "--burn-cap", "20", "--force"
+      "--burn-cap", "20", "--force", "--no-print-source"
     ];
     const { stdout, stderr, failed } = await callTezosClient(args);
     if (failed) {
@@ -1690,7 +1690,7 @@ async function callTransfer(options, contract_address, arg) {
     const args = [
       "transfer", a, "from", account.pkh, "to", contract_address,
       "--entrypoint", entry, "--arg", b,
-      "--burn-cap", "20"];
+      "--burn-cap", "20", "--no-print-source"];
     const { stdout, stderr, failed } = await callTezosClient(args);
     if (failed) {
       return new Promise((resolve, reject) => { reject(stderr) });
