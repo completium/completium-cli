@@ -34,6 +34,7 @@ const docker_id = 'tqtezos/flextesa:20210602'
 
 var config = null;
 const mockup_path = completium_dir + "/mockup";
+const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 ///////////
 // TOOLS //
@@ -404,6 +405,7 @@ function help(options) {
   print("  stop sandbox");
 
   print("  mockup init");
+  print("  mockup set now <value>");
 
   print("  show endpoint");
   print("  switch endpoint");
@@ -1806,6 +1808,12 @@ async function getParamTypeEntrypoint(entry, contract_address) {
   }
 }
 
+async function exprMichelineFromArg(arg, type) {
+  objValues = {};
+  const res = await computeArg(arg, type);
+  return res;
+}
+
 async function callContract(options) {
   const input = options.contract;
   const args = options.arg !== undefined ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
@@ -1858,6 +1866,29 @@ async function setNow(options) {
   const vdate = options.date;
 
   return await callContract({ ...options, entry: "_set_now", args: { "": vdate } });
+}
+
+function mockupSetNow(options) {
+  const date = options.date;
+  const value = options.value;
+
+  let d;
+  if (date) {
+    d = date
+  } else {
+    if (value === undefined) {
+      throw new Error ("No value for mockupSetNow ");
+    }
+    d = new Date(value);
+  }
+  d.setMilliseconds(0);
+  const v = d.toISOString();
+
+  const input = loadJS(context_mockup_path);
+  input.context.shell_header.timestamp = v;
+  const content = JSON.stringify(input, 0, 2);
+  fs.writeFileSync(context_mockup_path, content);
+  print("Set mockup now: " + v)
 }
 
 async function generateMichelson(options) {
@@ -2394,6 +2425,9 @@ async function exec(options) {
       case "mockup_init":
         await mockupInit(options);
         break;
+      case "mockup_set_now":
+        await mockupSetNow(options);
+        break;
       case "show_endpoint":
         await showEndpoint(options);
         break;
@@ -2527,3 +2561,5 @@ exports.json_micheline_to_expr = json_micheline_to_expr;
 exports.setQuiet = setQuiet;
 exports.getValueFromBigMap = getValueFromBigMap;
 exports.getConfig = getConfig;
+exports.exprMichelineFromArg = exprMichelineFromArg;
+exports.mockupSetNow = mockupSetNow;

@@ -48,10 +48,14 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "stop" && args[3] === "sandbox") {
     res = { command: "stop_sandbox" };
     nargs = args.slice(4);
-    // show endpoint
+    // mockup init
   } else if (length > 3 && args[2] === "mockup" && args[3] === "init") {
     res = { command: "mockup_init" };
     nargs = args.slice(4);
+    // mockup set now
+  } else if (length > 3 && args[2] === "mockup" && args[3] === "set" && args[4] === "now") {
+    res = { command: "mockup_set_now", value: args[5] };
+    nargs = args.slice(6);
     // show endpoint
   } else if (length > 3 && args[2] === "show" && args[3] === "endpoint") {
     res = { command: "show_endpoint" };
