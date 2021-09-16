@@ -2518,3 +2518,4 @@ exports.expr_micheline_to_json = expr_micheline_to_json;
 exports.json_micheline_to_expr = json_micheline_to_expr;
 exports.setQuiet = setQuiet;
 exports.getValueFromBigMap = getValueFromBigMap;
+exports.getConfig = getConfig;

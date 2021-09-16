@@ -212,6 +212,15 @@ async function expectToThrow(f) {
   }
 }
 
+function getEndpoint() {
+  const config = Main.getConfig();
+  return config.tezos.endpoint;
+}
+
+function isMockup() {
+  return getEndpoint() === "mockup";
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -234,3 +243,5 @@ exports.setQuiet = setQuiet;
 exports.checkBalanceDelta = checkBalanceDelta;
 exports.getValueFromBigMap = getValueFromBigMap;
 exports.expectToThrow = expectToThrow;
+exports.getEndpoint = getEndpoint;
+exports.isMockup = isMockup;
