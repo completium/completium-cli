@@ -139,6 +139,11 @@ function blake2b(value) {
   return Main.blake2b(options);
 }
 
+function keccak(value) {
+  const options = { value: value };
+  return Main.keccak(options);
+}
+
 async function sign(value, obj) {
   const options = {...obj, value: value };
   return await Main.sign(options);
@@ -234,6 +239,7 @@ exports.getAccount = getAccount;
 exports.pack = pack;
 exports.packTyped = packTyped;
 exports.blake2b = blake2b;
+exports.keccak = keccak;
 exports.setNow = setNow;
 exports.transfer = transfer;
 exports.sign = sign;

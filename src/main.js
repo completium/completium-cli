@@ -2322,6 +2322,13 @@ function blake2b(options) {
   return taquitoUtils.buf2hex(blakeHash);
 }
 
+function keccak(options) {
+  const keccak = require('keccak');
+  const value = options.value;
+  const hash = keccak('keccak256').update(value, "hex");
+  return hash.digest('hex')
+}
+
 async function sign(options) {
   const value = options.value;
   const as = options.as;
@@ -2508,6 +2515,7 @@ exports.setEndpoint = setEndpoint;
 exports.getAddress = getAddress;
 exports.getAccountExt = getAccountExt;
 exports.blake2b = blake2b;
+exports.keccak = keccak;
 exports.sign = sign;
 exports.pack = pack;
 exports.packTyped = packTyped;
