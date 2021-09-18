@@ -212,7 +212,7 @@ async function getValueFromBigMap(id, data, type) {
 }
 
 async function expectToThrow(f, e) {
-  const m = "Failed to throw" + e !== undefined ? e : "";
+  const m = "Failed to throw" + (e !== undefined ? e : "");
   try {
     await f();
     throw new Error(m)
