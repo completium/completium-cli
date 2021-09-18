@@ -236,6 +236,11 @@ async function exprMichelineFromArg(arg, type) {
   return v;
 }
 
+function taquitoExecuteSchema(arg, type) {
+  var v = Main.taquitoExecuteSchema(arg, type);
+  return v;
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -263,3 +268,4 @@ exports.expectToThrow = expectToThrow;
 exports.getEndpoint = getEndpoint;
 exports.isMockup = isMockup;
 exports.exprMichelineFromArg = exprMichelineFromArg;
+exports.taquitoExecuteSchema = taquitoExecuteSchema;

@@ -1269,9 +1269,9 @@ function build_from_js(type, jdata) {
             throw new Error("Unknown type option");
           }
           let arg = jdata;
-          if (typeof jdata !== "string" && jdata.length && jdata.length > 0) {
-            arg = jdata[0];
-          }
+          // if (typeof jdata !== "string" && jdata.length && jdata.length > 0) {
+          //   arg = jdata[0];
+          // }
           const v = build_from_js(type.args[0], arg);
           return { prim: "Some", args: [v] };
         }
@@ -1812,6 +1812,12 @@ async function exprMichelineFromArg(arg, type) {
   objValues = {};
   const res = await computeArg(arg, type);
   return res;
+}
+
+function taquitoExecuteSchema(data, type) {
+  const schema = new encoder.Schema(type);
+  const r = schema.Execute(data);
+  return r;
 }
 
 async function callContract(options) {
@@ -2563,3 +2569,4 @@ exports.getValueFromBigMap = getValueFromBigMap;
 exports.getConfig = getConfig;
 exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.mockupSetNow = mockupSetNow;
+exports.taquitoExecuteSchema = taquitoExecuteSchema;
