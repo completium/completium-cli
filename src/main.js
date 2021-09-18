@@ -1693,7 +1693,16 @@ async function callTransfer(options, contract_address, arg) {
       "--burn-cap", "20", "--no-print-source"];
     const { stdout, stderr, failed } = await callTezosClient(args);
     if (failed) {
-      return new Promise((resolve, reject) => { reject(stderr) });
+      var rx = /.*\nwith (.*)\nFatal .*/g;
+      var arr = rx.exec(stderr);
+      let err;
+      if (!isNull(arr)) {
+        const unescape_str = unescape(arr[1]);
+        err = { value: unescape_str }
+      } else {
+        err = stderr
+      }
+      return new Promise((resolve, reject) => { reject(err) });
     } else {
       print(stdout);
     }

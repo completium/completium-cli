@@ -7,7 +7,8 @@
 
 // import { deploy, callContract, getStorage } from './main';
 
-const Main = require('./main')
+const Main = require('./main');
+const assert = require('assert');
 
 const BigNumber = require('bignumber.js').BigNumber;
 
@@ -210,13 +211,15 @@ async function getValueFromBigMap(id, data, type) {
   return v;
 }
 
-async function expectToThrow(f) {
-  const m = "Failed to throw";
+async function expectToThrow(f, e) {
+  const m = "Failed to throw" + e !== undefined ? e : "";
   try {
     await f();
     throw new Error(m)
-  } catch (e) {
-    if (e.message === m) {
+  } catch (ex) {
+    if (ex.value && e !== undefined) {
+      assert(ex.value === e, `${ex.value} instead of ${e}`)
+    } else if (ex.message === m) {
       throw e
     }
   }
