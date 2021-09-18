@@ -1889,7 +1889,7 @@ function mockupSetNow(options) {
 
   let d;
   if (date) {
-    d = date
+    d = typeof date == "number" ? new Date(date * 1000) : date
   } else {
     if (value === undefined) {
       throw new Error ("No value for mockupSetNow ");
