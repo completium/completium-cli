@@ -2313,7 +2313,8 @@ function getAccountExt(options) {
     return {
       name: account.name,
       pkh: account.pkh,
-      pubk: account.pubk
+      pubk: account.pubk,
+      sk: account.key.value
     }
   }
 }
