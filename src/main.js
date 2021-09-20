@@ -36,6 +36,8 @@ var config = null;
 const mockup_path = completium_dir + "/mockup";
 const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
+const tezos_client_dir = homedir + '/.tezos-client'
+
 ///////////
 // TOOLS //
 ///////////
@@ -329,7 +331,13 @@ function isMockupMode() {
 }
 
 async function callTezosClient(args) {
-  const arguments = ["--mode", "mockup", "--base-dir", mockup_path].concat(args);
+  let arguments;
+  if (isMockupMode()) {
+    arguments = ["--mode", "mockup", "--base-dir", mockup_path].concat(args);
+  } else {
+    const tezos_endpoint = config.tezos.endpoint;
+    arguments = ["--endpoint", tezos_endpoint].concat(args);
+  }
   try {
     const bin = config.bin['tezos-client'];
     const x = await execa(bin, arguments, {});
@@ -413,9 +421,9 @@ function help(options) {
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
 
-  print("  generate account as <ACCOUNT_ALIAS> [--force]");
-  print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]");
-  print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]");
+  print("  generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
+  print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
+  print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
 
   print("  show keys from <PRIVATE_KEY>");
   print("  set account <ACCOUNT_ALIAS>");
@@ -425,7 +433,7 @@ function help(options) {
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
-  print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
+  print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--args <ARGS> | --args-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
@@ -846,10 +854,11 @@ async function saveAccountWithId(alias, pubk, pkh, prik) {
 
 async function importAccount(kind, options) {
   const value = options.value;
-  const account = options.account;
+  const alias = options.account;
   const force = options.force;
+  const with_tezos_client = options.with_tezos_client;
 
-  var confirm = await confirmAccount(force, account);
+  var confirm = await confirmAccount(force, alias);
   if (!confirm) {
     return;
   }
@@ -878,10 +887,12 @@ async function importAccount(kind, options) {
   }
   const pubk = await tezos.signer.publicKey();
   const pkh = await tezos.signer.publicKeyHash();
-  tezos.signer.secretKey().then(x => {
-    saveAccountWithId(account, pubk, pkh, x)
-  })
-    .catch(console.error);
+  const sk = await tezos.signer.secretKey();
+  saveAccountWithId(alias, pubk, pkh, sk);
+  if (with_tezos_client) {
+    const args = ["import", "secret", "key", alias, ("unencrypted:" + sk)];
+    callTezosClient(args);
+  }
 }
 
 async function importFaucet(options) {
@@ -1399,6 +1410,7 @@ async function deploy(options) {
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
   const mockup_mode = isMockupMode();
+  const force_tezos_client = options.force_tezos_client;
 
   if (otest && originate) {
     const msg = `Cannot originate a contract in test mode.`;
@@ -1541,7 +1553,7 @@ async function deploy(options) {
   if (dry) {
     // taquito.RpcPacker.preapplyOperations();
     print("TODO")
-  } else if (mockup_mode) {
+  } else if (mockup_mode || force_tezos_client) {
     const a = (amount / 1000000).toString();
     const storage = codec.emitMicheline(m_storage);
     print_deploy_settings(false, account, contract_name, amount, storage, null);
@@ -1557,7 +1569,8 @@ async function deploy(options) {
     } else {
       print(stdout);
     }
-    const inputContracts = fs.readFileSync(mockup_path + "/contracts", 'utf8');
+    const path_contracts = (mockup_mode ? mockup_path : tezos_client_dir) + "/contracts";
+    const inputContracts = fs.readFileSync(path_contracts, 'utf8');
     const cobj = JSON.parse(inputContracts);
     const o = cobj.find(x => { return (x.name === contract_name) });
     const contract_address = isNull(o) ? null : o.value;
