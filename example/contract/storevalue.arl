@@ -1,5 +1,0 @@
-archetype storevalue (value : nat)
-
-entry replace (v : nat) { value := v }
-
-entry double () { value *= 2 }

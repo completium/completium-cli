@@ -1,3 +1,0 @@
-archetype error
-
-entry increment() { fail("KO") }
