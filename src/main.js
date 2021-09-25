@@ -38,6 +38,8 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
+const default_mockup_protocol = 'PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV'
+
 ///////////
 // TOOLS //
 ///////////
@@ -412,12 +414,12 @@ function help(options) {
   print("  start sandbox");
   print("  stop sandbox");
 
-  print("  mockup init");
+  print("  mockup init [--protocol <VALUE>]");
   print("  mockup set now <value>");
 
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|florence|granada|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|florence|granada|hangzhou|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
 
@@ -434,7 +436,7 @@ function help(options) {
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force]");
-  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--args <ARGS> | --args-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
+  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
@@ -509,6 +511,15 @@ async function initCompletium(options) {
           endpoints: [
             'https://granada-tezos.giganode.io',
             'https://granadanet.smartpy.io'
+          ]
+        },
+        {
+          network: 'hangzhou',
+          bcd_url: "https://better-call.dev/hangzhounet/${address}",
+          tzstat_url: "https://hangzhou.tzstats.com",
+          endpoints: [
+            'https://hangzhounet.smartpy.io',
+            'https://rpc.hangzhounet.teztnets.xyz'
           ]
         },
         {
@@ -657,10 +668,11 @@ async function stopSandbox(options) {
 }
 
 async function mockupInit(options) {
+  const protocol = options.protocol ? options.protocol : default_mockup_protocol
   const config = getConfig();
   fs.rmdirSync(mockup_path, { recursive: true });
   const { stdout } = await execa(config.bin['tezos-client'], [
-    '--protocol', 'PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV',
+    '--protocol', protocol,
     '--base-dir', mockup_path,
     '--mode', 'mockup',
     'create', 'mockup'

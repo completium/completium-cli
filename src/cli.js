@@ -215,6 +215,7 @@ function parseCommand(args) {
       '--trace': Boolean,
       '--force-tezos-client': Boolean,
       '--with-tezos-client': Boolean,
+      '--protocol': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -250,6 +251,7 @@ function parseCommand(args) {
     trace: options['--trace'] || false,
     force_tezos_client: options['--force-tezos-client'] || false,
     with_tezos_client: options['--with-tezos-client'] || false,
+    protocol: options['--protocol'],
   }
 }
 
