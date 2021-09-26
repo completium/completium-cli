@@ -1677,7 +1677,7 @@ async function callTransfer(options, contract_address, arg) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  if (dry) {
+  if (false) {
     const script_raw_json = await getRawScript(contract_address);
     const script_raw = json_micheline_to_expr(script_raw_json.code)
 
@@ -1708,7 +1708,7 @@ async function callTransfer(options, contract_address, arg) {
       print(stdout);
     }
     return new Promise(resolve => { resolve(null) });
-  } else if (isMockupMode()) {
+  } else if (dry || isMockupMode()) {
     const a = (amount / 1000000).toString();
     const b = codec.emitMicheline(arg);
     print_settings(false, account, contract_id, amount, entry, b);
@@ -1716,6 +1716,9 @@ async function callTransfer(options, contract_address, arg) {
       "transfer", a, "from", account.pkh, "to", contract_address,
       "--entrypoint", entry, "--arg", b,
       "--burn-cap", "20", "--no-print-source"];
+    if (dry) {
+      args.push('-D')
+    }
     const { stdout, stderr, failed } = await callTezosClient(args);
     if (failed) {
       var rx = /.*\nwith (.*)\nFatal .*/g;
