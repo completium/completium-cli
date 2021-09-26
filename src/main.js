@@ -2188,14 +2188,12 @@ function getContractAddress(input) {
   if (!isNull(contract)) {
     const config = getConfig();
     if (contract.network !== config.tezos.network) {
-      print(`Expecting network ${contract.network}. Switch endpoint and retry.`);
-      return;
+      throw (new (`Expecting network ${contract.network}. Switch endpoint and retry.`));
     }
     contract_address = contract.address;
   } else {
     if (!contract_address.startsWith('KT1')) {
-      print(`'${contract_address}' bad contract address.`);
-      return;
+      throw (new Error(`'${contract_address}' bad contract address.`));
     }
   }
   return contract_address;

@@ -67,9 +67,13 @@ async function getStorage(contract_id) {
 
 async function getContract(contract_id) {
   return new Promise(async (resolve, reject) => {
-    const contract = await Main.getTezosContract(contract_id);
+    let contract = null;
+    try {
+      contract = await Main.getTezosContract(contract_id);
+    } catch (ex) {
+      reject(ex)
+    }
     const contract_address = contract.address;
-    // resolve(contract);
 
     const x = await Main.getEntries(contract_address, true);
     const entries = JSON.parse(x);
