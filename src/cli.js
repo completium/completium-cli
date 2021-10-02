@@ -147,6 +147,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "check" && args[3] === "michelson") {
     res = { command: "check_michelson", path: args[4] };
     nargs = args.slice(5);
+    // run <FILE.arl>
+  } else if (length > 3 && args[2] === "run") {
+    res = { command: "run", path: args[3] };
+    nargs = args.slice(4);
     // show entries of <CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
     res = { command: "show_entries", contract: args[4] };
@@ -216,6 +220,7 @@ function parseCommand(args) {
       '--force-tezos-client': Boolean,
       '--with-tezos-client': Boolean,
       '--protocol': String,
+      '--storage': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -252,6 +257,7 @@ function parseCommand(args) {
     force_tezos_client: options['--force-tezos-client'] || false,
     with_tezos_client: options['--with-tezos-client'] || false,
     protocol: options['--protocol'],
+    storage: options['--storage'],
   }
 }
 

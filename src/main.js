@@ -272,6 +272,7 @@ async function callArchetype(options, path, s) {
   } else {
     if (archetype == null) {
       archetype = require('@completium/archetype');
+      // archetype = require('/home/guillaume/archetype/archetype-lang/npm-package');
     }
     if (s.version) {
       return archetype.version()
@@ -437,6 +438,7 @@ function help(options) {
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
+  print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
@@ -704,7 +706,7 @@ async function mockupInit(options) {
     await importAccount(name, key);
     await transferAccount(name, pkh);
   }
-  setEndpoint({endpoint : "mockup"})
+  setEndpoint({ endpoint: "mockup" })
 }
 
 async function showVersion(options) {
@@ -1656,7 +1658,6 @@ async function callTransfer(options, contract_address, arg) {
   const entry = options.entry === undefined ? 'default' : options.entry;
   const quiet = options.quiet === undefined ? false : options.quiet;
   const dry = options.dry === undefined ? false : options.dry;
-  const trace = options.trace === undefined ? false : options.trace;
   const verbose = options.verbose === undefined ? false : options.verbose;
 
   const contract_id = options.contract;
@@ -1677,38 +1678,7 @@ async function callTransfer(options, contract_address, arg) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  if (false) {
-    const script_raw_json = await getRawScript(contract_address);
-    const script_raw = json_micheline_to_expr(script_raw_json.code)
-
-    const tmp = require('tmp');
-    const tmpobj = tmp.fileSync();
-
-    const d_path_script = tmpobj.name;
-    fs.writeFileSync(d_path_script, script_raw);
-
-    const d_storage_raw = await getRawStorage(contract_address);
-    const d_storage = json_micheline_to_expr(d_storage_raw);
-    const d_arg = codec.emitMicheline(arg);
-    const d_amount = (amount / 1000000).toString();
-
-    const args = [
-      "run", "script", d_path_script, "on", "storage", d_storage, "and", "input", d_arg, "--entrypoint", entry, "--amount", d_amount
-    ];
-    if (trace) {
-      args.push("--trace-stack");
-    }
-    if (verbose) {
-      print(args);
-    }
-    const { stdout, stderr, failed } = await callTezosClient(args);
-    if (failed) {
-      return new Promise((resolve, reject) => { reject(stderr) });
-    } else {
-      print(stdout);
-    }
-    return new Promise(resolve => { resolve(null) });
-  } else if (dry || isMockupMode()) {
+  if (dry || isMockupMode()) {
     const a = (amount / 1000000).toString();
     const b = codec.emitMicheline(arg);
     print_settings(false, account, contract_id, amount, entry, b);
@@ -1812,6 +1782,50 @@ async function callTransfer(options, contract_address, arg) {
         );
     });
   }
+}
+async function run(options) {
+  const path = options.path;
+  const arg = options.argMichelson !== undefined ? options.argMichelson : "Unit";
+  const entry = options.entry !== undefined ? options.entry : "default";
+  const trace = options.trace === undefined ? false : options.trace;
+  const verbose = options.verbose === undefined ? false : options.verbose;
+
+  const amount = isNull(options.amount) ? 0 : getAmount(options.amount);
+  if (isNull(amount)) {
+    const msg = `Invalid amount`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const tmp = require('tmp');
+  const tmpobj = tmp.fileSync();
+
+  const script_raw = await callArchetype(options, path, { target: "michelson" }); // TODO: handle parameters
+  const d_path_script = tmpobj.name;
+  fs.writeFileSync(d_path_script, script_raw);
+
+  let d_storage = options.storage;
+  if (options.storage === undefined) {
+    d_storage = await callArchetype(options, path, { target: "michelson-storage" });
+  }
+
+  const d_amount = (amount / 1000000).toString();
+
+  const args = [
+    "run", "script", d_path_script, "on", "storage", d_storage, "and", "input", arg, "--entrypoint", entry, "--amount", d_amount
+  ];
+  if (trace) {
+    args.push("--trace-stack");
+  }
+  if (verbose) {
+    print(args);
+  }
+  const { stdout, stderr, failed } = await callTezosClient(args);
+  if (failed) {
+    return new Promise((resolve, reject) => { reject(stderr) });
+  } else {
+    print(stdout);
+  }
+  return new Promise(resolve => { resolve(null) });
 }
 
 async function computeArg(args, paramType) {
@@ -1920,7 +1934,7 @@ function mockupSetNow(options) {
     d = typeof date == "number" ? new Date(date * 1000) : date
   } else {
     if (value === undefined) {
-      throw new Error ("No value for mockupSetNow ");
+      throw new Error("No value for mockupSetNow ");
     }
     d = new Date(value);
   }
@@ -2524,6 +2538,9 @@ async function exec(options) {
         break;
       case "call_contract":
         await callContract(options);
+        break;
+      case "run":
+        await run(options);
         break;
       case "generate_michelson":
         await generateMichelson(options);
