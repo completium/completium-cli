@@ -1,0 +1,8 @@
+archetype charity (owner : address)
+
+entry collect (requestedAmount : tez) {
+  called by owner
+  effect { transfer requestedAmount to owner }
+}
+
+entry donate () {}

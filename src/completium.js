@@ -100,6 +100,7 @@ async function getContract(contract_id) {
       }));
     }
     contract["getStorage"] = (p => getStorage(contract_id));
+    contract["getBalance"] = (p => getBalance(contract_id));
     resolve(contract);
   });
 }
