@@ -272,7 +272,6 @@ async function callArchetype(options, path, s) {
   } else {
     if (archetype == null) {
       archetype = require('@completium/archetype');
-      // archetype = require('/home/guillaume/archetype/archetype-lang/npm-package');
     }
     if (s.version) {
       return archetype.version()
@@ -670,6 +669,8 @@ async function stopSandbox(options) {
 }
 
 async function mockupInit(options) {
+  setEndpoint({ endpoint: "mockup" })
+
   const protocol = options.protocol ? options.protocol : default_mockup_protocol
   const config = getConfig();
   fs.rmdirSync(mockup_path, { recursive: true });
@@ -706,7 +707,6 @@ async function mockupInit(options) {
     await importAccount(name, key);
     await transferAccount(name, pkh);
   }
-  setEndpoint({ endpoint: "mockup" })
 }
 
 async function showVersion(options) {
