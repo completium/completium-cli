@@ -1,0 +1,28 @@
+archetype account (owner : address)
+
+variable maxAmount : tez = 10tz
+variable lastTransfer : option<date> = none
+
+variable rate : rational = 50%
+
+entry collect () {
+  called by owner
+  require {
+    r1 : match lastTransfer with | some(d) -> now - d > 2m | none -> true end
+         otherwise "Too soon!";
+  }
+  effect {
+    transfer (rate * balance) to owner;
+    lastTransfer := some(now);
+  }
+}
+
+entry deposit (v : tez, r : rational) {
+  require {
+    r2: transferred >= 100tz otherwise "Not enough tez!"
+  }
+  effect {
+    maxAmount := v;
+    rate := r
+  }
+}

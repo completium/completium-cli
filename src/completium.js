@@ -168,7 +168,7 @@ async function setNow(contract_id, date) {
 
 async function setMockupNow(date) {
   const options = { date: date, force: true, verbose: true };
-  Main.mockupSetNow(options);
+  Main.setMockupNow(options);
 }
 
 async function transfer(from, to, amount) {

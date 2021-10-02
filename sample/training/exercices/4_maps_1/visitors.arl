@@ -1,0 +1,24 @@
+archetype visitors
+
+constant delay : duration = 10d
+
+asset visitor {
+  login    : address;
+  name     : string;
+  nbvisits : nat = 0;
+  last     : date = now - delay;
+}
+
+entry register(n : string) {
+  visitor.add({ login = caller; name = n });
+}
+
+entry visit() {
+  require {
+    valid_amount: transferred >= (if (visitor[caller].nbvisits = 0) then 5tz else 3tz);
+    valid_delay: now - visitor[caller].last >= delay
+  }
+  effect {
+    visitor.update(caller, {nbvisits += 1; last = now});
+  }
+}

@@ -1925,7 +1925,10 @@ async function setNow(options) {
   return await callContract({ ...options, entry: "_set_now", args: { "": vdate } });
 }
 
-function mockupSetNow(options) {
+function setMockupNow(options) {
+  if (!isMockupMode()) {
+    throw (new Error("Mode mockup is required for setMockupNow."))
+  }
   const date = options.date;
   const value = options.value;
 
@@ -1934,7 +1937,7 @@ function mockupSetNow(options) {
     d = typeof date == "number" ? new Date(date * 1000) : date
   } else {
     if (value === undefined) {
-      throw new Error("No value for mockupSetNow ");
+      throw new Error("No value for setMockupNow ");
     }
     d = new Date(value);
   }
@@ -2621,5 +2624,5 @@ exports.setQuiet = setQuiet;
 exports.getValueFromBigMap = getValueFromBigMap;
 exports.getConfig = getConfig;
 exports.exprMichelineFromArg = exprMichelineFromArg;
-exports.mockupSetNow = mockupSetNow;
+exports.setMockupNow = setMockupNow;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
