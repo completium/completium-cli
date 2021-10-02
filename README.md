@@ -77,7 +77,7 @@ Current endpoint: https://edonet-tezos.giganode.io
 ### Add endpoint
 
 ```bash
-completium-cli add endpoint (main|florence|granada) <ENDPOINT_URL>
+completium-cli add endpoint (main|florence|granada|hangzhou) <ENDPOINT_URL>
 ```
 
 ### Remove endpoint
