@@ -1,0 +1,18 @@
+archetype account
+
+variable owner    : address = tz1aGDrJ58LbcnD47CkwSk3myfTxJxipYJyk
+variable total    : int     = 0
+variable lastUser : address = owner
+
+entry add (value : nat) {
+  dorequire(0 <= value < 10, "Invalid value");
+  total += value
+}
+
+entry sub (amount : int) {
+  dorequire(caller <> lastUser, "Same person trying to decrement twice");
+  total -= amount;
+  lastUser := caller;
+}
+
+entry reset () { called by owner }

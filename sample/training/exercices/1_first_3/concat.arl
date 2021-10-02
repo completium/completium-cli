@@ -1,0 +1,9 @@
+archetype concat
+
+variable text  : string = "Hi"
+variable count : nat    = 0
+
+entry concat (p : string) {
+  text += ", " + p;
+  count += 1;
+}
