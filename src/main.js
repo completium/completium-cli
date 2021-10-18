@@ -1424,7 +1424,7 @@ async function deploy(options) {
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
   const mockup_mode = isMockupMode();
-  const force_tezos_client = options.force_tezos_client;
+  const force_tezos_client = options.force_tezos_client === undefined ? false : options.force_tezos_client;
 
   if (otest && originate) {
     const msg = `Cannot originate a contract in test mode.`;
@@ -1658,6 +1658,8 @@ async function callTransfer(options, contract_address, arg) {
   const entry = options.entry === undefined ? 'default' : options.entry;
   const quiet = options.quiet === undefined ? false : options.quiet;
   const dry = options.dry === undefined ? false : options.dry;
+  const mockup_mode = isMockupMode();
+  const force_tezos_client = options.force_tezos_client === undefined ? false : options.force_tezos_client;
   const verbose = options.verbose === undefined ? false : options.verbose;
 
   const contract_id = options.contract;
@@ -1678,7 +1680,7 @@ async function callTransfer(options, contract_address, arg) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  if (dry || isMockupMode()) {
+  if (force_tezos_client || dry || mockup_mode) {
     const a = (amount / 1000000).toString();
     const b = codec.emitMicheline(arg);
     print_settings(false, account, contract_id, amount, entry, b);
