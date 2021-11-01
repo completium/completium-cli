@@ -38,7 +38,7 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-const default_mockup_protocol = 'PtGRANADsDU8R9daYKAgWnQYAJ64omN1o3KMGVCykShA97vQbvV'
+const default_mockup_protocol = 'PtHangzHogokSuiMHemCuowEavgYTP8J5qQ9fQS793MHYFpCY3r'
 
 ///////////
 // TOOLS //
@@ -1489,7 +1489,6 @@ async function deploy(options) {
       return new Promise((resolve, reject) => { reject(e) });
     }
   }
-  const m_code = expr_micheline_to_json(code);
 
   if (!originate && isNull(parameters)) {
     const with_parameters = await callArchetype(options, file, {
@@ -1517,6 +1516,7 @@ async function deploy(options) {
       }
     } else {
       try {
+        const m_code = expr_micheline_to_json(code);
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
         m_storage = await compute_tzstorage(file, storageType, parameters, computeSettings(options));
@@ -1534,14 +1534,6 @@ async function deploy(options) {
   const version = await getArchetypeVersion();
 
   const tezos = getTezos(account.name);
-
-  const originateParam = {
-    balance: amount,
-    fee: fee > 0 ? fee : undefined,
-    code: m_code,
-    init: m_storage,
-    mutez: true
-  };
 
   const saveC = async (resolve, op, storage, contract_address) => {
     saveContract({
@@ -1590,6 +1582,16 @@ async function deploy(options) {
     const contract_address = isNull(o) ? null : o.value;
     return new Promise((resolve, reject) => { saveC(resolve, null, storage, contract_address) });
   } else {
+
+    const m_code = expr_micheline_to_json(code);
+
+    const originateParam = {
+      balance: amount,
+      fee: fee > 0 ? fee : undefined,
+      code: m_code,
+      init: m_storage,
+      mutez: true
+    };
 
     const storage = codec.emitMicheline(m_storage);
 
