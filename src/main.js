@@ -434,9 +434,9 @@ function help(options) {
   print("  remove account <ACCOUNT_ALIAS>");
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force]");
-  print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force]");
-  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force]");
+  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--show-tezos-client-command]");
+  print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]");
+  print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]");
   print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
@@ -1410,6 +1410,17 @@ async function confirmDeploy(force, account, contract_id, amount, storage, estim
   return new Promise(resolve => { new Confirm("Confirm settings").ask(answer => { resolve(answer); }) });
 }
 
+function getTezosClientArgs(args) {
+  const config = getConfig();
+  let b = `tezos-client --endpoint ${config.tezos.endpoint}`;
+
+  args.forEach(x => {
+    const y = x.includes(' ') || x.includes('"') ? `'${x}'` : x
+    b += " " + y
+  })
+  return b.toString()
+}
+
 async function deploy(options) {
   const config = getConfig();
 
@@ -1425,6 +1436,7 @@ async function deploy(options) {
   const otest = options.test;
   const mockup_mode = isMockupMode();
   const force_tezos_client = options.force_tezos_client === undefined ? false : options.force_tezos_client;
+  const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
 
   if (otest && originate) {
     const msg = `Cannot originate a contract in test mode.`;
@@ -1464,7 +1476,7 @@ async function deploy(options) {
   }
 
   const contract_name = named === undefined ? path.basename(file).split('.').slice(0, -1).join('.') : named;
-  var confirm = await confirmContract(force, contract_name);
+  var confirm = await confirmContract(force || show_tezos_client_command, contract_name);
   if (!confirm) {
     const msg = `Not confirmed`
     return new Promise((resolve, reject) => { reject(msg) });
@@ -1559,28 +1571,34 @@ async function deploy(options) {
   if (dry) {
     // taquito.RpcPacker.preapplyOperations();
     print("TODO")
-  } else if (mockup_mode || force_tezos_client) {
+  } else if (mockup_mode || force_tezos_client || show_tezos_client_command) {
     const a = (amount / 1000000).toString();
     const storage = codec.emitMicheline(m_storage);
-    print_deploy_settings(false, account, contract_name, amount, storage, null);
     const args = [
       "originate", "contract", contract_name,
       "transferring", a, "from", account.pkh,
       "running", contract_path, "--init", storage,
       "--burn-cap", "20", "--force", "--no-print-source"
     ];
-    const { stdout, stderr, failed } = await callTezosClient(args);
-    if (failed) {
-      return new Promise((resolve, reject) => { reject(stderr) });
+    if (show_tezos_client_command) {
+      const cmd = getTezosClientArgs(args);
+      print(cmd);
+      return new Promise((resolve) => { resolve(null) })
     } else {
-      print(stdout);
+      print_deploy_settings(false, account, contract_name, amount, storage, null);
+      const { stdout, stderr, failed } = await callTezosClient(args);
+      if (failed) {
+        return new Promise((resolve, reject) => { reject(stderr) });
+      } else {
+        print(stdout);
+      }
+      const path_contracts = (mockup_mode ? mockup_path : tezos_client_dir) + "/contracts";
+      const inputContracts = fs.readFileSync(path_contracts, 'utf8');
+      const cobj = JSON.parse(inputContracts);
+      const o = cobj.find(x => { return (x.name === contract_name) });
+      const contract_address = isNull(o) ? null : o.value;
+      return new Promise((resolve, reject) => { saveC(resolve, null, storage, contract_address) });
     }
-    const path_contracts = (mockup_mode ? mockup_path : tezos_client_dir) + "/contracts";
-    const inputContracts = fs.readFileSync(path_contracts, 'utf8');
-    const cobj = JSON.parse(inputContracts);
-    const o = cobj.find(x => { return (x.name === contract_name) });
-    const contract_address = isNull(o) ? null : o.value;
-    return new Promise((resolve, reject) => { saveC(resolve, null, storage, contract_address) });
   } else {
 
     const m_code = expr_micheline_to_json(code);
@@ -1663,6 +1681,7 @@ async function callTransfer(options, contract_address, arg) {
   const mockup_mode = isMockupMode();
   const force_tezos_client = options.force_tezos_client === undefined ? false : options.force_tezos_client;
   const verbose = options.verbose === undefined ? false : options.verbose;
+  const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
 
   const contract_id = options.contract;
 
@@ -1682,10 +1701,9 @@ async function callTransfer(options, contract_address, arg) {
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
 
-  if (force_tezos_client || dry || mockup_mode) {
+  if (force_tezos_client || dry || mockup_mode || show_tezos_client_command) {
     const a = (amount / 1000000).toString();
     const b = codec.emitMicheline(arg);
-    print_settings(false, account, contract_id, amount, entry, b);
     const args = [
       "transfer", a, "from", account.pkh, "to", contract_address,
       "--entrypoint", entry, "--arg", b,
@@ -1693,22 +1711,29 @@ async function callTransfer(options, contract_address, arg) {
     if (dry) {
       args.push('-D')
     }
-    const { stdout, stderr, failed } = await callTezosClient(args);
-    if (failed) {
-      var rx = /.*\nwith (.*)\nFatal .*/g;
-      var arr = rx.exec(stderr);
-      let err;
-      if (!isNull(arr)) {
-        const unescape_str = unescape(arr[1]);
-        err = { value: unescape_str }
-      } else {
-        err = stderr
-      }
-      return new Promise((resolve, reject) => { reject(err) });
+    if (show_tezos_client_command) {
+      const cmd = getTezosClientArgs(args);
+      print(cmd);
+      return new Promise((resolve) => { resolve(null) })
     } else {
-      print(stdout);
+      print_settings(false, account, contract_id, amount, entry, b);
+      const { stdout, stderr, failed } = await callTezosClient(args);
+      if (failed) {
+        var rx = /.*\nwith (.*)\nFatal .*/g;
+        var arr = rx.exec(stderr);
+        let err;
+        if (!isNull(arr)) {
+          const unescape_str = unescape(arr[1]);
+          err = { value: unescape_str }
+        } else {
+          err = stderr
+        }
+        return new Promise((resolve, reject) => { reject(err) });
+      } else {
+        print(stdout);
+      }
+      return new Promise(resolve => { resolve(null) });
     }
-    return new Promise(resolve => { resolve(null) });
   } else {
     const tezos = getTezos(account.name);
 

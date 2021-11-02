@@ -221,6 +221,7 @@ function parseCommand(args) {
       '--with-tezos-client': Boolean,
       '--protocol': String,
       '--storage': String,
+      '--show-tezos-client-command': Boolean,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -258,6 +259,7 @@ function parseCommand(args) {
     with_tezos_client: options['--with-tezos-client'] || false,
     protocol: options['--protocol'],
     storage: options['--storage'],
+    show_tezos_client_command: options['--show-tezos-client-command'],
   }
 }
 
