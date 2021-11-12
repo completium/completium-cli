@@ -236,6 +236,9 @@ function computeArgsSettings(options, settings, path) {
       if (options.test || (settings !== undefined && settings.test_mode)) {
         args.push('--test-mode');
       }
+      if (options.no_js_header) {
+        args.push('--no-js-header');
+      }
     }
     args.push(path);
   }
@@ -1528,7 +1531,27 @@ async function deploy(options) {
       }
     } else {
       try {
-        const m_code = expr_micheline_to_json(code);
+        /* taquito cannot parse UNPAIR n, it considers that it's a macro.
+           So, we use the js output of archtype and write it in a tmp
+           file, and reload it.
+        */
+        // const m_code = expr_micheline_to_json(code);
+        // begin work around
+        const contract_script = await callArchetype(options, file, {
+          target: "javascript",
+          sci: account.pkh,
+          no_js_header: true
+        });
+
+        const tmp = require('tmp');
+        const tmpobj = tmp.fileSync();
+        const tmppath = tmpobj.name;
+        fs.writeFileSync(tmppath, contract_script);
+
+        require = require('esm')(module /*, options*/);
+        const c = require(tmppath);
+        const m_code = c.code;
+        // end work around
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
         m_storage = await compute_tzstorage(file, storageType, parameters, computeSettings(options));
