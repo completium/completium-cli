@@ -1554,7 +1554,7 @@ async function deploy(options) {
       try {
         // const m_code = expr_micheline_to_json(code);
         // begin work around
-        const m_code = get_m_code();
+        const m_code = await get_m_code();
         // end work around
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
