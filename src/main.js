@@ -1515,6 +1515,27 @@ async function deploy(options) {
     }
   }
 
+  /* taquito cannot parse UNPAIR n, it considers that it's a macro.
+     So, we use the js output of archtype and write it in a tmp
+     file, and reload it.
+  */
+  const get_m_code = async () => {
+    const contract_script = await callArchetype(options, file, {
+      target: "javascript",
+      sci: account.pkh,
+      no_js_header: true
+    });
+
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync();
+    const tmppath = tmpobj.name;
+    fs.writeFileSync(tmppath, contract_script);
+
+    require = require('esm')(module /*, options*/);
+    const c = require(tmppath);
+    return c.code;
+  }
+
   let m_storage;
   if (!isNull(oinit)) {
     m_storage = expr_micheline_to_json(oinit);
@@ -1531,26 +1552,9 @@ async function deploy(options) {
       }
     } else {
       try {
-        /* taquito cannot parse UNPAIR n, it considers that it's a macro.
-           So, we use the js output of archtype and write it in a tmp
-           file, and reload it.
-        */
         // const m_code = expr_micheline_to_json(code);
         // begin work around
-        const contract_script = await callArchetype(options, file, {
-          target: "javascript",
-          sci: account.pkh,
-          no_js_header: true
-        });
-
-        const tmp = require('tmp');
-        const tmpobj = tmp.fileSync();
-        const tmppath = tmpobj.name;
-        fs.writeFileSync(tmppath, contract_script);
-
-        require = require('esm')(module /*, options*/);
-        const c = require(tmppath);
-        const m_code = c.code;
+        const m_code = get_m_code();
         // end work around
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
@@ -1624,7 +1628,12 @@ async function deploy(options) {
     }
   } else {
 
-    const m_code = expr_micheline_to_json(code);
+    let m_code = null
+    if (!originate) {
+      m_code = await get_m_code();
+    } else {
+      m_code = expr_micheline_to_json(code);
+    }
 
     const originateParam = {
       balance: amount,
