@@ -335,6 +335,12 @@ function isMockupMode() {
   return tezos_endpoint === "mockup";
 }
 
+function isForceTezosClient() {
+  var config = getConfig();
+  const force_tezos_client = config.tezos.force_tezos_client;
+  return force_tezos_client !== undefined && force_tezos_client;
+}
+
 async function callTezosClient(args) {
   let arguments;
   if (isMockupMode()) {
@@ -485,6 +491,7 @@ async function initCompletium(options) {
       "tezos-client": "tezos-client"
     },
     tezos: {
+      force_tezos_client: false,
       network: 'granada',
       endpoint: 'https://granadanet.smartpy.io',
       list: [
@@ -1438,7 +1445,7 @@ async function deploy(options) {
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const otest = options.test;
   const mockup_mode = isMockupMode();
-  const force_tezos_client = options.force_tezos_client === undefined ? false : options.force_tezos_client;
+  const force_tezos_client = options.force_tezos_client === undefined ? isForceTezosClient() : options.force_tezos_client;
   const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
 
   if (otest && originate) {
