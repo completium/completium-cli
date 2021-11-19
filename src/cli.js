@@ -193,8 +193,6 @@ function parseCommand(args) {
     nargs = args.slice(6);
   }
 
-  // console.log(res);
-  // console.log('nargs: ' + nargs);
   const options = arg(
     {
       '--dry': Boolean,

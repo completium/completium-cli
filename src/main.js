@@ -18,7 +18,7 @@ const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
 let archetype = null;
 
-const version = '0.3.5'
+const version = '0.3.6'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -526,7 +526,7 @@ async function initCompletium(options) {
         },
         {
           network: 'hangzhou',
-          bcd_url: "https://better-call.dev/hangzhounet/${address}",
+          bcd_url: "https://better-call.dev/hangzhou2net/${address}",
           tzstat_url: "https://hangzhou.tzstats.com",
           endpoints: [
             'https://hangzhounet.smartpy.io',
@@ -843,10 +843,8 @@ async function removeEndpoint(options) {
 async function confirmAccount(force, account) {
   if (force || isNull(getAccount(account))) { return true }
 
-  const Confirm = require('prompt-confirm');
-
   const str = `${account} already exists, do you want to overwrite?`;
-  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); })});
 }
 
 async function generateAccount(options) {
@@ -1078,10 +1076,8 @@ async function confirmTransfer(force, amount, from, to) {
 
   const config = getConfig();
 
-  const Confirm = require('prompt-confirm');
-
   const str = `Confirm transfer ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${config.tezos.network}?`;
-  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); })});
 }
 
 async function transfer(options) {
@@ -1155,10 +1151,8 @@ async function transfer(options) {
 async function confirmContract(force, id) {
   if (force || isNull(getContract(id))) { return true }
 
-  const Confirm = require('prompt-confirm');
-
   const str = `${id} already exists, overwrite it?`;
-  return new Promise(resolve => { new Confirm(str).ask(answer => { resolve(answer); }) });
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); })});
 }
 
 async function copySource(arl, ext, contract_name) {
@@ -1415,9 +1409,8 @@ function print_deploy_settings(with_color, account, contract_id, amount, storage
 async function confirmDeploy(force, account, contract_id, amount, storage, estimated_total_cost) {
   if (force) { return true }
 
-  const Confirm = require('prompt-confirm');
   print_deploy_settings(true, account, contract_id, amount, storage, estimated_total_cost);
-  return new Promise(resolve => { new Confirm("Confirm settings").ask(answer => { resolve(answer); }) });
+  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); })});
 }
 
 function getTezosClientArgs(args) {
@@ -1522,27 +1515,6 @@ async function deploy(options) {
     }
   }
 
-  /* taquito cannot parse UNPAIR n, it considers that it's a macro.
-     So, we use the js output of archtype and write it in a tmp
-     file, and reload it.
-  */
-  const get_m_code = async () => {
-    const contract_script = await callArchetype(options, file, {
-      target: "javascript",
-      sci: account.pkh,
-      no_js_header: true
-    });
-
-    const tmp = require('tmp');
-    const tmpobj = tmp.fileSync();
-    const tmppath = tmpobj.name;
-    fs.writeFileSync(tmppath, contract_script);
-
-    require = require('esm')(module /*, options*/);
-    const c = require(tmppath);
-    return c.code;
-  }
-
   let m_storage;
   if (!isNull(oinit)) {
     m_storage = expr_micheline_to_json(oinit);
@@ -1559,10 +1531,7 @@ async function deploy(options) {
       }
     } else {
       try {
-        // const m_code = expr_micheline_to_json(code);
-        // begin work around
-        const m_code = await get_m_code();
-        // end work around
+        const m_code = expr_micheline_to_json(code);
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
         m_storage = await compute_tzstorage(file, storageType, parameters, computeSettings(options));
@@ -1635,12 +1604,7 @@ async function deploy(options) {
     }
   } else {
 
-    let m_code = null
-    if (!originate) {
-      m_code = await get_m_code();
-    } else {
-      m_code = expr_micheline_to_json(code);
-    }
+    let m_code = expr_micheline_to_json(code);
 
     const originateParam = {
       balance: amount,
@@ -1703,12 +1667,39 @@ function print_settings(with_color, account, contract_id, amount, entry, arg, es
   }
 }
 
+function askQuestionBool(msg, lambda, defaultV) {
+
+  var readline = require('readline');
+
+  var rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+
+  });
+
+  const getBool = function (input, defaultV) {
+    if (input != null && input !== '') {
+      return /^(y(es)?|true)$/i.test(String(input).trim());
+    }
+    return !defaultV;
+  };
+
+  const yn = defaultV ? '[yN]' : '[Yn]'
+
+  const start = `\x1b[01m`;
+  const end = `\x1b[0m`;
+
+  rl.question(`${start}${msg}${end} ${yn} `, function (answer) {
+    const res = getBool(answer, defaultV);
+    lambda(res)
+    rl.close();
+  });
+}
+
 async function confirmCall(force, account, contract_id, amount, entry, arg, estimated_total_cost) {
   if (force) { return true }
-
-  const Confirm = require('prompt-confirm');
   print_settings(true, account, contract_id, amount, entry, arg, estimated_total_cost);
-  return new Promise(resolve => { new Confirm("Confirm settings").ask(answer => { resolve(answer); }) });
+  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); })});
 }
 
 async function callTransfer(options, contract_address, arg) {
