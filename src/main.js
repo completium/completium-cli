@@ -2325,7 +2325,7 @@ async function getTezosContract(input) {
   const contract_address = getContractAddress(input);
 
   let contract;
-  if (isMockupMode()) {
+  if (isMockupMode() || isForceTezosClient()) {
     contract = { address: contract_address };
   } else {
     const tezos = getTezos();
