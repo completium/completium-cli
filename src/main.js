@@ -462,6 +462,7 @@ function help(options) {
   print("  show source <CONTRACT_ALIAS>");
   print("  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>");
   print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
+  print("  show script <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>");
 }
 
@@ -844,7 +845,7 @@ async function confirmAccount(force, account) {
   if (force || isNull(getAccount(account))) { return true }
 
   const str = `${account} already exists, do you want to overwrite?`;
-  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); })});
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
 }
 
 async function generateAccount(options) {
@@ -1077,7 +1078,7 @@ async function confirmTransfer(force, amount, from, to) {
   const config = getConfig();
 
   const str = `Confirm transfer ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${config.tezos.network}?`;
-  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); })});
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
 }
 
 async function transfer(options) {
@@ -1152,7 +1153,7 @@ async function confirmContract(force, id) {
   if (force || isNull(getContract(id))) { return true }
 
   const str = `${id} already exists, overwrite it?`;
-  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); })});
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
 }
 
 async function copySource(arl, ext, contract_name) {
@@ -1410,7 +1411,7 @@ async function confirmDeploy(force, account, contract_id, amount, storage, estim
   if (force) { return true }
 
   print_deploy_settings(true, account, contract_id, amount, storage, estimated_total_cost);
-  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); })});
+  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); }) });
 }
 
 function getTezosClientArgs(args) {
@@ -1699,7 +1700,7 @@ function askQuestionBool(msg, lambda, defaultV) {
 async function confirmCall(force, account, contract_id, amount, entry, arg, estimated_total_cost) {
   if (force) { return true }
   print_settings(true, account, contract_id, amount, entry, arg, estimated_total_cost);
-  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); })});
+  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); }) });
 }
 
 async function callTransfer(options, contract_address, arg) {
@@ -2312,6 +2313,40 @@ async function showStorage(options) {
   return;
 }
 
+async function showScript(options) {
+  const input = options.value;
+  const json = options.json || false;
+
+  const contract_address = getContractAddress(input);
+
+  if (isMockupMode()) {
+    const script = await getRawScript(contract_address);
+    if (json) {
+      print(JSON.stringify(script.code, 0, 2));
+    } else {
+      print(codec.emitMicheline(script.code))
+    }
+  } else {
+    const config = getConfig();
+    const tezos_endpoint = config.tezos.endpoint;
+    const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/script';
+    var request = require('request');
+    request(url, function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+        const j = JSON.parse(body);
+        if (json) {
+          print(JSON.stringify(j.code, 0, 2));
+        } else {
+          print(codec.emitMicheline(j.code))
+        }
+      } else {
+        print(`Error: ${response.statusCode}`)
+      }
+    })
+  }
+  return;
+}
+
 async function getTezosContract(input) {
   const contract_address = getContractAddress(input);
 
@@ -2642,6 +2677,9 @@ async function exec(options) {
         break;
       case "show_storage":
         await showStorage(options);
+        break;
+      case "show_script":
+        await showScript(options);
         break;
       case "get_balance_for":
         await getBalanceFor(options);
