@@ -225,14 +225,23 @@ function computeArgsSettings(options, settings, path) {
       if (settings.get_storage_values) {
         args.push('--get-storage-values')
       }
+
       if (options.metadata_storage) {
         args.push('--metadata-storage');
         args.push(options.metadata_storage);
+      } else if (settings.metadata_storage) {
+        args.push('--metadata-storage');
+        args.push(settings.metadata_storage);
       }
+
       if (options.metadata_uri) {
         args.push('--metadata-uri');
         args.push(options.metadata_uri);
+      } else if (settings.metadata_uri) {
+        args.push('--metadata-uri');
+        args.push(settings.metadata_uri);
       }
+
       if (options.test || (settings !== undefined && settings.test_mode)) {
         args.push('--test-mode');
       }
