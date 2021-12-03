@@ -194,8 +194,8 @@ function isNull(str) {
 }
 
 function computeSettings(options, settings) {
-  const metadata_storage = options.metadata_storage;
-  const metadata_uri = options.metadata_uri;
+  const metadata_storage = options.metadata_storage ? options.metadata_storage : (settings ? settings.metadata_storage : undefined);
+  const metadata_uri = options.metadata_uri ? options.metadata_uri : (settings ? settings.metadata_uri : undefined);
   const otest = options.test || (settings !== undefined && settings.test_mode);
 
   return {
