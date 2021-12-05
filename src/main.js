@@ -1503,7 +1503,12 @@ async function deploy(options) {
   let code;
   if (originate) {
     const input = fs.readFileSync(file).toString();
-    code = input;
+    if (file.endsWith(".json")) {
+      const jinput = JSON.parse(input);
+      code = json_micheline_to_expr(jinput);
+    } else {
+      code = input;
+    }
   } else {
     try {
       code = await callArchetype(options, file, {
