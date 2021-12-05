@@ -414,6 +414,56 @@ async function rpcGet(uri) {
   }
 }
 
+async function rpcPost(uri, payload) {
+  if (isMockupMode()) {
+    const { stdout, stderr, failed } = await callTezosClient(["rpc", "post", uri, "with", JSON.stringify(payload)]);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      const res = JSON.parse(stdout);
+      return res;
+    }
+  } else {
+    const config = getConfig();
+    const tezos_endpoint = config.tezos.endpoint;
+    const request = require('request');
+    const url = tezos_endpoint + uri;
+
+
+    return new Promise((resolve, reject) => {
+      request.post(url, { json: payload }, function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+          const res = body;
+          resolve(res);
+        } else {
+          const msg = (`Error get status code : ${response.statusCode}`);
+          reject(msg);
+        }
+      })
+    });
+  }
+}
+
+async function getChainId() {
+  if (isMockupMode()) {
+    const input = loadJS(context_mockup_path);
+    return input.chain_id;
+  } else {
+    return new Promise((resolve, reject) => {
+      rpcGet("/chains/main/blocks/head/header")
+        .then(x => {
+          if (x && x.chain_id) {
+            resolve(x.chain_id)
+          }
+        })
+        .catch(err => {
+          reject(err)
+        })
+    });
+  }
+
+}
+
 //////////////
 // COMMANDS //
 //////////////
@@ -456,6 +506,7 @@ function help(options) {
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]");
   print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
+  print("  run getter <GETTER_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
@@ -541,6 +592,13 @@ async function initCompletium(options) {
           endpoints: [
             'https://hangzhounet.smartpy.io',
             'https://rpc.hangzhounet.teztnets.xyz'
+          ]
+        },
+        {
+          network: 'idiazabal',
+          bcd_url: "https://better-call.dev/idiazabalnet/${address}",
+          tzstat_url: "https://idiazabal.tzstats.com",
+          endpoints: [
           ]
         },
         {
@@ -1857,6 +1915,69 @@ async function callTransfer(options, contract_address, arg) {
     });
   }
 }
+
+async function runGetter(options) {
+  const getterid = options.getterid;
+  const contractid = options.contract;
+  const json = options.json;
+
+  let jarg;
+  if (options.arg) {
+    jarg = expr_micheline_to_json(options.arg)
+  } else if (options.argMichelson) {
+    jarg = expr_micheline_to_json(options.argMichelson)
+  } else if (options.argJsonMichelson) {
+    jarg = JSON.parse(options.argJsonMichelson)
+  } else {
+    jarg = expr_micheline_to_json("Unit")
+  }
+
+  const contract = getContractFromIdOrAddress(contractid);
+
+  const config = getConfig()
+
+  const as = isNull(options.as) ? config.account : options.as;
+  const addr = getAddressFromAlias(as)
+  let source = isNull(addr) ? as : addr;
+  if (!source.startsWith("KT1") && !source.startsWith("tz1") && !source.startsWith("tz2") && !source.startsWith("tz3")) {
+    const msg = `Invalid address: ${source}`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const chainid = await getChainId();
+
+  const input = {
+    "chain_id": chainid,
+    "contract": contract.address,
+    "entrypoint": getterid,
+    "gas": "100000",
+    "input": jarg,
+    "payer": source,
+    "source": source,
+    "unparsing_mode": "Readable"
+  }
+
+  const res = await rpcPost("/chains/main/blocks/head/helpers/scripts/run_view", input);
+  if (res && res.data) {
+    if (json) {
+      return res.data;
+    }
+    return json_micheline_to_expr(res.data);
+  } else {
+    return new Promise((resolve, reject) => { reject(res) });
+  }
+}
+
+async function printGetter(options) {
+  runGetter(options)
+    .then(x => {
+      print(x)
+    })
+    .catch(error => {
+      print_error(error)
+    })
+}
+
 async function run(options) {
   const path = options.path;
   const arg = options.argMichelson !== undefined ? options.argMichelson : "Unit";
@@ -2293,6 +2414,18 @@ function getContractAddress(input) {
   return contract_address;
 }
 
+function getAddressFromAlias(input) {
+  const contract = getContract(input);
+  if (!isNull(contract)) {
+    return contract.address;
+  }
+  const account = getAccount(input);
+  if (!isNull(account)) {
+    return account.pkh;
+  }
+  return null;
+}
+
 async function showStorage(options) {
   const input = options.value;
   const json = options.json || false;
@@ -2650,6 +2783,9 @@ async function exec(options) {
       case "call_contract":
         await callContract(options);
         break;
+      case "run_getter":
+        await printGetter(options);
+        break;
       case "run":
         await run(options);
         break;
@@ -2713,6 +2849,7 @@ async function exec(options) {
 
 exports.deploy = deploy;
 exports.callContract = callContract;
+exports.runGetter = runGetter;
 exports.getStorage = getStorage;
 exports.getTezosContract = getTezosContract;
 exports.getBalance = getBalance;

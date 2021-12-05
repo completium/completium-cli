@@ -61,6 +61,11 @@ async function call(input, obj) {
   return op;
 }
 
+async function runGetter(getterid, contract, options) {
+  const obj = options ? options : {};
+  return Main.runGetter({...obj, getterid: getterid, contract: contract});
+}
+
 async function getStorage(contract_id) {
   return Main.getStorage(contract_id);
 }
@@ -252,6 +257,7 @@ function taquitoExecuteSchema(arg, type) {
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
+exports.runGetter = runGetter;
 exports.getStorage = getStorage;
 exports.getContract = getContract;
 exports.getBalance = getBalance;

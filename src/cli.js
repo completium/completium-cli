@@ -147,6 +147,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "check" && args[3] === "michelson") {
     res = { command: "check_michelson", path: args[4] };
     nargs = args.slice(5);
+    // run getter <VIEW_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS>
+  } else if (length > 6 && args[2] === "run" && args[3] === "getter" && args[5] === "on") {
+    res = { command: "run_getter", getterid: args[4], contract: args[6] };
+    nargs = args.slice(7);
     // run <FILE.arl>
   } else if (length > 3 && args[2] === "run") {
     res = { command: "run", path: args[3] };
