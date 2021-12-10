@@ -2779,6 +2779,30 @@ function initLogData(kind, input) {
   return data;
 }
 
+function extractUpdatedStorage(input) {
+  const rx = /.*\Updated storage: (.*).*/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+function extractOperationHash(input) {
+  const rx = /.*\Operation hash is '(.*)'.*/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+exports.extract = extractUpdatedStorage
+
 function addLogOrigination(input) {
   let data = initLogData('origination', input);
   data = {
@@ -2795,14 +2819,11 @@ function addLogOrigination(input) {
 
     data = {
       ...data,
+      operation: extractOperationHash(output)
     }
   }
 
   addLog(data)
-}
-
-function extractUpdatedStorage(input) {
-  return ''
 }
 
 function addLogTransaction(input) {
@@ -2823,6 +2844,7 @@ function addLogTransaction(input) {
 
     data = {
       ...data,
+      operation: extractOperationHash(output),
       updated_storage: extractUpdatedStorage(output),
     }
   }
