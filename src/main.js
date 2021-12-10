@@ -1669,6 +1669,14 @@ async function deploy(options) {
     } else {
       print_deploy_settings(false, account, contract_name, amount, storage, null);
       const { stdout, stderr, failed } = await callTezosClient(args);
+      if (isLogMode() && isMockupMode()) {
+        addLogOrigination({
+          command: args,
+          stdout: stdout,
+          stderr: stderr,
+          failed: failed
+        })
+      }
       if (failed) {
         return new Promise((resolve, reject) => { reject(stderr) });
       } else {
@@ -1827,6 +1835,14 @@ async function callTransfer(options, contract_address, arg) {
     } else {
       print_settings(false, account, contract_id, amount, entry, b);
       const { stdout, stderr, failed } = await callTezosClient(args);
+      if (isLogMode() && isMockupMode()) {
+        addLogTransaction({
+          command: args,
+          stdout: stdout,
+          stderr: stderr,
+          failed: failed
+        })
+      }
       if (failed) {
         var rx = /.*\nwith (.*)\nFatal .*/g;
         var arr = rx.exec(stderr);
@@ -2732,11 +2748,43 @@ function addLog(data) {
   saveLog(log)
 }
 
+
+function initLogData(input) {
+  let command = "";
+  if (input.args_command) {
+    input.args_command.forEach(x => {
+      const y = x.includes(' ') || x.includes('"') ? `'${x}'` : x
+      command += " " + y
+    })
+  }
+
+  const data = {
+    date: new Date().toISOString(),
+    command: command,
+    stdout: input.stdout,
+    stderr: input.stderr,
+    failed: input.failed,
+  }
+
+  return data;
+}
+
+function addLogOrigination(input) {
+  let data = initLogData(input);
+
+  addLog(data)
+}
+
+function addLogTransaction(input) {
+  let data = initLogData(input);
+
+  addLog(data)
+}
+
 async function logEnable(options) {
   const config = getConfig();
 
   writeEmptyLog();
-  addLog(data);
 
   config.log_mode = true;
   saveConfig(config, x => { print(`Logging is enabled.`) })
@@ -2769,7 +2817,7 @@ async function logClear(options) {
 
 async function logDump(options) {
   const log = getLog()
-  print(JSON.stringify(log,0,2))
+  print(JSON.stringify(log, 0, 2))
 }
 
 async function exec(options) {
