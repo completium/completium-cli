@@ -25,6 +25,7 @@ const completium_dir = homedir + '/.completium'
 const config_path = completium_dir + '/config.json'
 const accounts_path = completium_dir + '/accounts.json'
 const contracts_path = completium_dir + '/contracts.json'
+const log_path = completium_dir + '/log.json'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
@@ -524,6 +525,11 @@ function help(options) {
   print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  show script <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>");
+
+  print("  log enable");
+  print("  log disable");
+  print("  log clear [--force]");
+  print("  log dump");
 }
 
 async function initCompletium(options) {
@@ -2695,6 +2701,77 @@ async function setArchetypeBin(options) {
   saveConfig(config, x => { print(`archetype bin is ${value}`) });
 }
 
+function saveLog(log) {
+  saveFile(log_path, log);
+}
+
+function writeEmptyLog() {
+  const input = {
+    log: []
+  }
+
+  saveLog(input);
+}
+
+function isLogMode() {
+  const config = getConfig();
+
+  return config && config.log_mode
+}
+
+function getLog() {
+  const log = loadJS(log_path);
+  return log;
+}
+
+function addLog(data) {
+  const log = getLog()
+
+  log.log.push(data);
+
+  saveLog(log)
+}
+
+async function logEnable(options) {
+  const config = getConfig();
+
+  writeEmptyLog();
+  addLog(data);
+
+  config.log_mode = true;
+  saveConfig(config, x => { print(`Logging is enabled.`) })
+}
+
+async function logDisable(options) {
+  const config = getConfig();
+
+  config.log_mode = false;
+  saveConfig(config, x => { print(`Logging is disabled.`) })
+}
+
+async function confirmLogClear(force) {
+  if (force) { return true }
+  return new Promise(resolve => { askQuestionBool(`Are you sure to clear log ?`, answer => { resolve(answer); }) });
+}
+
+async function logClear(options) {
+  const force = options.force;
+
+  const confirm = await confirmLogClear(force);
+  if (!confirm) {
+    return;
+  }
+
+  writeEmptyLog();
+
+  print(`Log is cleared.`)
+}
+
+async function logDump(options) {
+  const log = getLog()
+  print(JSON.stringify(log,0,2))
+}
+
 async function exec(options) {
   try {
     switch (options.command) {
@@ -2833,6 +2910,18 @@ async function exec(options) {
         break;
       case "get_balance_for":
         await getBalanceFor(options);
+        break;
+      case "log_enable":
+        await logEnable(options);
+        break;
+      case "log_disable":
+        await logDisable(options);
+        break;
+      case "log_clear":
+        await logClear(options);
+        break;
+      case "log_dump":
+        await logDump(options);
         break;
       default:
         commandNotFound(options);
