@@ -1671,10 +1671,13 @@ async function deploy(options) {
       const { stdout, stderr, failed } = await callTezosClient(args);
       if (isLogMode() && isMockupMode()) {
         addLogOrigination({
-          command: args,
+          args_command: args,
           stdout: stdout,
           stderr: stderr,
-          failed: failed
+          failed: failed,
+          source: account.pkh,
+          storage: storage,
+          amount: a,
         })
       }
       if (failed) {
@@ -1837,10 +1840,15 @@ async function callTransfer(options, contract_address, arg) {
       const { stdout, stderr, failed } = await callTezosClient(args);
       if (isLogMode() && isMockupMode()) {
         addLogTransaction({
-          command: args,
+          args_command: args,
           stdout: stdout,
           stderr: stderr,
-          failed: failed
+          failed: failed,
+          entrypoint: entry,
+          amount: a,
+          arg: b,
+          destination: contract_address,
+          source: account.pkh
         })
       }
       if (failed) {
@@ -2749,7 +2757,7 @@ function addLog(data) {
 }
 
 
-function initLogData(input) {
+function initLogData(kind, input) {
   let command = "";
   if (input.args_command) {
     input.args_command.forEach(x => {
@@ -2757,8 +2765,10 @@ function initLogData(input) {
       command += " " + y
     })
   }
+  command = command.trim()
 
   const data = {
+    kind: kind,
     date: new Date().toISOString(),
     command: command,
     stdout: input.stdout,
@@ -2770,13 +2780,52 @@ function initLogData(input) {
 }
 
 function addLogOrigination(input) {
-  let data = initLogData(input);
+  let data = initLogData('origination', input);
+  data = {
+    ...data,
+    amount: input.amount,
+    storage: input.storage,
+    source: input.source,
+    amount: input.amount,
+    storage: input.storage,
+  }
+
+  if (!input.failed && input.stdout) {
+    const output = input.stdout;
+
+    data = {
+      ...data,
+    }
+  }
 
   addLog(data)
 }
 
+function extractUpdatedStorage(input) {
+  return ''
+}
+
 function addLogTransaction(input) {
-  let data = initLogData(input);
+  let data = initLogData('transaction', input);
+  data = {
+    ...data,
+    entrypoint: input.entrypoint,
+    amount: input.amount,
+    arg: input.arg,
+    entrypoint: input.entrypoint,
+    source: input.source,
+    amount: input.amount,
+    destination: input.contract_address,
+  }
+
+  if (!input.failed && input.stdout) {
+    const output = input.stdout;
+
+    data = {
+      ...data,
+      updated_storage: extractUpdatedStorage(output),
+    }
+  }
 
   addLog(data)
 }
