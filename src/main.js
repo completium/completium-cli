@@ -25,6 +25,7 @@ const completium_dir = homedir + '/.completium'
 const config_path = completium_dir + '/config.json'
 const accounts_path = completium_dir + '/accounts.json'
 const contracts_path = completium_dir + '/contracts.json'
+const log_path = completium_dir + '/log.json'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
@@ -524,6 +525,11 @@ function help(options) {
   print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  show script <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>");
+
+  print("  log enable");
+  print("  log disable");
+  print("  log clear [--force]");
+  print("  log dump");
 }
 
 async function initCompletium(options) {
@@ -1663,6 +1669,17 @@ async function deploy(options) {
     } else {
       print_deploy_settings(false, account, contract_name, amount, storage, null);
       const { stdout, stderr, failed } = await callTezosClient(args);
+      if (isLogMode() && isMockupMode()) {
+        addLogOrigination({
+          args_command: args,
+          stdout: stdout,
+          stderr: stderr,
+          failed: failed,
+          source: account.pkh,
+          storage: storage,
+          amount: a,
+        })
+      }
       if (failed) {
         return new Promise((resolve, reject) => { reject(stderr) });
       } else {
@@ -1821,6 +1838,19 @@ async function callTransfer(options, contract_address, arg) {
     } else {
       print_settings(false, account, contract_id, amount, entry, b);
       const { stdout, stderr, failed } = await callTezosClient(args);
+      if (isLogMode() && isMockupMode()) {
+        addLogTransaction({
+          args_command: args,
+          stdout: stdout,
+          stderr: stderr,
+          failed: failed,
+          entrypoint: entry,
+          amount: a,
+          arg: b,
+          destination: contract_address,
+          source: account.pkh
+        })
+      }
       if (failed) {
         var rx = /.*\nwith (.*)\nFatal .*/g;
         var arr = rx.exec(stderr);
@@ -2695,6 +2725,172 @@ async function setArchetypeBin(options) {
   saveConfig(config, x => { print(`archetype bin is ${value}`) });
 }
 
+function saveLog(log) {
+  saveFile(log_path, log);
+}
+
+function writeEmptyLog() {
+  const input = {
+    log: []
+  }
+
+  saveLog(input);
+}
+
+function isLogMode() {
+  const config = getConfig();
+
+  return config && config.log_mode
+}
+
+function getLog() {
+  const log = loadJS(log_path);
+  return log;
+}
+
+function addLog(data) {
+  const log = getLog()
+
+  log.log.push(data);
+
+  saveLog(log)
+}
+
+
+function initLogData(kind, input) {
+  let command = "";
+  if (input.args_command) {
+    input.args_command.forEach(x => {
+      const y = x.includes(' ') || x.includes('"') ? `'${x}'` : x
+      command += " " + y
+    })
+  }
+  command = command.trim()
+
+  const data = {
+    kind: kind,
+    date: new Date().toISOString(),
+    command: command,
+    stdout: input.stdout,
+    stderr: input.stderr,
+    failed: input.failed,
+  }
+
+  return data;
+}
+
+function extractUpdatedStorage(input) {
+  const rx = /.*\Updated storage: (.*).*/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+function extractOperationHash(input) {
+  const rx = /.*\Operation hash is '(.*)'.*/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+exports.extract = extractUpdatedStorage
+
+function addLogOrigination(input) {
+  let data = initLogData('origination', input);
+  data = {
+    ...data,
+    amount: input.amount,
+    storage: input.storage,
+    source: input.source,
+    amount: input.amount,
+    storage: input.storage,
+  }
+
+  if (!input.failed && input.stdout) {
+    const output = input.stdout;
+
+    data = {
+      ...data,
+      operation: extractOperationHash(output)
+    }
+  }
+
+  addLog(data)
+}
+
+function addLogTransaction(input) {
+  let data = initLogData('transaction', input);
+  data = {
+    ...data,
+    entrypoint: input.entrypoint,
+    amount: input.amount,
+    arg: input.arg,
+    entrypoint: input.entrypoint,
+    source: input.source,
+    amount: input.amount,
+    destination: input.contract_address,
+  }
+
+  if (!input.failed && input.stdout) {
+    const output = input.stdout;
+
+    data = {
+      ...data,
+      operation: extractOperationHash(output),
+      updated_storage: extractUpdatedStorage(output),
+    }
+  }
+
+  addLog(data)
+}
+
+async function logEnable(options) {
+  const config = getConfig();
+
+  writeEmptyLog();
+
+  config.log_mode = true;
+  saveConfig(config, x => { print(`Logging is enabled.`) })
+}
+
+async function logDisable(options) {
+  const config = getConfig();
+
+  config.log_mode = false;
+  saveConfig(config, x => { print(`Logging is disabled.`) })
+}
+
+async function confirmLogClear(force) {
+  if (force) { return true }
+  return new Promise(resolve => { askQuestionBool(`Are you sure to clear log ?`, answer => { resolve(answer); }) });
+}
+
+async function logClear(options) {
+  const force = options.force;
+
+  const confirm = await confirmLogClear(force);
+  if (!confirm) {
+    return;
+  }
+
+  writeEmptyLog();
+
+  print(`Log is cleared.`)
+}
+
+async function logDump(options) {
+  const log = getLog()
+  print(JSON.stringify(log, 0, 2))
+}
+
 async function exec(options) {
   try {
     switch (options.command) {
@@ -2833,6 +3029,18 @@ async function exec(options) {
         break;
       case "get_balance_for":
         await getBalanceFor(options);
+        break;
+      case "log_enable":
+        await logEnable(options);
+        break;
+      case "log_disable":
+        await logDisable(options);
+        break;
+      case "log_clear":
+        await logClear(options);
+        break;
+      case "log_dump":
+        await logDump(options);
         break;
       default:
         commandNotFound(options);
