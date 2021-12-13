@@ -1848,7 +1848,8 @@ async function callTransfer(options, contract_address, arg) {
           amount: a,
           arg: b,
           destination: contract_address,
-          source: account.pkh
+          source: account.pkh,
+          arg_completium: options.arg
         })
       }
       if (failed) {
@@ -2790,6 +2791,41 @@ function extractUpdatedStorage(input) {
   }
 }
 
+function extractStorageSize(input) {
+  const rx = /.*\Storage size: (.*) bytes/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+function extractConsumedGas(input) {
+  const rx = /.*\Consumed gas: (.*)/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+function extractPaidStorageSizeDiff(input) {
+  const rx = /.*\Paid storage size diff: (.*) bytes/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+
+
 function extractOperationHash(input) {
   const rx = /.*\Operation hash is '(.*)'.*/g;
   const arr = rx.exec(input);
@@ -2801,7 +2837,28 @@ function extractOperationHash(input) {
   }
 }
 
-exports.extract = extractUpdatedStorage
+function extractFailData(input) {
+  const rx = /.*\with (.*)/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
+exports.extract = extractFailData
+
+function addLogAs(data, source) {
+  console.log(source)
+  const account = getAccountFromIdOrAddr(source)
+  console.log(JSON.stringify(account,0,2))
+  if (account && account.name) {
+    data = {...data, as: account.name }
+  }
+  return data
+}
 
 function addLogOrigination(input) {
   let data = initLogData('origination', input);
@@ -2814,12 +2871,17 @@ function addLogOrigination(input) {
     storage: input.storage,
   }
 
+  data = addLogAs(data, input.source)
+
   if (!input.failed && input.stdout) {
     const output = input.stdout;
 
     data = {
       ...data,
-      operation: extractOperationHash(output)
+      operation: extractOperationHash(output),
+      storage_size: extractStorageSize(output),
+      consumed_gas: extractConsumedGas(output),
+      paid_storage_size_diff: extractPaidStorageSizeDiff(output),
     }
   }
 
@@ -2837,6 +2899,18 @@ function addLogTransaction(input) {
     source: input.source,
     amount: input.amount,
     destination: input.contract_address,
+    arg_completium: input.arg_completium
+  }
+
+  data = addLogAs(data, input.source)
+
+  if (input.failed && input.stderr) {
+    const stderr = input.stderr;
+
+    data = {
+      ...data,
+      "fail": extractFailData(stderr)
+    }
   }
 
   if (!input.failed && input.stdout) {
@@ -2846,6 +2920,8 @@ function addLogTransaction(input) {
       ...data,
       operation: extractOperationHash(output),
       updated_storage: extractUpdatedStorage(output),
+      storage_size: extractStorageSize(output),
+      consumed_gas: extractConsumedGas(output)
     }
   }
 
