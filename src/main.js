@@ -18,7 +18,7 @@ const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
 let archetype = null;
 
-const version = '0.3.13'
+const version = '0.3.14'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'

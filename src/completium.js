@@ -222,15 +222,16 @@ async function getValueFromBigMap(id, data, type) {
 }
 
 async function expectToThrow(f, e) {
-  const m = "Failed to throw" + (e !== undefined ? e : "");
+  if (e === undefined) {
+    throw new Error("expectToThrow: error must be defined")
+  }
+  const m = "Failed to throw" + e;
   try {
     await f();
     throw new Error(m)
   } catch (ex) {
-    if (ex.value && e !== undefined) {
-      assert(ex.value === e, `${ex.value} instead of ${e}`)
-    } else if (ex.message === m) {
-      throw e
+    if (ex.value) {
+      assert(ex.value == e, `${ex.value} instead of ${e}`)
     } else {
       throw ex
     }
