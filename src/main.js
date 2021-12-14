@@ -18,7 +18,7 @@ const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
 let archetype = null;
 
-const version = '0.3.11'
+const version = '0.3.12'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2851,9 +2851,7 @@ function extractFailData(input) {
 exports.extract = extractFailData
 
 function addLogAs(data, source) {
-  console.log(source)
   const account = getAccountFromIdOrAddr(source)
-  console.log(JSON.stringify(account,0,2))
   if (account && account.name) {
     data = {...data, as: account.name }
   }
