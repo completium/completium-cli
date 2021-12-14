@@ -231,6 +231,8 @@ async function expectToThrow(f, e) {
       assert(ex.value === e, `${ex.value} instead of ${e}`)
     } else if (ex.message === m) {
       throw e
+    } else {
+      throw ex
     }
   }
 }
