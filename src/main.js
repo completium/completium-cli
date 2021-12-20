@@ -472,7 +472,7 @@ async function getChainId() {
 function help(options) {
   print("usage: [command] [options]")
   print("command:");
-  print("  init")
+  print("  init [--soft]")
   print("  help");
   print("  version")
   print("  archetype version")
@@ -533,6 +533,7 @@ function help(options) {
 }
 
 async function initCompletium(options) {
+  const soft = options.soft
 
   if (!fs.existsSync(bin_dir)) {
     fs.mkdirSync(bin_dir, { recursive: true });
@@ -625,84 +626,90 @@ async function initCompletium(options) {
     }
   };
 
-  saveFile(config_path, config, (x => {
-    saveFile(accounts_path, {
-      accounts: [{
-        "name": "alice",
-        "pkh": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb",
-        "pubk": "edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn",
-        "key": {
-          "kind": "private_key",
-          "value": "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq"
-        }
-      },
-      {
-        "name": "bob",
-        "pkh": "tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6",
-        "pubk": "edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4",
-        "key": {
-          "kind": "private_key",
-          "value": "edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt"
-        }
-      },
-      {
-        "name": "carl",
-        "pubk": "edpkugep78JxqeTzJ6N2dvAUKBGdHrHVbytAzUHGLLHrfXweSzX2oG",
-        "pkh": "tz1aGDrJ58LbcnD47CkwSk3myfTxJxipYJyk",
-        "key": {
-          "kind": "private_key",
-          "value": "edskS8eMgJopZofUWiuzRTrQJPGRoR3mcYEhhp2BTpR91ZMjmvHMEdfoPFfGaiXSV9M1NG21r4zQcz5QYPY1BtqigMSrd8eVUv"
-        }
-      },
-      {
-        "name": "bootstrap1",
-        "pkh": "tz1KqTpEZ7Yob7QbPE4Hy4Wo8fHG8LhKxZSx",
-        "pubk": "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9sDVC9yav",
-        "key": {
-          "kind": "private_key",
-          "value": "edsk3gUfUPyBSfrS9CCgmCiQsTCHGkviBDusMxDJstFtojtc1zcpsh"
-        }
-      },
-      {
-        "name": "bootstrap2",
-        "pkh": "tz1gjaF81ZRRvdzjobyfVNsAeSC6PScjfQwN",
-        "pubk": "edpktzNbDAUjUk697W7gYg2CRuBQjyPxbEg8dLccYYwKSKvkPvjtV9",
-        "key": {
-          "kind": "private_key",
-          "value": "edsk39qAm1fiMjgmPkw1EgQYkMzkJezLNewd7PLNHTkr6w9XA2zdfo"
-        }
-      },
-      {
-        "name": "bootstrap3",
-        "pkh": "tz1faswCTDciRzE4oJ9jn2Vm2dvjeyA9fUzU",
-        "pubk": "edpkuTXkJDGcFd5nh6VvMz8phXxU3Bi7h6hqgywNFi1vZTfQNnS1RV",
-        "key": {
-          "kind": "private_key",
-          "value": "edsk4ArLQgBTLWG5FJmnGnT689VKoqhXwmDPBuGx3z4cvwU9MmrPZZ"
-        }
-      },
-      {
-        "name": "bootstrap4",
-        "pkh": "tz1b7tUupMgCNw2cCLpKTkSD1NZzB5TkP2sv",
-        "pubk": "edpkuFrRoDSEbJYgxRtLx2ps82UdaYc1WwfS9sE11yhauZt5DgCHbU",
-        "key": {
-          "kind": "private_key",
-          "value": "edsk2uqQB9AY4FvioK2YMdfmyMrer5R8mGFyuaLLFfSRo8EoyNdht3"
-        }
-      },
-      {
-        "name": "bootstrap5",
-        "pkh": "tz1ddb9NMYHZi5UzPdzTZMYQQZoMub195zgv",
-        "pubk": "edpkv8EUUH68jmo3f7Um5PezmfGrRF24gnfLpH3sVNwJnV5bVCxL2n",
-        "key": {
-          "kind": "private_key",
-          "value": "edsk4QLrcijEffxV31gGdN2HU7UpyJjA8drFoNcmnB28n89YjPNRFm"
-        }
-      }]
-    }, (y => {
-      saveFile(contracts_path, { contracts: [] }, (z => { print("Completium initialized successfully!") }));
+  if (soft) {
+    saveFile(config_path, config, (x => {
+      print("Completium initialized successfully and softly!")
     }))
-  }));
+  } else {
+    saveFile(config_path, config, (x => {
+      saveFile(accounts_path, {
+        accounts: [{
+          "name": "alice",
+          "pkh": "tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb",
+          "pubk": "edpkvGfYw3LyB1UcCahKQk4rF2tvbMUk8GFiTuMjL75uGXrpvKXhjn",
+          "key": {
+            "kind": "private_key",
+            "value": "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq"
+          }
+        },
+        {
+          "name": "bob",
+          "pkh": "tz1aSkwEot3L2kmUvcoxzjMomb9mvBNuzFK6",
+          "pubk": "edpkurPsQ8eUApnLUJ9ZPDvu98E8VNj4KtJa1aZr16Cr5ow5VHKnz4",
+          "key": {
+            "kind": "private_key",
+            "value": "edsk3RFfvaFaxbHx8BMtEW1rKQcPtDML3LXjNqMNLCzC3wLC1bWbAt"
+          }
+        },
+        {
+          "name": "carl",
+          "pubk": "edpkugep78JxqeTzJ6N2dvAUKBGdHrHVbytAzUHGLLHrfXweSzX2oG",
+          "pkh": "tz1aGDrJ58LbcnD47CkwSk3myfTxJxipYJyk",
+          "key": {
+            "kind": "private_key",
+            "value": "edskS8eMgJopZofUWiuzRTrQJPGRoR3mcYEhhp2BTpR91ZMjmvHMEdfoPFfGaiXSV9M1NG21r4zQcz5QYPY1BtqigMSrd8eVUv"
+          }
+        },
+        {
+          "name": "bootstrap1",
+          "pkh": "tz1KqTpEZ7Yob7QbPE4Hy4Wo8fHG8LhKxZSx",
+          "pubk": "edpkuBknW28nW72KG6RoHtYW7p12T6GKc7nAbwYX5m8Wd9sDVC9yav",
+          "key": {
+            "kind": "private_key",
+            "value": "edsk3gUfUPyBSfrS9CCgmCiQsTCHGkviBDusMxDJstFtojtc1zcpsh"
+          }
+        },
+        {
+          "name": "bootstrap2",
+          "pkh": "tz1gjaF81ZRRvdzjobyfVNsAeSC6PScjfQwN",
+          "pubk": "edpktzNbDAUjUk697W7gYg2CRuBQjyPxbEg8dLccYYwKSKvkPvjtV9",
+          "key": {
+            "kind": "private_key",
+            "value": "edsk39qAm1fiMjgmPkw1EgQYkMzkJezLNewd7PLNHTkr6w9XA2zdfo"
+          }
+        },
+        {
+          "name": "bootstrap3",
+          "pkh": "tz1faswCTDciRzE4oJ9jn2Vm2dvjeyA9fUzU",
+          "pubk": "edpkuTXkJDGcFd5nh6VvMz8phXxU3Bi7h6hqgywNFi1vZTfQNnS1RV",
+          "key": {
+            "kind": "private_key",
+            "value": "edsk4ArLQgBTLWG5FJmnGnT689VKoqhXwmDPBuGx3z4cvwU9MmrPZZ"
+          }
+        },
+        {
+          "name": "bootstrap4",
+          "pkh": "tz1b7tUupMgCNw2cCLpKTkSD1NZzB5TkP2sv",
+          "pubk": "edpkuFrRoDSEbJYgxRtLx2ps82UdaYc1WwfS9sE11yhauZt5DgCHbU",
+          "key": {
+            "kind": "private_key",
+            "value": "edsk2uqQB9AY4FvioK2YMdfmyMrer5R8mGFyuaLLFfSRo8EoyNdht3"
+          }
+        },
+        {
+          "name": "bootstrap5",
+          "pkh": "tz1ddb9NMYHZi5UzPdzTZMYQQZoMub195zgv",
+          "pubk": "edpkv8EUUH68jmo3f7Um5PezmfGrRF24gnfLpH3sVNwJnV5bVCxL2n",
+          "key": {
+            "kind": "private_key",
+            "value": "edsk4QLrcijEffxV31gGdN2HU7UpyJjA8drFoNcmnB28n89YjPNRFm"
+          }
+        }]
+      }, (y => {
+        saveFile(contracts_path, { contracts: [] }, (z => { print("Completium initialized successfully!") }));
+      }))
+    }));
+  }
 }
 
 async function setBin(options) {
@@ -2853,7 +2860,7 @@ exports.extract = extractFailData
 function addLogAs(data, source) {
   const account = getAccountFromIdOrAddr(source)
   if (account && account.name) {
-    data = {...data, as: account.name }
+    data = { ...data, as: account.name }
   }
   return data
 }
