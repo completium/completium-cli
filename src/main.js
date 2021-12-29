@@ -16,6 +16,7 @@ const utils = require('@taquito/utils');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
+const { Fraction } = require('fractional')
 let archetype = null;
 
 const version = '0.3.17'
@@ -327,13 +328,17 @@ function getAmount(raw) {
     const msg = `'${raw}' is an invalid value; expecting for example, 1tz or 2utz.`;
     throw msg;
   }
-  var value = Math.abs(v.str) * (v.utz ? 1 : 1000000);
-  if (!Number.isInteger(value)) {
-    const msg = `'${raw}' is an invalid value; '${value}' is not an integer.`;
+  let rat = new Fraction(v.str);
+  if (!v.utz) {
+    rat = rat.multiply(new Fraction(1000000, 1))
+  }
+  if (rat.denominator != 1) {
+    const msg = `'${raw}' is an invalid value.`;
     throw msg;
   }
-  return value;
+  return rat.numerator;
 }
+
 async function getArchetypeVersion() {
   const v = await callArchetype({}, null, { version: true });
   return v;
