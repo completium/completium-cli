@@ -978,11 +978,12 @@ async function importAccount(kind, options) {
     case "faucet":
       const faucet = loadJS(value);
       print(`Importing key ...`);
+      const secret = faucet.secret ? faucet.secret : (faucet.activation_code ? faucet.activation_code : "");
       await signer.importKey(tezos,
         faucet.email,
         faucet.password,
         faucet.mnemonic.join(' '),
-        faucet.secret)
+        secret)
         .catch(console.error);
       break;
     case "privatekey":
