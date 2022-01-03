@@ -32,7 +32,8 @@ const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
 
-const docker_id = 'tqtezos/flextesa:20210602'
+const docker_id = 'oxheadalpha/flextesa:20211221'
+const flextesa_script = 'hangzbox'
 
 var config = null;
 const mockup_path = completium_dir + "/mockup";
@@ -565,7 +566,7 @@ async function initCompletium(options) {
     },
     tezos: {
       force_tezos_client: false,
-      network: 'granada',
+      network: 'hangzhou',
       endpoint: 'https://granadanet.smartpy.io',
       list: [
         {
@@ -580,44 +581,29 @@ async function initCompletium(options) {
           ]
         },
         {
-          network: 'florence',
-          bcd_url: "https://better-call.dev/florencenet/${address}",
-          tzstat_url: "https://florence.tzstats.com",
-          endpoints: [
-            'https://florence-tezos.giganode.io',
-            'https://florencenet.smartpy.io'
-          ]
-        },
-        {
-          network: 'granada',
-          bcd_url: "https://better-call.dev/granadanet/${address}",
-          tzstat_url: "https://granada.tzstats.com",
-          endpoints: [
-            'https://granada-tezos.giganode.io',
-            'https://granadanet.smartpy.io'
-          ]
-        },
-        {
           network: 'hangzhou',
           bcd_url: "https://better-call.dev/hangzhou2net/${address}",
           tzstat_url: "https://hangzhou.tzstats.com",
           endpoints: [
+            'https://testnet-tezos.giganode.io',
             'https://hangzhounet.smartpy.io',
             'https://rpc.hangzhounet.teztnets.xyz'
           ]
         },
         {
-          network: 'idiazabal',
-          bcd_url: "https://better-call.dev/idiazabalnet/${address}",
-          tzstat_url: "https://idiazabal.tzstats.com",
+          network: 'ithaca',
+          bcd_url: "https://better-call.dev/ithacanet/${address}",
+          tzstat_url: "https://ithacanet.tzstats.com",
           endpoints: [
+            'https://ithacanet.smartpy.io',
           ]
         },
         {
           network: "sandbox",
           bcd_url: "https://localhost:8080/sandbox/${address}",
           endpoints: [
-            "http://localhost:20000"
+            "http://localhost:20000",
+            "http://localhost:8732"
           ]
         },
         {
@@ -734,7 +720,7 @@ async function startSandbox(options) {
   print('Waiting for sandbox to start ...');
   try {
     const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--cpus', '1', '-e', 'block_time=10', '--detach', '-p', '20000:20000',
-      docker_id, 'granabox', 'start'], {});
+      docker_id, flextesa_script, 'start'], {});
     if (verbose) {
       print(stdout);
     }
