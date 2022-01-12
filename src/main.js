@@ -755,7 +755,7 @@ async function mockupInit(options) {
 
   const protocol = options.protocol ? options.protocol : default_mockup_protocol
   const config = getConfig();
-  fs.rmdirSync(mockup_path, { recursive: true });
+  fs.rmSync(mockup_path, { force : true, recursive: true });
   const { stdout } = await execa(config.bin['tezos-client'], [
     '--protocol', protocol,
     '--base-dir', mockup_path,
