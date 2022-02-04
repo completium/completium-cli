@@ -1199,7 +1199,7 @@ async function transfer(options) {
     return new Promise(resolve => { resolve(null) });
   } else {
     const tezos = getTezos(accountFrom.name);
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       tezos.contract
         .transfer({ to: to_addr, amount: amount, mutez: true })
         .then((op) => {
