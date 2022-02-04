@@ -12,14 +12,13 @@ const taquito = require('@taquito/taquito');
 const taquitoUtils = require('@taquito/utils');
 const codec = require('@taquito/michel-codec');
 const encoder = require('@taquito/michelson-encoder');
-const utils = require('@taquito/utils');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional')
 let archetype = null;
 
-const version = '0.3.20'
+const version = '0.3.21'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2710,7 +2709,7 @@ function commandNotFound(options) {
 
 async function getValueFromBigMap(id, data, type) {
   const input = packTyped({ data: data, typ: type });
-  const expr = utils.encodeExpr(input);
+  const expr = taquitoUtils.encodeExpr(input);
   try {
     return await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
   } catch (e) {
