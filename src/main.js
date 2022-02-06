@@ -18,7 +18,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional')
 let archetype = null;
 
-const version = '0.3.21'
+const version = '0.3.22'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -566,7 +566,7 @@ async function initCompletium(options) {
     tezos: {
       force_tezos_client: false,
       network: 'hangzhou',
-      endpoint: 'https://granadanet.smartpy.io',
+      endpoint: 'https://hangzhounet.smartpy.io',
       list: [
         {
           network: 'main',
