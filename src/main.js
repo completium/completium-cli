@@ -15,10 +15,11 @@ const encoder = require('@taquito/michelson-encoder');
 const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
-const { Fraction } = require('fractional')
+const { Fraction } = require('fractional');
+const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.3.22'
+const version = '0.3.23'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -342,6 +343,51 @@ function getAmount(raw) {
 async function getArchetypeVersion() {
   const v = await callArchetype({}, null, { version: true });
   return v;
+}
+
+async function show_entries_internal(i) {
+  const config = getConfig();
+  const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
+
+  if (isFrombin) {
+    const bin = config.bin.archetype;
+
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync({ postfix: '.json' });
+
+    const path = tmpobj.name;
+    fs.writeFileSync(path, i);
+
+    const args = []
+    args.push('-rj');
+    args.push('-j');
+    args.push('--show-entries');
+    args.push(path);
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { stdout, stderr, failed } = await execa(bin, args, {});
+        if (failed) {
+          const msg = "Archetype compiler: " + stderr;
+          reject(msg);
+        } else {
+          resolve(stdout);
+        }
+      } catch (e) {
+        reject(e);
+      }
+    });
+
+  } else {
+    if (archetype == null) {
+      archetype = require('@completium/archetype');
+    }
+    const res = archetype.show_entries(i, {
+      json: true,
+      rjson: rjson
+    });
+    return new Promise(res);
+  }
 }
 
 function isMockupMode() {
@@ -754,7 +800,7 @@ async function mockupInit(options) {
 
   const protocol = options.protocol ? options.protocol : default_mockup_protocol
   const config = getConfig();
-  fs.rmSync(mockup_path, { force : true, recursive: true });
+  fs.rmSync(mockup_path, { force: true, recursive: true });
   const { stdout } = await execa(config.bin['tezos-client'], [
     '--protocol', protocol,
     '--base-dir', mockup_path,
@@ -1289,6 +1335,8 @@ function build_from_js(type, jdata) {
       case 'unit':
         return schema.Encode(jdata);
       case 'bytes':
+      case 'chest':
+      case 'chest_key':
         let bdata = jdata;
         if (bdata.startsWith && bdata.startsWith("0x")) {
           bdata = bdata.substring(2);
@@ -2324,13 +2372,7 @@ async function getEntries(input, rjson) {
 
   const script = await getContractScript(contract_address);
   const i = JSON.stringify(script);
-  if (archetype == null) {
-    archetype = require('@completium/archetype');
-  }
-  const res = archetype.show_entries(i, {
-    json: true,
-    rjson: rjson
-  });
+  const res = await show_entries_internal(i);
   return res;
 }
 
