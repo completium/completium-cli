@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.3.23'
+const version = '0.3.25'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -345,7 +345,7 @@ async function getArchetypeVersion() {
   return v;
 }
 
-async function show_entries_internal(i) {
+async function show_entries_internal(i, rjson) {
   const config = getConfig();
   const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
 
@@ -386,7 +386,7 @@ async function show_entries_internal(i) {
       json: true,
       rjson: rjson
     });
-    return new Promise(res);
+    return res;
   }
 }
 
@@ -2372,7 +2372,7 @@ async function getEntries(input, rjson) {
 
   const script = await getContractScript(contract_address);
   const i = JSON.stringify(script);
-  const res = await show_entries_internal(i);
+  const res = await show_entries_internal(i, rjson);
   return res;
 }
 
