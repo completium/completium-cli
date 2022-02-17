@@ -2293,15 +2293,20 @@ async function checkMichelson(options) {
     return new Promise(resolve => { resolve(null) });
   }
 
-  const res = await callArchetype(options, path, {
-    target: 'michelson'
-  });
+  let michelson_path = null
+  if (path.endsWith('tz')) {
+    michelson_path = path
+  } else {
+    const res = await callArchetype(options, path, {
+      target: 'michelson'
+    });
 
-  const tmp = require('tmp');
-  const tmpobj = tmp.fileSync();
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync();
 
-  const michelson_path = tmpobj.name;
-  fs.writeFileSync(michelson_path, res);
+    michelson_path = tmpobj.name;
+    fs.writeFileSync(michelson_path, res);
+  }
 
   const args = ["typecheck", "script", michelson_path];
   const { stdout, stderr, failed } = await callTezosClient(args);
