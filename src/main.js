@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.3.26'
+const version = '0.3.27'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -42,6 +42,8 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 const tezos_client_dir = homedir + '/.tezos-client'
 
 const default_mockup_protocol = 'PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx'
+
+const import_endpoint = 'https://hangzhounet.smartpy.io/'; // used for import faucet
 
 ///////////
 // TOOLS //
@@ -1003,8 +1005,7 @@ async function importAccount(kind, options) {
   }
 
   const config = getConfig();
-  const tezos_endpoint = config.tezos.endpoint;
-  const tezos = new taquito.TezosToolkit(tezos_endpoint);
+  const tezos = new taquito.TezosToolkit(import_endpoint);
   switch (kind) {
     case "faucet":
       const faucet = loadJS(value);
@@ -1029,9 +1030,12 @@ async function importAccount(kind, options) {
   const pkh = await tezos.signer.publicKeyHash();
   const sk = await tezos.signer.secretKey();
   saveAccountWithId(alias, pubk, pkh, sk);
-  if (with_tezos_client) {
+  if (with_tezos_client || isMockupMode()) {
     const args = ["import", "secret", "key", alias, ("unencrypted:" + sk)];
-    callTezosClient(args);
+    await callTezosClient(args);
+    if (isMockupMode()) {
+      await callTezosClient(["transfer", "10000", "from", "bootstrap1", "to", pkh, "--burn-cap", "0.06425"]);
+    }
   }
 }
 
