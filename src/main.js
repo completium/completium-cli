@@ -1566,6 +1566,11 @@ async function deploy(options) {
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
+  if (otest && isMockupMode()) {
+    const msg = `Cannot deploy a contract in test mode on mockup mode.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
   if (otest && network.network === "main") {
     const msg = `Cannot deploy a contract in test mode on mainnet.`;
     return new Promise((resolve, reject) => { reject(msg) });
@@ -2206,10 +2211,17 @@ function setMockupNow(options) {
 
   let d;
   if (date) {
-    d = typeof date == "number" ? new Date(date * 1000) : date
+    if (typeof date == "number") {
+      if (date > 253400000000) {
+        throw new Error("Invalid value (expecting timestamp in seconds)");
+      }
+      d = new Date(Math.floor(date) * 1000)
+    } else {
+      d = date
+    }
   } else {
     if (value === undefined) {
-      throw new Error("No value for setMockupNow ");
+      throw new Error("No value for setMockupNow");
     }
     d = new Date(value);
   }
