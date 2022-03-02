@@ -1,6 +1,6 @@
 {
   "name": "@completium/completium-cli",
-  "version": "0.3.27",
+  "version": "0.3.28",
   "description": "Completium CLI",
   "main": "./src/completium.js",
   "module": "./src/completium.js",
@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/edukera/completium-cli#readme",
   "dependencies": {
-    "@completium/archetype": "0.3.10",
+    "@completium/archetype": "0.3.12",
     "@taquito/michel-codec": "^11.2.0",
     "@taquito/michelson-encoder": "^11.2.0",
     "@taquito/signer": "^11.2.0",

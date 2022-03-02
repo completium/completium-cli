@@ -1,0 +1,20 @@
+
+archetype car
+
+enum Color =
+| Blue
+| Red
+
+asset car identified by vin {
+  vin    : string;
+  color  : Color;
+  year   : nat;
+  manufacturer : string
+} initialized by {
+  {"AAA"; Blue; 2000; "company1" };
+  {"BBB"; Red;  2010; "company2" }
+}
+
+
+variable res : nat = 0
+
