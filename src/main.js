@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.3.28'
+const version = '0.3.29'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -644,7 +644,7 @@ async function initCompletium(options) {
           bcd_url: "https://better-call.dev/ithacanet/${address}",
           tzstat_url: "https://ithacanet.tzstats.com",
           endpoints: [
-            'https://ithacanet.ecadinfra.com/',
+            'https://ithacanet.ecadinfra.com',
             'https://ithacanet.smartpy.io',
           ]
         },
