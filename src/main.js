@@ -541,7 +541,7 @@ function help(options) {
 
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|florence|granada|hangzhou|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|hangzhou|ithaca|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
 
@@ -614,13 +614,14 @@ async function initCompletium(options) {
     tezos: {
       force_tezos_client: false,
       network: 'hangzhou',
-      endpoint: 'https://hangzhounet.smartpy.io',
+      endpoint: 'https://hangzhounet.api.tez.ie',
       list: [
         {
           network: 'main',
           bcd_url: "https://better-call.dev/main/${address}",
           tzstat_url: "https://tzstats.com",
           endpoints: [
+            'https://mainnet.api.tez.ie',
             'https://mainnet-tezos.giganode.io',
             'https://mainnet.smartpy.io',
             'https://rpc.tzbeta.net',
@@ -632,6 +633,7 @@ async function initCompletium(options) {
           bcd_url: "https://better-call.dev/hangzhou2net/${address}",
           tzstat_url: "https://hangzhou.tzstats.com",
           endpoints: [
+            'https://hangzhounet.api.tez.ie',
             'https://testnet-tezos.giganode.io',
             'https://hangzhounet.smartpy.io',
             'https://rpc.hangzhounet.teztnets.xyz'
@@ -642,6 +644,7 @@ async function initCompletium(options) {
           bcd_url: "https://better-call.dev/ithacanet/${address}",
           tzstat_url: "https://ithacanet.tzstats.com",
           endpoints: [
+            'https://ithacanet.ecadinfra.com/',
             'https://ithacanet.smartpy.io',
           ]
         },
