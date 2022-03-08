@@ -143,6 +143,14 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "generate" && args[3] === "whyml") {
     res = { command: "generate_whyml", path: args[4] };
     nargs = args.slice(5);
+    // generate bindings-js <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "bindings-js") {
+    res = { command: "generate_bindings_js", path: args[4] };
+    nargs = args.slice(5);
+    // generate generate_bindings_ts <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "bindings-ts") {
+    res = { command: "generate_bindings_ts", path: args[4] };
+    nargs = args.slice(5);
     // check michelson <FILE.arl>
   } else if (length > 4 && args[2] === "check" && args[3] === "michelson") {
     res = { command: "check_michelson", path: args[4] };

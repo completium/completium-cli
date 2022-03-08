@@ -564,6 +564,8 @@ function help(options) {
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate bindings-js <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate bindings-ts <FILE.arl|CONTRACT_ALIAS>");
 
   print("  show accounts");
   print("  show account [--with-private-key]");
@@ -2282,8 +2284,7 @@ async function generateJavascript(options) {
   });
   print(res);
 }
-
-async function generateWhyml(options) {
+async function generate_gen(options, target) {
   const value = options.path;
 
   const contract = getContract(value);
@@ -2299,9 +2300,21 @@ async function generateWhyml(options) {
   }
 
   const res = await callArchetype(options, x, {
-    target: 'whyml'
+    target: target
   });
   print(res);
+}
+
+async function generateWhyml(options) {
+  await generate_gen(options, 'whyml')
+}
+
+async function generate_bindings_js(options) {
+  await generate_gen(options, 'bindings-js')
+}
+
+async function generate_bindings_ts(options) {
+  await generate_gen(options, 'bindings-ts')
 }
 
 async function checkMichelson(options) {
@@ -3131,6 +3144,12 @@ async function exec(options) {
         break;
       case "generate_whyml":
         await generateWhyml(options);
+        break;
+      case "generate_bindings_js":
+        await generate_bindings_js(options);
+        break;
+      case "generate_bindings_ts":
+        await generate_bindings_ts(options);
         break;
       case "check_michelson":
         await checkMichelson(options);
