@@ -43,9 +43,9 @@ const tezos_client_dir = homedir + '/.tezos-client'
 
 const default_mockup_protocol = 'PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx'
 
-const import_endpoint = 'https://hangzhounet.smartpy.io/'; // used for import faucet
+const import_endpoint = 'https://hangzhounet.api.tez.ie'; // used for import faucet
 
-const even_wells = {
+const event_wells = {
   hangzhou: 'KT1Aho6K97CKApDSCxXEzvP14qd1qTHhF4uH',
   ithaca: 'KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw',
   main: 'KT1AHVF5m8XaWPQCGgfAsZ9eSJJZ7WVGV2hE'
@@ -210,7 +210,7 @@ function computeSettings(options, settings) {
   const metadata_storage = options.metadata_storage ? options.metadata_storage : (settings ? settings.metadata_storage : undefined);
   const metadata_uri = options.metadata_uri ? options.metadata_uri : (settings ? settings.metadata_uri : undefined);
   const otest = options.test || (settings !== undefined && settings.test_mode);
-  const event_well = options.even_well ? options.even_well : even_wells[config.tezos.network];
+  const event_well = options.event_well ? options.event_well : event_wells[config.tezos.network];
 
   return {
     ...settings,
@@ -263,7 +263,7 @@ function computeArgsSettings(options, settings, path) {
       if (options.no_js_header) {
         args.push('--no-js-header');
       }
-      const event_well = options.even_well ? options.even_well : even_wells[config.tezos.network];
+      const event_well = options.event_well ? options.event_well : event_wells[config.tezos.network];
       if (event_well) {
         args.push('--event-well-address');
         args.push(event_well);
