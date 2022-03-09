@@ -45,6 +45,12 @@ const default_mockup_protocol = 'PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9
 
 const import_endpoint = 'https://hangzhounet.smartpy.io/'; // used for import faucet
 
+const even_wells = {
+  hangzhou: 'KT1Aho6K97CKApDSCxXEzvP14qd1qTHhF4uH',
+  ithaca: 'KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw',
+  main: 'KT1AHVF5m8XaWPQCGgfAsZ9eSJJZ7WVGV2hE'
+}
+
 ///////////
 // TOOLS //
 ///////////
@@ -199,15 +205,19 @@ function isNull(str) {
 }
 
 function computeSettings(options, settings) {
+  const config = getConfig();
+
   const metadata_storage = options.metadata_storage ? options.metadata_storage : (settings ? settings.metadata_storage : undefined);
   const metadata_uri = options.metadata_uri ? options.metadata_uri : (settings ? settings.metadata_uri : undefined);
   const otest = options.test || (settings !== undefined && settings.test_mode);
+  const event_well = options.even_well ? options.even_well : even_wells[config.tezos.network];
 
   return {
     ...settings,
     "test_mode": otest,
     "metadata_storage": metadata_storage,
-    "metadata_uri": metadata_uri
+    "metadata_uri": metadata_uri,
+    "event_well_address": event_well
   }
 }
 
@@ -252,6 +262,11 @@ function computeArgsSettings(options, settings, path) {
       }
       if (options.no_js_header) {
         args.push('--no-js-header');
+      }
+      const event_well = options.even_well ? options.even_well : even_wells[config.tezos.network];
+      if (event_well) {
+        args.push('--event-well-address');
+        args.push(event_well);
       }
     }
     args.push(path);
@@ -556,7 +571,7 @@ function help(options) {
   print("  remove account <ACCOUNT_ALIAS>");
 
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--show-tezos-client-command]");
+  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [ --event-well <CONTRACT_ADDRESS> ][--force] [--show-tezos-client-command]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]");
   print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
