@@ -32,7 +32,7 @@ const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
 
-const docker_id = 'oxheadalpha/flextesa:20211221'
+const docker_id = 'oxheadalpha/flextesa:latest'
 const flextesa_script = 'hangzbox'
 
 var config = null;
