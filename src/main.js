@@ -1928,11 +1928,11 @@ async function callTransfer(options, contract_address, arg) {
         })
       }
       if (failed) {
-        var rx = /.*\nwith (.*)\nFatal .*/g;
+        var rx = /.*with(\n)?(\s)+((.|\n)*)\nFatal .*/g;
         var arr = rx.exec(stderr);
         let err;
         if (!isNull(arr)) {
-          const unescape_str = unescape(arr[1]);
+          const unescape_str = unescape(arr[3]);
           err = { value: unescape_str }
         } else {
           err = stderr
