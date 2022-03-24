@@ -26,6 +26,7 @@ const completium_dir = homedir + '/.completium'
 const config_path = completium_dir + '/config.json'
 const accounts_path = completium_dir + '/accounts.json'
 const contracts_path = completium_dir + '/contracts.json'
+const mockup_conf_path = completium_dir + '/mockup.conf.json'
 const log_path = completium_dir + '/log.json'
 const bin_dir = completium_dir + '/bin'
 const contracts_dir = completium_dir + "/contracts"
@@ -77,6 +78,14 @@ function getConfig() {
   return config;
 }
 
+function getMockupConfig() {
+  let mockup_config = {};
+  if (fs.existsSync(mockup_conf_path)) {
+    mockup_config = loadJS(mockup_conf_path);
+  }
+  return mockup_config;
+}
+
 function saveFile(path, c, callback) {
   const content = JSON.stringify(c, null, 2);
   fs.writeFileSync(path, content);
@@ -87,6 +96,10 @@ function saveFile(path, c, callback) {
 
 function saveConfig(config, callback) {
   saveFile(config_path, config, callback);
+}
+
+function saveMockupConfig(config, callback) {
+  saveFile(mockup_conf_path, config, callback);
 }
 
 function getContracts() {
@@ -200,6 +213,15 @@ function getTezos(forceAccount) {
   return tezos;
 }
 
+function getEventWell(network) {
+  if (network === 'mockup') {
+    const mockupConf = getMockupConfig()
+    return mockupConf.event_well !== undefined ? mockupConf.event_well : "";
+  } else {
+    return event_wells[network]
+  }
+}
+
 function isNull(str) {
   return str === undefined || str === null || str === "";
 }
@@ -210,7 +232,7 @@ function computeSettings(options, settings) {
   const metadata_storage = options.metadata_storage ? options.metadata_storage : (settings ? settings.metadata_storage : undefined);
   const metadata_uri = options.metadata_uri ? options.metadata_uri : (settings ? settings.metadata_uri : undefined);
   const otest = options.test || (settings !== undefined && settings.test_mode);
-  const event_well = options.event_well ? options.event_well : event_wells[config.tezos.network];
+  const event_well = options.event_well ? options.event_well : getEventWell(config.tezos.network);
 
   return {
     ...settings,
@@ -263,7 +285,7 @@ function computeArgsSettings(options, settings, path) {
       if (options.no_js_header) {
         args.push('--no-js-header');
       }
-      const event_well = options.event_well ? options.event_well : event_wells[config.tezos.network];
+      const event_well = options.event_well ? options.event_well : getEventWell(config.tezos.network);
       if (event_well) {
         args.push('--event-well-address');
         args.push(event_well);
@@ -856,6 +878,24 @@ async function mockupInit(options) {
     await importAccount(name, key);
     await transferAccount(name, pkh);
   }
+
+  const event_well_contract_name = 'event_well'
+  const event_well_script = `{ storage unit; parameter (bytes %event); code { UNPAIR; DROP; NIL operation; PAIR } }`
+
+  // deploy event well contract
+  await callTezosClient(["originate", "contract", event_well_contract_name,
+    "transferring", "0", "from", "bootstrap1",
+    "running", event_well_script, "--init", "Unit",
+    "--burn-cap", "20", "--force", "--no-print-source"]);
+
+  const path_contracts = mockup_path + "/contracts";
+  const inputContracts = fs.readFileSync(path_contracts, 'utf8');
+  const cobj = JSON.parse(inputContracts);
+  const o = cobj.find(x => { return (x.name === event_well_contract_name) });
+  const contract_address = isNull(o) ? null : o.value;
+
+  const mockupConf = getMockupConfig();
+  saveMockupConfig({ ...mockupConf, event_well: contract_address })
 }
 
 async function showVersion(options) {
