@@ -34,7 +34,7 @@ const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
 
 const docker_id = 'oxheadalpha/flextesa:latest'
-const flextesa_script = 'hangzbox'
+const flextesa_script = 'ithacabox'
 
 var config = null;
 const mockup_path = completium_dir + "/mockup";
