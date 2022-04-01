@@ -42,9 +42,9 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-const default_mockup_protocol = 'PtHangz2aRngywmSRGGvrcTyMbbdpWdpFKuS4uMWxg2RaH9i1qx'
+const default_mockup_protocol = 'Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A'
 
-const import_endpoint = 'https://hangzhounet.api.tez.ie'; // used for import faucet
+const import_endpoint = 'https://ithacanet.ecadinfra.com'; // used for import faucet
 
 const event_wells = {
   hangzhou: 'KT1Aho6K97CKApDSCxXEzvP14qd1qTHhF4uH',
@@ -652,8 +652,8 @@ async function initCompletium(options) {
     },
     tezos: {
       force_tezos_client: false,
-      network: 'hangzhou',
-      endpoint: 'https://hangzhounet.api.tez.ie',
+      network: 'ithaca',
+      endpoint: 'https://ithacanet.ecadinfra.com',
       list: [
         {
           network: 'main',
@@ -2137,22 +2137,31 @@ async function run(options) {
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
-  const tmp = require('tmp');
-  const tmpobj = tmp.fileSync();
-
-  const script_raw = await callArchetype(options, path, { target: "michelson" }); // TODO: handle parameters
-  const d_path_script = tmpobj.name;
-  fs.writeFileSync(d_path_script, script_raw);
-
+  let michelson_path = null;
   let d_storage = options.storage;
-  if (options.storage === undefined) {
-    d_storage = await callArchetype(options, path, { target: "michelson-storage" });
+  if (path.endsWith('tz')) {
+    michelson_path = path
+    if (d_storage === undefined) {
+      d_storage = 'Unit'
+    }
+  } else {
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync();
+
+    const script_raw = await callArchetype(options, path, { target: "michelson" }); // TODO: handle parameters
+    const d_path_script = tmpobj.name;
+    fs.writeFileSync(d_path_script, script_raw);
+
+    if (d_storage === undefined) {
+      d_storage = await callArchetype(options, path, { target: "michelson-storage" });
+    }
+    michelson_path = tmpobj.name;
   }
 
   const d_amount = (amount / 1000000).toString();
 
   const args = [
-    "run", "script", d_path_script, "on", "storage", d_storage, "and", "input", arg, "--entrypoint", entry, "--amount", d_amount
+    "run", "script", michelson_path, "on", "storage", d_storage, "and", "input", arg, "--entrypoint", entry, "--amount", d_amount
   ];
   if (trace) {
     args.push("--trace-stack");
