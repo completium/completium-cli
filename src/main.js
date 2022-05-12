@@ -605,7 +605,7 @@ function help(options) {
   print("  generate bindings-ts <FILE.arl|CONTRACT_ALIAS>");
 
   print("  show accounts");
-  print("  show account [--with-private-key]");
+  print("  show account [--with-private-key] [--alias <ALIAS>]");
   print("  show contracts");
   print("  show contract <CONTRACT_ALIAS>");
   print("  show entries <CONTRACT_ADDRESS>");
@@ -1132,15 +1132,20 @@ async function showAccounts(options) {
 
 async function showAccount(options) {
   const config = getConfig();
-  const value = config.account;
+  const alias = options.alias;
+  let value = config.account;
   const withPrivateKey = options.withPrivateKey;
+
+  if (!isNull(alias)) {
+    value = alias
+  }
 
   if (isNull(value)) {
     print("No account is set.");
   } else {
     const account = getAccount(value);
     if (isNull(account)) {
-      return print(`'${account}' is not found.`);
+      return print(`'${value}' is not found.`);
     }
     print(`Current account:\t${account.name}`);
     showKeyInfo(account.pubk, account.pkh, withPrivateKey ? account.key.value : null);
