@@ -300,54 +300,86 @@ async function callArchetype(options, path, s) {
   const verbose = options.verbose;
 
   const config = getConfig();
-  const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
+  // const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
+  const archetypeMode = config.mode.archetype;
 
-  if (isFrombin) {
-    const bin = config.bin.archetype;
-    const args = computeArgsSettings(options, s, path);
-
-    if (verbose) {
-      print(args);
-    }
-
-    return new Promise(async (resolve, reject) => {
-      try {
-        const { stdout, stderr, failed } = await execa(bin, args, {});
-        if (failed) {
-          const msg = "Archetype compiler: " + stderr;
-          reject(msg);
-        } else {
-          resolve(stdout);
-        }
-      } catch (e) {
-        reject(e);
-      }
-    });
-  } else {
-    if (archetype == null) {
-      archetype = require('@completium/archetype');
-    }
-    if (s.version) {
-      return archetype.version()
-    } else {
-      try {
-        const settings = computeSettings(options, s);
+  switch (archetypeMode) {
+    case 'bin':
+      {
+        const bin = config.bin.archetype;
+        const args = computeArgsSettings(options, s, path);
 
         if (verbose) {
-          print(settings);
+          print(args);
         }
 
-        const a = await archetype.compile(path, settings);
-        return a;
-      } catch (error) {
-        if (error.message) {
-          const msg = "Archetype compiler: " + error.message;
-          throw msg;
+        return new Promise(async (resolve, reject) => {
+          try {
+            const { stdout, stderr, failed } = await execa(bin, args, {});
+            if (failed) {
+              const msg = "Archetype compiler: " + stderr;
+              reject(msg);
+            } else {
+              resolve(stdout);
+            }
+          } catch (e) {
+            reject(e);
+          }
+        })
+      };
+    case 'js':
+      {
+        if (archetype == null) {
+          archetype = require('@completium/archetype');
+        }
+        if (s.version) {
+          return archetype.version()
         } else {
-          throw error;
+          try {
+            const settings = computeSettings(options, s);
+
+            if (verbose) {
+              print(settings);
+            }
+
+            const a = await archetype.compile(path, settings);
+            return a;
+          } catch (error) {
+            if (error.message) {
+              const msg = "Archetype compiler: " + error.message;
+              throw msg;
+            } else {
+              throw error;
+            }
+          }
         }
       }
-    }
+    case 'docker':
+      {
+        const docker_bin = 'docker';
+        const cwd = process.cwd();
+        const args = ['run', '--rm', '-v', `${cwd}:${cwd}`, '-w', `${cwd}`, 'completium/archetype:1.2.16'].concat(computeArgsSettings(options, s, path));
+
+        if (verbose) {
+          print(args);
+        }
+
+        return new Promise(async (resolve, reject) => {
+          try {
+            const { stdout, stderr, failed } = await execa(docker_bin, args, {});
+            if (failed) {
+              const msg = "Archetype compiler: " + stderr;
+              reject(msg);
+            } else {
+              resolve(stdout);
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+    default:
+      throw 'Archetype compiler: unknown mode';
   }
 }
 
