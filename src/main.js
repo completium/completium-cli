@@ -693,21 +693,11 @@ async function initCompletium(options) {
           tzstat_url: "https://tzstats.com",
           endpoints: [
             'https://mainnet.api.tez.ie',
-            'https://mainnet-tezos.giganode.io',
             'https://mainnet.smartpy.io',
-            'https://rpc.tzbeta.net',
-            'https://api.tez.ie/rpc/mainnet'
-          ]
-        },
-        {
-          network: 'hangzhou',
-          bcd_url: "https://better-call.dev/hangzhou2net/${address}",
-          tzstat_url: "https://hangzhou.tzstats.com",
-          endpoints: [
-            'https://hangzhounet.api.tez.ie',
-            'https://testnet-tezos.giganode.io',
-            'https://hangzhounet.smartpy.io',
-            'https://rpc.hangzhounet.teztnets.xyz'
+            'https://mainnet.tezos.marigold.dev',
+            'https://mainnet-tezos.giganode.io',
+            'https://mainnet-tezos.giganode.io',
+            'https://rpc.tzbeta.net'
           ]
         },
         {
@@ -717,6 +707,19 @@ async function initCompletium(options) {
           endpoints: [
             'https://ithacanet.ecadinfra.com',
             'https://ithacanet.smartpy.io',
+            'https://ithacanet.tezos.marigold.dev',
+            'https://testnet-tezos.giganode.io'
+          ]
+        },
+        {
+          network: 'jakarta',
+          bcd_url: "https://better-call.dev/jakartanet/${address}",
+          tzstat_url: "https://jakarta.tzstats.com",
+          endpoints: [
+            'https://jakartanet.ecadinfra.com',
+            'https://jakartanet.smartpy.io',
+            'https://jakartanet.tezos.marigold.dev',
+            'https://rpczero.tzbeta.net'
           ]
         },
         {
