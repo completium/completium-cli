@@ -598,32 +598,35 @@ function help(options) {
   print("  help");
   print("  version")
   print("  archetype version")
-
-  print("  set bin <BIN> <PATH>");
-  print("  set archetype bin (true|false)")
-
+  print("")
   print("  start sandbox");
   print("  stop sandbox");
-
+  print("")
   print("  mockup init [--protocol <VALUE>]");
   print("  mockup set now <value>");
-
+  print("")
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|hangzhou|ithaca|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|ithaca|jakarta|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
-
+  print("")
+  print("  set mode <BIN> <PATH>")
+  print("  switch mode <BIN>")
+  print("  show mode <BIN>")
+  print("  set binary path <BIN> <PATH>");
+  print("  show binary path <BIN>");
+  print("")
   print("  generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
   print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
   print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
-
+  print("")
   print("  show keys from <PRIVATE_KEY>");
   print("  set account <ACCOUNT_ALIAS>");
   print("  switch account");
   print("  rename account <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> by <ACCOUNT_ALIAS> [--force]");
   print("  remove account <ACCOUNT_ALIAS>");
-
+  print("")
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [ --event-well <CONTRACT_ADDRESS> ][--force] [--show-tezos-client-command]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]");
@@ -635,7 +638,7 @@ function help(options) {
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
   print("  generate bindings-js <FILE.arl|CONTRACT_ALIAS>");
   print("  generate bindings-ts <FILE.arl|CONTRACT_ALIAS>");
-
+  print("")
   print("  show accounts");
   print("  show account [--with-private-key] [--alias <ALIAS>]");
   print("  show contracts");
@@ -649,7 +652,7 @@ function help(options) {
   print("  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  show script <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]");
   print("  get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>");
-
+  print("")
   print("  log enable");
   print("  log disable");
   print("  log clear [--force]");
@@ -677,10 +680,13 @@ async function initCompletium(options) {
 
   const config = {
     account: 'alice',
-    archetype_from_bin: false,
+    mode: {
+      archetype: 'docker',
+      'tezos-client': 'binary'
+    },
     bin: {
-      "archetype": "archetype",
-      "tezos-client": "tezos-client"
+      archetype: 'archetype',
+      'tezos-client': 'tezos-client'
     },
     tezos: {
       force_tezos_client: false,
@@ -825,18 +831,6 @@ async function initCompletium(options) {
       }))
     }));
   }
-}
-
-async function setBin(options) {
-  const bin = options.bin;
-  if (bin !== 'tezos-client' && bin !== 'archetype') {
-    const msg = `Expecting bin 'tezos-client' or 'archetype'`;
-    throw msg;
-  }
-  const path = options.path;
-  const config = getConfig();
-  config.bin[bin] = path;
-  saveConfig(config, x => { print(`'${bin}' is set to ${path}.`) })
 }
 
 async function startSandbox(options) {
@@ -1052,6 +1046,89 @@ async function removeEndpoint(options) {
 
   config.tezos.list = l;
   saveConfig(config, x => { print(`'${endpoint}' is removed, configuration file updated.`) });
+}
+
+function check_bin(bin) {
+  if (bin !== 'tezos-client' && bin !== 'archetype') {
+    const msg = `Expecting bin 'tezos-client' or 'archetype'`;
+    throw msg;
+  }
+}
+
+function check_mode_value(bin) {
+  if (bin !== 'tezos-client' && bin !== 'archetype') {
+    const msg = `Invalid mode, must be: 'js' 'docker' or 'binary' value`;
+    throw msg;
+  }
+}
+
+function check_bin_archetype(bin) {
+  if (bin !== 'archetype') {
+    const msg = `Only 'archetype' is avalable to set mode`;
+    throw msg;
+  }
+}
+
+async function setMode(options) {
+  const bin = options.bin;
+  const mode = options.value;
+
+  check_bin_archetype(bin)
+  check_mode_value(mode)
+
+  const config = getConfig();
+  config.mode[bin] = mode;
+  saveConfig(config, x => { print(`${bin} mode is set to ${mode}`) })
+}
+
+async function switchMode(options) {
+  const bin = options.bin;
+
+  check_bin_archetype(bin)
+
+  const config = getConfig();
+  const mode = config.mode[bin];
+  print(`Current ${bin} mode: ${mode}`);
+
+  const { Select } = require('enquirer');
+
+  const prompt = new Select({
+    name: 'color',
+    message: `Switch ${bin} mode`,
+    choices: ['js', 'docker', 'binary'],
+  });
+
+  prompt.run()
+    .then(mode => {
+      config.mode[bin] = mode;
+      saveConfig(config, x => { print(`${bin} mode is set to ${mode}`) })
+    })
+    .catch(console.error);
+}
+
+async function showMode(options) {
+  const bin = options.bin;
+  check_bin(bin)
+  const config = getConfig();
+  const mode = config.mode[bin];
+  print(`${bin} mode: ${mode}`)
+}
+
+async function setBinPath(options) {
+  const bin = options.bin;
+  const path = options.value;
+  check_bin(bin)
+  const config = getConfig();
+  config.bin[bin] = path;
+  saveConfig(config, x => { print(`'${bin}' binary path is set to ${path}.`) })
+}
+
+async function showBinPath(options) {
+  const bin = options.bin;
+  check_bin(bin)
+  const config = getConfig();
+  const path = config.bin[bin];
+  print(`${bin} binary path: ${path}`)
 }
 
 async function confirmAccount(force, account) {
@@ -3161,12 +3238,6 @@ async function exec(options) {
       case "show_archetype_version":
         await showArchetypeVersion(options);
         break;
-      case "set_bin":
-        await setBin(options);
-        break;
-      case "set_archetype_bin":
-        await setArchetypeBin(options);
-        break;
       case "start_sandbox":
         await startSandbox(options);
         break;
@@ -3193,6 +3264,21 @@ async function exec(options) {
         break;
       case "remove_endpoint":
         await removeEndpoint(options);
+        break;
+      case "set_mode":
+        await setMode(options);
+        break;
+      case "switch_mode":
+        await switchMode(options);
+        break;
+      case "show_mode":
+        await showMode(options);
+        break;
+      case "set_bin_path":
+        await setBinPath(options);
+        break;
+      case "show_bin_path":
+        await showBinPath(options);
         break;
       case "generate_account":
         await generateAccount(options);

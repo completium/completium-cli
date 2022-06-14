@@ -32,14 +32,6 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
     res = { command: "show_archetype_version" };
     nargs = args.slice(4);
-    // set bin (archetype|tezos-client)
-  } else if (length > 3 && args[2] === "set" && args[3] === "bin") {
-    res = { command: "set_bin", bin: args[4], path: args[5] };
-    nargs = args.slice(6);
-    // set archetype bin (true|false)
-  } else if (length > 4 && args[2] === "set" && args[3] === "archetype" && args[4] === "bin") {
-    res = { command: "set_archetype_bin", value: args[5] };
-    nargs = args.slice(6);
     // start sandbox
   } else if (length > 3 && args[2] === "start" && args[3] === "sandbox") {
     res = { command: "start_sandbox" };
@@ -75,6 +67,26 @@ function parseCommand(args) {
     // remove endpoint [<ENDPOINT_URL>]
   } else if (length > 4 && args[2] === "remove" && args[3] === "endpoint") {
     res = { command: "remove_endpoint", endpoint: args[4] };
+    nargs = args.slice(6);
+    // set mode <bin> <mode>
+  } else if (length > 5 && args[2] === "set" && args[3] === "mode") {
+    res = { command: "set_mode", bin: args[4], value: args[5] };
+    nargs = args.slice(6);
+    // switch mode <bin>
+  } else if (length > 4 && args[2] === "switch" && args[3] === "mode") {
+    res = { command: "switch_mode", bin: args[4] };
+    nargs = args.slice(5);
+    // show mode <bin>
+  } else if (length > 4 && args[2] === "show" && args[3] === "mode") {
+    res = { command: "show_mode", bin: args[4] };
+    nargs = args.slice(5);
+    // set path <bin> <value>
+  } else if (length > 5 && args[2] === "set" && args[3] === "binary" && args[3] === "path") {
+    res = { command: "set_bin_path", bin: args[4], value: args[5] };
+    nargs = args.slice(6);
+    // show binary path <bin> <value>
+  } else if (length > 5 && args[2] === "show" && args[3] === "binary" && args[4] === "path") {
+    res = { command: "show_bin_path", bin: args[5] };
     nargs = args.slice(6);
     // generate account as <ACCOUNT_ALIAS> [--force]
   } else if (length > 5 && args[2] === "generate" && args[3] === "account" && args[4] === "as") {
