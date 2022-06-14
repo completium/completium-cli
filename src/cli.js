@@ -81,9 +81,9 @@ function parseCommand(args) {
     res = { command: "show_mode", bin: args[4] };
     nargs = args.slice(5);
     // set path <bin> <value>
-  } else if (length > 5 && args[2] === "set" && args[3] === "binary" && args[3] === "path") {
-    res = { command: "set_bin_path", bin: args[4], value: args[5] };
-    nargs = args.slice(6);
+  } else if (length > 6 && args[2] === "set" && args[3] === "binary" && args[4] === "path") {
+    res = { command: "set_bin_path", bin: args[5], value: args[6] };
+    nargs = args.slice(7);
     // show binary path <bin> <value>
   } else if (length > 5 && args[2] === "show" && args[3] === "binary" && args[4] === "path") {
     res = { command: "show_bin_path", bin: args[5] };

@@ -611,11 +611,11 @@ function help(options) {
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
   print("")
-  print("  set mode <BIN> <PATH>")
-  print("  switch mode <BIN>")
-  print("  show mode <BIN>")
-  print("  set binary path <BIN> <PATH>");
-  print("  show binary path <BIN>");
+  print("  set mode archetype (js|docker|binary)")
+  print("  switch mode archetype")
+  print("  show mode archetype")
+  print("  set binary path (archetype|tezos-client) <PATH>");
+  print("  show binary path (archetype|tezos-client)");
   print("")
   print("  generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
   print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
@@ -1050,21 +1050,21 @@ async function removeEndpoint(options) {
 
 function check_bin(bin) {
   if (bin !== 'tezos-client' && bin !== 'archetype') {
-    const msg = `Expecting bin 'tezos-client' or 'archetype'`;
-    throw msg;
-  }
-}
-
-function check_mode_value(bin) {
-  if (bin !== 'tezos-client' && bin !== 'archetype') {
-    const msg = `Invalid mode, must be: 'js' 'docker' or 'binary' value`;
+    const msg = `Invalid binary "${bin}", expecting 'tezos-client' or 'archetype'`;
     throw msg;
   }
 }
 
 function check_bin_archetype(bin) {
   if (bin !== 'archetype') {
-    const msg = `Only 'archetype' is avalable to set mode`;
+   const msg = `Invalid binary "${bin}", expecting 'archetype'`;
+    throw msg;
+  }
+}
+
+function check_mode_value(mode) {
+  if (mode !== 'js' && mode !== 'docker' && mode !== 'binary') {
+    const msg = `Invalid mode ${mode}, expecting 'js' 'docker' or 'binary'`;
     throw msg;
   }
 }
@@ -1078,7 +1078,7 @@ async function setMode(options) {
 
   const config = getConfig();
   config.mode[bin] = mode;
-  saveConfig(config, x => { print(`${bin} mode is set to ${mode}`) })
+  saveConfig(config, x => { print(`${bin} mode set to ${mode}`) })
 }
 
 async function switchMode(options) {
@@ -1101,7 +1101,7 @@ async function switchMode(options) {
   prompt.run()
     .then(mode => {
       config.mode[bin] = mode;
-      saveConfig(config, x => { print(`${bin} mode is set to ${mode}`) })
+      saveConfig(config, x => { print(`${bin} mode set to ${mode}`) })
     })
     .catch(console.error);
 }
@@ -1120,7 +1120,7 @@ async function setBinPath(options) {
   check_bin(bin)
   const config = getConfig();
   config.bin[bin] = path;
-  saveConfig(config, x => { print(`'${bin}' binary path is set to ${path}.`) })
+  saveConfig(config, x => { print(`'${bin}' binary path set to ${path}`) })
 }
 
 async function showBinPath(options) {
