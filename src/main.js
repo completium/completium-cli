@@ -595,7 +595,7 @@ async function getChainId() {
 function help(options) {
   print("usage: [command] [options]")
   print("command:");
-  print("  init [--soft]")
+  print("  init")
   print("  help");
   print("  version")
   print("  archetype version")
@@ -662,24 +662,6 @@ function help(options) {
 }
 
 async function initCompletium(options) {
-  const soft = options.soft
-
-  if (!fs.existsSync(bin_dir)) {
-    fs.mkdirSync(bin_dir, { recursive: true });
-  }
-
-  if (!fs.existsSync(contracts_dir)) {
-    fs.mkdirSync(contracts_dir, { recursive: true });
-  }
-
-  if (!fs.existsSync(scripts_dir)) {
-    fs.mkdirSync(scripts_dir, { recursive: true });
-  }
-
-  if (!fs.existsSync(sources_dir)) {
-    fs.mkdirSync(sources_dir, { recursive: true });
-  }
-
   const config = {
     account: 'alice',
     mode: {
@@ -749,11 +731,46 @@ async function initCompletium(options) {
     }
   };
 
-  if (soft) {
-    saveFile(config_path, config, (x => {
-      print("Completium initialized successfully and softly!")
+  const exists = fs.existsSync(config_path);
+
+  if (exists) {
+    const old_config = getConfig();
+    const old_account = old_config.account;
+    const old_bin     = old_config.bin;
+    const old_mode    = old_config.mode;
+
+    const new_config = {...old_config, ...config};
+    if (old_account) {
+      new_config.account = old_account;
+    }
+    if (old_bin) {
+      new_config.bin = old_bin
+    }
+    if (old_mode) {
+      new_config.mode = old_mode
+    }
+
+    saveFile(config_path, new_config, (x => {
+      print("Completium updated successfully!")
     }))
   } else {
+
+    if (!fs.existsSync(bin_dir)) {
+      fs.mkdirSync(bin_dir, { recursive: true });
+    }
+
+    if (!fs.existsSync(contracts_dir)) {
+      fs.mkdirSync(contracts_dir, { recursive: true });
+    }
+
+    if (!fs.existsSync(scripts_dir)) {
+      fs.mkdirSync(scripts_dir, { recursive: true });
+    }
+
+    if (!fs.existsSync(sources_dir)) {
+      fs.mkdirSync(sources_dir, { recursive: true });
+    }
+
     saveFile(config_path, config, (x => {
       saveFile(accounts_path, {
         accounts: [{

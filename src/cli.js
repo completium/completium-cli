@@ -265,7 +265,6 @@ function parseCommand(args) {
       '--protocol': String,
       '--storage': String,
       '--show-tezos-client-command': Boolean,
-      '--soft': Boolean,
       '--event-well': String,
 
       // '-y': '--yes',
@@ -306,7 +305,6 @@ function parseCommand(args) {
     protocol: options['--protocol'],
     storage: options['--storage'],
     show_tezos_client_command: options['--show-tezos-client-command'],
-    soft: options['--soft'] || false,
     event_well: options['--event-well'],
   }
 }
