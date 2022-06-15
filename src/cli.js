@@ -32,6 +32,10 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
     res = { command: "show_archetype_version" };
     nargs = args.slice(4);
+  // install
+  } else if (length > 2 && args[2] === "install") {
+    res = { command: "install", bin: args[3] };
+    nargs = args.slice(4);
     // start sandbox
   } else if (length > 3 && args[2] === "start" && args[3] === "sandbox") {
     res = { command: "start_sandbox" };

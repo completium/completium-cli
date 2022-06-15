@@ -20,6 +20,7 @@ const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
 const version = '0.3.39'
+const archetype_version = '1.2.15'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -598,6 +599,7 @@ function help(options) {
   print("  help");
   print("  version")
   print("  archetype version")
+  print("  install archetype")
   print("")
   print("  start sandbox");
   print("  stop sandbox");
@@ -833,6 +835,26 @@ async function initCompletium(options) {
   }
 }
 
+async function doInstall(options) {
+  const bin = options.bin;
+  const verbose = options.verbose;
+
+  check_bin_archetype(bin);
+
+  try {
+    const { stdout } = await execa('docker', ['pull', `completium/archetype:${archetype_version}`], {});
+    if (verbose) {
+      print(stdout);
+    }
+    print(stdout)
+
+  } catch (error) {
+    print(error);
+    throw error;
+  }
+
+}
+
 async function startSandbox(options) {
   const verbose = options.verbose;
   print('Waiting for sandbox to start ...');
@@ -1057,7 +1079,7 @@ function check_bin(bin) {
 
 function check_bin_archetype(bin) {
   if (bin !== 'archetype') {
-   const msg = `Invalid binary "${bin}", expecting 'archetype'`;
+    const msg = `Invalid binary "${bin}", expecting 'archetype'`;
     throw msg;
   }
 }
@@ -3237,6 +3259,9 @@ async function exec(options) {
         break;
       case "show_archetype_version":
         await showArchetypeVersion(options);
+        break;
+      case "install":
+        await doInstall(options);
         break;
       case "start_sandbox":
         await startSandbox(options);
