@@ -305,7 +305,7 @@ async function callArchetype(options, path, s) {
   const archetypeMode = config.mode.archetype;
 
   switch (archetypeMode) {
-    case 'bin':
+    case 'binary':
       {
         const bin = config.bin.archetype;
         const args = computeArgsSettings(options, s, path);
