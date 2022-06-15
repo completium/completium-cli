@@ -686,14 +686,13 @@ async function initCompletium(options) {
             'https://mainnet.smartpy.io',
             'https://mainnet.tezos.marigold.dev',
             'https://mainnet-tezos.giganode.io',
-            'https://mainnet-tezos.giganode.io',
             'https://rpc.tzbeta.net'
           ]
         },
         {
           network: 'ithaca',
           bcd_url: "https://better-call.dev/ithacanet/${address}",
-          tzstat_url: "https://ithacanet.tzstats.com",
+          tzstat_url: "https://ithaca.tzstats.com",
           endpoints: [
             'https://ithacanet.ecadinfra.com',
             'https://ithacanet.smartpy.io',
@@ -736,10 +735,10 @@ async function initCompletium(options) {
   if (exists) {
     const old_config = getConfig();
     const old_account = old_config.account;
-    const old_bin     = old_config.bin;
-    const old_mode    = old_config.mode;
+    const old_bin = old_config.bin;
+    const old_mode = old_config.mode;
 
-    const new_config = {...old_config, ...config};
+    const new_config = { ...old_config, ...config };
     if (old_account) {
       new_config.account = old_account;
     }
