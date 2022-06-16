@@ -20,7 +20,6 @@ const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
 const version = '0.3.39'
-const archetype_version = '1.2.15'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -359,7 +358,7 @@ async function callArchetype(options, path, s) {
       {
         const docker_bin = 'docker';
         const cwd = process.cwd();
-        const args = ['run', '--rm', '-v', `${cwd}:${cwd}`, '-w', `${cwd}`, 'completium/archetype:1.2.16'].concat(computeArgsSettings(options, s, path));
+        const args = ['run', '--rm', '-v', `${cwd}:${cwd}`, '-w', `${cwd}`, 'completium/archetype:latest'].concat(computeArgsSettings(options, s, path));
 
         if (verbose) {
           print(args);
@@ -858,7 +857,7 @@ async function doInstall(options) {
   check_bin_archetype(bin);
 
   try {
-    const { stdout } = await execa('docker', ['pull', `completium/archetype:${archetype_version}`], {});
+    const { stdout } = await execa('docker', ['pull', `completium/archetype:latest`], {});
     if (verbose) {
       print(stdout);
     }
