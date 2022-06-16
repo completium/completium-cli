@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/edukera/completium-cli.git"
+    "url": "git+https://github.com/completium/completium-cli.git"
   },
   "keywords": [
     "cli",
@@ -33,9 +33,9 @@
   "author": "completium",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/edukera/completium-cli/issues"
+    "url": "https://github.com/completium/completium-cli/issues"
   },
-  "homepage": "https://github.com/edukera/completium-cli#readme",
+  "homepage": "https://github.com/completium/completium-cli#readme",
   "dependencies": {
     "@completium/archetype": "0.3.23",
     "@taquito/michel-codec": "^12.0.0",
