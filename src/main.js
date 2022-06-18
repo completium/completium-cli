@@ -47,10 +47,10 @@ const default_mockup_protocol = 'Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvi
 const import_endpoint = 'https://ithacanet.ecadinfra.com'; // used for import faucet
 
 const event_wells = {
-  hangzhou: 'KT1Aho6K97CKApDSCxXEzvP14qd1qTHhF4uH',
+  main: 'KT1AHVF5m8XaWPQCGgfAsZ9eSJJZ7WVGV2hE',
+  jakarta: 'KT1HchD9HwAWLffYitWvPiKEKJGvyZYRWNWh',
   ithaca: 'KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw',
-  jakarta: 'KT1CchCR4JaMfFqjJVzSo89XVji4VCZ2rftv',
-  main: 'KT1AHVF5m8XaWPQCGgfAsZ9eSJJZ7WVGV2hE'
+  hangzhou: 'KT1Aho6K97CKApDSCxXEzvP14qd1qTHhF4uH',
 }
 
 ///////////
