@@ -49,6 +49,7 @@ const import_endpoint = 'https://ithacanet.ecadinfra.com'; // used for import fa
 const event_wells = {
   hangzhou: 'KT1Aho6K97CKApDSCxXEzvP14qd1qTHhF4uH',
   ithaca: 'KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw',
+  jakarta: 'KT1CchCR4JaMfFqjJVzSo89XVji4VCZ2rftv',
   main: 'KT1AHVF5m8XaWPQCGgfAsZ9eSJJZ7WVGV2hE'
 }
 
