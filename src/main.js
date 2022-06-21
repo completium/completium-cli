@@ -1730,6 +1730,57 @@ async function compute_tzstorage(file, storageType, parameters, s) {
   return michelsonData;
 }
 
+function replace_json(obj, id, data) {
+  if (obj instanceof Array) {
+    return (obj.map(x => replace_json(x, id, data)))
+  } else if (obj.prim) {
+    const prim = obj.prim;
+    if (prim == id) {
+      return data;
+    }
+    if (obj.args) {
+      return { ...obj, args: obj.args.map(x => replace_json(x, id, data)) }
+    }
+  }
+  return obj;
+}
+
+function process_const(obj, parameters, contract_parameter) {
+  for (i = 0; i < contract_parameter.length; ++i) {
+    const cp = contract_parameter[i];
+    if (cp.const) {
+      const name = cp.name;
+      const ty = expr_micheline_to_json(cp.type_);
+      const value = parameters[name];
+      if (isNull(value)) {
+        throw new Error(`Error: parameter "${name}" not found.`)
+      }
+      const data = build_from_js(ty, value);
+      obj = replace_json(obj, name, data)
+    }
+  }
+  return obj;
+}
+
+function process_code_const(str, parameters, contract_parameter) {
+  for (i = 0; i < contract_parameter.length; ++i) {
+    const cp = contract_parameter[i];
+    if (cp.const) {
+      const name = cp.name;
+      const ty = expr_micheline_to_json(cp.type_);
+      const value = parameters[name];
+      if (isNull(value)) {
+        throw new Error(`Error: parameter "${name}" not found.`)
+      }
+      const data = build_from_js(ty, value);
+      const str_data = json_micheline_to_expr(data);
+      const pattern = 'const_' + name + '__';
+      str = str.replaceAll(pattern, str_data);
+    }
+  }
+  return str;
+}
+
 function print_deploy_settings(with_color, account, contract_id, amount, storage, estimated_total_cost) {
   const cyan = '36';
   const start = with_color ? `\x1b[${cyan}m` : '';
@@ -1854,14 +1905,21 @@ async function deploy(options) {
     }
   }
 
-  if (!originate && isNull(parameters)) {
+  let contract_parameter = null;
+  if (!originate) {
     const with_parameters = await callArchetype(options, file, {
       with_parameters: true
     });
-    if (with_parameters !== "") {
+    if (with_parameters !== "" && isNull(parameters)) {
       const msg = `The contract has the following parameter:\n${with_parameters}\nPlease use '--parameters' to initialize.`;
       return new Promise((resolve, reject) => { reject(msg) });
+    } else {
+      contract_parameter = JSON.parse(with_parameters);
     }
+  }
+
+  if (contract_parameter != null) {
+    code = process_code_const(code, parameters, contract_parameter);
   }
 
   let m_storage;
@@ -1884,6 +1942,9 @@ async function deploy(options) {
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
         m_storage = await compute_tzstorage(file, storageType, parameters, computeSettings(options));
+        if (contract_parameter != null) {
+          m_storage = process_const(m_storage, parameters, contract_parameter);
+        }
       } catch (e) {
         return new Promise((resolve, reject) => { reject(e) });
       }
