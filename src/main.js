@@ -1584,15 +1584,19 @@ function build_from_js(type, jdata) {
       case 'map':
         const kmtype = type.args[0];
         const vmtype = type.args[1];
-        const mdata = jdata.map((x) => {
-          if (x.key === undefined || x.value === undefined) {
-            throw new Error("Type map error: no 'key' or 'value' for one item")
-          }
-          const k = build_from_js(kmtype, x.key);
-          const v = build_from_js(vmtype, x.value);
-          return { "prim": "Elt", args: [k, v] };
-        });
-        return mdata;
+        if (jdata instanceof Array) {
+          const mdata = jdata.map((x) => {
+            if (x.key === undefined || x.value === undefined) {
+              throw new Error("Type map error: no 'key' or 'value' for one item")
+            }
+            const k = build_from_js(kmtype, x.key);
+            const v = build_from_js(vmtype, x.value);
+            return { "prim": "Elt", args: [k, v] };
+          });
+          return mdata;
+        } else {
+          throw new Error(`Type map error: ${jdata} is not a map`)
+        }
       case 'or':
         if (jdata.kind === undefined || jdata.value === undefined) {
           throw new Error("Type or error: no 'kind' or 'value' field")
@@ -1714,18 +1718,46 @@ function replaceAll(data, objValues) {
   }
 }
 
-async function compute_tzstorage(file, storageType, parameters, s) {
-  const storage_values = await callArchetype({}, file, { ...s, get_storage_values: true });
-  const jsv = JSON.parse(storage_values);
-  const sv = jsv.map(x => x);
-  var obj = {};
-  sv.forEach(x => {
-    obj[x.id] = x.value
-  });
+async function compute_tzstorage(file, storageType, parameters, contract_parameter, options, s) {
+  const parameters_var = []
+  const parameters_const = []
+  for (i = 0; i < contract_parameter.length; ++i) {
+    const cp = contract_parameter[i];
+    const name = cp.name;
+    const p = parameters[name];
+    if (p) {
+      if (cp.const) {
+        parameters_const.push(p)
+      } else {
+        parameters_var.push(p)
+      }
+    } else {
+      throw new Error(`Error: parameter "${name}" not found.`)
+    }
+  }
+  let michelsonData;
+  if (parameters_var.length > 0) {
+    const storage_values = await callArchetype({}, file, { ...s, get_storage_values: true });
+    const jsv = JSON.parse(storage_values);
+    const sv = jsv.map(x => x);
+    var obj = {};
+    sv.forEach(x => {
+      obj[x.id] = x.value
+    });
 
-  objValues = {};
-  const data = build_data_michelson(storageType, obj, parameters);
-  const michelsonData = replaceAll(data, objValues);
+    objValues = {};
+    const data = build_data_michelson(storageType, obj, parameters);
+    michelsonData = replaceAll(data, objValues);
+  } else {
+    const storage_values = await callArchetype(options, file, {
+      target: "michelson-storage"
+    });
+    michelsonData = expr_micheline_to_json(storage_values);
+  }
+
+  if (parameters_const.length > 0) {
+    michelsonData = process_const(michelsonData, parameters, contract_parameter);
+  }
 
   return michelsonData;
 }
@@ -1941,10 +1973,7 @@ async function deploy(options) {
         const m_code = expr_micheline_to_json(code);
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
-        m_storage = await compute_tzstorage(file, storageType, parameters, computeSettings(options));
-        if (contract_parameter != null) {
-          m_storage = process_const(m_storage, parameters, contract_parameter);
-        }
+        m_storage = await compute_tzstorage(file, storageType, parameters, contract_parameter, options, computeSettings(options));
       } catch (e) {
         return new Promise((resolve, reject) => { reject(e) });
       }
