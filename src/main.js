@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.1'
+const version = '0.4.3'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -1725,7 +1725,7 @@ async function compute_tzstorage(file, storageType, parameters, contract_paramet
     const cp = contract_parameter[i];
     const name = cp.name;
     const p = parameters[name];
-    if (p) {
+    if (p !== undefined) {
       if (cp.const) {
         parameters_const.push(p)
       } else {
