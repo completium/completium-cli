@@ -1942,11 +1942,13 @@ async function deploy(options) {
     const with_parameters = await callArchetype(options, file, {
       with_parameters: true
     });
-    if (with_parameters !== "" && isNull(parameters)) {
-      const msg = `The contract has the following parameter:\n${with_parameters}\nPlease use '--parameters' to initialize.`;
-      return new Promise((resolve, reject) => { reject(msg) });
-    } else {
-      contract_parameter = JSON.parse(with_parameters);
+    if (with_parameters !== "") {
+      if (isNull(parameters)) {
+        const msg = `The contract has the following parameter:\n${with_parameters}\nPlease use '--parameters' to initialize.`;
+        return new Promise((resolve, reject) => { reject(msg) });
+      } else {
+        contract_parameter = JSON.parse(with_parameters);
+      }
     }
   }
 
