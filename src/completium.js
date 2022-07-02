@@ -66,6 +66,11 @@ async function runGetter(getterid, contract, options) {
   return Main.runGetter({...obj, getterid: getterid, contract: contract});
 }
 
+async function runView(viewid, contract, options) {
+  const obj = options ? options : {};
+  return Main.runView({...obj, viewid: viewid, contract: contract});
+}
+
 async function getStorage(contract_id) {
   return Main.getStorage(contract_id);
 }
@@ -261,6 +266,7 @@ exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
 exports.runGetter = runGetter;
+exports.runView = runView;
 exports.getStorage = getStorage;
 exports.getContract = getContract;
 exports.getBalance = getBalance;

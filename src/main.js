@@ -2371,6 +2371,68 @@ async function printGetter(options) {
     })
 }
 
+async function runView(options) {
+  const getterid = options.viewid;
+  const contractid = options.contract;
+  const json = options.json;
+
+  let jarg;
+  if (options.arg) {
+    jarg = expr_micheline_to_json(options.arg)
+  } else if (options.argMichelson) {
+    jarg = expr_micheline_to_json(options.argMichelson)
+  } else if (options.argJsonMichelson) {
+    jarg = JSON.parse(options.argJsonMichelson)
+  } else {
+    jarg = expr_micheline_to_json("Unit")
+  }
+
+  const contract = getContractFromIdOrAddress(contractid);
+
+  const config = getConfig()
+
+  const as = isNull(options.as) ? config.account : options.as;
+  const addr = getAddressFromAlias(as)
+  let source = isNull(addr) ? as : addr;
+  if (!source.startsWith("KT1") && !source.startsWith("tz1") && !source.startsWith("tz2") && !source.startsWith("tz3")) {
+    const msg = `Invalid address: ${source}`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const chainid = await getChainId();
+
+  const input = {
+    "chain_id": chainid,
+    "contract": contract.address,
+    "entrypoint": viewid,
+    "gas": "100000",
+    "input": jarg,
+    "payer": source,
+    "source": source,
+    "unparsing_mode": "Readable"
+  }
+
+  const res = await rpcPost("/chains/main/blocks/head/helpers/run_script_view", input);
+  if (res && res.data) {
+    if (json) {
+      return res.data;
+    }
+    return json_micheline_to_expr(res.data);
+  } else {
+    return new Promise((resolve, reject) => { reject(res) });
+  }
+}
+
+async function printView(options) {
+  runView(options)
+    .then(x => {
+      print(x)
+    })
+    .catch(error => {
+      print_error(error)
+    })
+}
+
 async function run(options) {
   const path = options.path;
   const arg = options.argMichelson !== undefined ? options.argMichelson : "Unit";
@@ -3455,6 +3517,9 @@ async function exec(options) {
         break;
       case "run_getter":
         await printGetter(options);
+        break;
+      case "run_view":
+        await printView(options);
         break;
       case "run":
         await run(options);
