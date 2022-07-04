@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.3'
+const version = '0.4.4'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -34,7 +34,7 @@ const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
 
 const docker_id = 'oxheadalpha/flextesa:latest'
-const flextesa_script = 'ithacabox'
+const flextesa_script = 'jakartabox'
 
 var config = null;
 const mockup_path = completium_dir + "/mockup";
@@ -42,15 +42,14 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-const default_mockup_protocol = 'Psithaca2MLRFYargivpo7YvUr7wUDqyxrdhC5CQq78mRvimz6A'
+const default_mockup_protocol = 'PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY'
 
-const import_endpoint = 'https://ithacanet.ecadinfra.com'; // used for import faucet
+const import_endpoint = 'https://jakartanet.ecadinfra.com'; // used for import faucet
 
 const event_wells = {
   main: 'KT19ij2bHXkhMALzoTZCG88FWgAHRR21247v',
-  jakarta: 'KT1HchD9HwAWLffYitWvPiKEKJGvyZYRWNWh',
-  ithaca: 'KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw',
-  hangzhou: 'KT1Aho6K97CKApDSCxXEzvP14qd1qTHhF4uH',
+  ghost: '',
+  jakarta: 'KT1HchD9HwAWLffYitWvPiKEKJGvyZYRWNWh'
 }
 
 ///////////
@@ -609,7 +608,7 @@ function help(options) {
   print("")
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|ithaca|jakarta|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|ghost|jakarta|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
   print("")
@@ -674,8 +673,8 @@ async function initCompletium(options) {
     },
     tezos: {
       force_tezos_client: false,
-      network: 'ithaca',
-      endpoint: 'https://ithacanet.ecadinfra.com',
+      network: 'jakarta',
+      endpoint: 'https://jakartanet.ecadinfra.com',
       list: [
         {
           network: 'main',
@@ -690,14 +689,13 @@ async function initCompletium(options) {
           ]
         },
         {
-          network: 'ithaca',
-          bcd_url: "https://better-call.dev/ithacanet/${address}",
-          tzstat_url: "https://ithaca.tzstats.com",
+          network: 'ghost',
+          bcd_url: "https://better-call.dev/ghost/${address}",
+          tzstat_url: "https://tzstats.com",
           endpoints: [
-            'https://ithacanet.ecadinfra.com',
-            'https://ithacanet.smartpy.io',
-            'https://ithacanet.tezos.marigold.dev',
-            'https://testnet-tezos.giganode.io'
+            'https://ghostnet.ecadinfra.com',
+            'https://ghostnet.smartpy.io',
+            'https://ghostnet.tezos.marigold.dev'
           ]
         },
         {
@@ -708,6 +706,7 @@ async function initCompletium(options) {
             'https://jakartanet.ecadinfra.com',
             'https://jakartanet.smartpy.io',
             'https://jakartanet.tezos.marigold.dev',
+            'https://testnet-tezos.giganode.io',
             'https://rpczero.tzbeta.net'
           ]
         },
