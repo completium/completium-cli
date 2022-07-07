@@ -262,6 +262,12 @@ function taquitoExecuteSchema(arg, type) {
   return v;
 }
 
+async function generateContractInterface(path, options) {
+  const obj = options ? options : {};
+  const res = await Main.generate_contract_interface({...obj, path: path});
+  return JSON.parse(res);
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -292,3 +298,4 @@ exports.getEndpoint = getEndpoint;
 exports.isMockup = isMockup;
 exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
+exports.generateContractInterface = generateContractInterface;

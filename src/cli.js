@@ -32,7 +32,7 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
     res = { command: "show_archetype_version" };
     nargs = args.slice(4);
-  // install
+    // install
   } else if (length > 2 && args[2] === "install") {
     res = { command: "install", bin: args[3] };
     nargs = args.slice(4);
@@ -167,6 +167,10 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "generate" && args[3] === "bindings-ts") {
     res = { command: "generate_bindings_ts", path: args[4] };
     nargs = args.slice(5);
+    // generate contract interface <FILE.arl>
+  } else if (length > 5 && args[2] === "generate" && args[3] === "contract" && args[4] === "interface") {
+    res = { command: "generate_contract_interface", path: args[5] };
+    nargs = args.slice(6);
     // check michelson <FILE.arl>
   } else if (length > 4 && args[2] === "check" && args[3] === "michelson") {
     res = { command: "check_michelson", path: args[4] };

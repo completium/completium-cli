@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.4'
+const version = '0.4.5'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -254,6 +254,9 @@ function computeArgsSettings(options, settings, path) {
       if (settings.target) {
         args.push('--target');
         args.push(settings.target);
+      }
+      if (settings.contract_interface) {
+        args.push('--show-contract-interface');
       }
       if (settings.sci) {
         args.push('--set-caller-init');
@@ -639,6 +642,7 @@ function help(options) {
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
   print("  generate bindings-js <FILE.arl|CONTRACT_ALIAS>");
   print("  generate bindings-ts <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate contract interface <FILE.arl|CONTRACT_ALIAS>");
   print("")
   print("  show accounts");
   print("  show account [--with-private-key] [--alias <ALIAS>]");
@@ -2656,7 +2660,8 @@ async function generateJavascript(options) {
   });
   print(res);
 }
-async function generate_gen(options, target) {
+
+async function generate_gen(options, a) {
   const value = options.path;
 
   const contract = getContract(value);
@@ -2671,22 +2676,42 @@ async function generate_gen(options, target) {
     return new Promise(resolve => { resolve(null) });
   }
 
-  const res = await callArchetype(options, x, {
+  const res = await callArchetype(options, x, a);
+  return res
+}
+
+async function generate_target(options, target) {
+  await generate_gen(options, {
     target: target
-  });
-  print(res);
+  })
 }
 
-async function generateWhyml(options) {
-  await generate_gen(options, 'whyml')
+async function print_generate_target(options, target) {
+  const res = await generate_target(options, target);
+  print(res)
 }
 
-async function generate_bindings_js(options) {
-  await generate_gen(options, 'bindings-js')
+async function print_generate_whyml(options) {
+  await print_generate_target(options, 'whyml')
 }
 
-async function generate_bindings_ts(options) {
-  await generate_gen(options, 'bindings-ts')
+async function print_generate_bindings_js(options) {
+  await print_generate_target(options, 'bindings-js')
+}
+
+async function print_generate_bindings_ts(options) {
+  await print_generate_target(options, 'bindings-ts')
+}
+
+async function generate_contract_interface(options) {
+  return await generate_gen(options, {
+    contract_interface: true
+  })
+}
+
+async function print_generate_contract_interface(options) {
+  const res = await generate_contract_interface(options);
+  print(res)
 }
 
 async function checkMichelson(options) {
@@ -3530,13 +3555,16 @@ async function exec(options) {
         await generateJavascript(options);
         break;
       case "generate_whyml":
-        await generateWhyml(options);
+        await print_generate_whyml(options);
         break;
       case "generate_bindings_js":
-        await generate_bindings_js(options);
+        await print_generate_bindings_js(options);
         break;
       case "generate_bindings_ts":
-        await generate_bindings_ts(options);
+        await print_generate_bindings_ts(options);
+        break;
+      case "generate_contract_interface":
+        await print_generate_contract_interface(options);
         break;
       case "check_michelson":
         await checkMichelson(options);
@@ -3626,3 +3654,4 @@ exports.getConfig = getConfig;
 exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.setMockupNow = setMockupNow;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
+exports.generate_contract_interface = generate_contract_interface;
