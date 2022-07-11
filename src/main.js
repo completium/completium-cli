@@ -1180,7 +1180,7 @@ async function confirmAccount(force, account) {
 }
 
 async function generateAccount(options) {
-  const alias = options.alias;
+  const alias = options.value;
   const force = options.force;
 
   var confirm = await confirmAccount(force, alias);

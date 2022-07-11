@@ -94,7 +94,7 @@ function parseCommand(args) {
     nargs = args.slice(6);
     // generate account as <ACCOUNT_ALIAS> [--force]
   } else if (length > 5 && args[2] === "generate" && args[3] === "account" && args[4] === "as") {
-    res = { command: "generate_account", alias: args[5] };
+    res = { command: "generate_account", value: args[5] };
     nargs = args.slice(6);
     // import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]
   } else if (length > 6 && args[2] === "import" && args[3] === "faucet" && args[5] === "as") {
