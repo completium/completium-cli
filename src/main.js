@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.5'
+const version = '0.4.6'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
