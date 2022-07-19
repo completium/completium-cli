@@ -19,7 +19,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.6'
+const version = '0.4.7'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2328,7 +2328,20 @@ async function runGetter(options) {
     jarg = expr_micheline_to_json("Unit")
   }
 
-  const contract = getContractFromIdOrAddress(contractid);
+  let contract_address = null;
+  if (contractid.startsWith("KT1")) {
+    contract_address = contractid;
+  } else {
+    const contract = getContractFromIdOrAddress(contractid);
+    if (!isNull(contract)) {
+      contract_address = contract.address;
+    }
+  }
+
+  if (isNull(contract_address)) {
+    const msg = `Contract not found: ${contractid}`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
 
   const config = getConfig()
 
@@ -2344,7 +2357,7 @@ async function runGetter(options) {
 
   const input = {
     "chain_id": chainid,
-    "contract": contract.address,
+    "contract": contract_address,
     "entrypoint": getterid,
     "gas": "100000",
     "input": jarg,
@@ -2390,7 +2403,20 @@ async function runView(options) {
     jarg = expr_micheline_to_json("Unit")
   }
 
-  const contract = getContractFromIdOrAddress(contractid);
+  let contract_address = null;
+  if (contractid.startsWith("KT1")) {
+    contract_address = contractid;
+  } else {
+    const contract = getContractFromIdOrAddress(contractid);
+    if (!isNull(contract)) {
+      contract_address = contract.address;
+    }
+  }
+
+  if (isNull(contract_address)) {
+    const msg = `Contract not found: ${contractid}`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
 
   const config = getConfig()
 
@@ -2406,7 +2432,7 @@ async function runView(options) {
 
   const input = {
     "chain_id": chainid,
-    "contract": contract.address,
+    "contract": contract_address,
     "entrypoint": viewid,
     "gas": "100000",
     "input": jarg,
