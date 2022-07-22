@@ -43,13 +43,15 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 const tezos_client_dir = homedir + '/.tezos-client'
 
 const default_mockup_protocol = 'PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY'
+// const default_mockup_protocol = 'PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg'
 
 const import_endpoint = 'https://jakartanet.ecadinfra.com'; // used for import faucet
 
 const event_wells = {
   main: 'KT19ij2bHXkhMALzoTZCG88FWgAHRR21247v',
   ghost: '',
-  jakarta: 'KT1HchD9HwAWLffYitWvPiKEKJGvyZYRWNWh'
+  jakarta: 'KT1HchD9HwAWLffYitWvPiKEKJGvyZYRWNWh',
+  kathmandu: 'KT1JBzRE1T3icJvWQPnyU4zKGjQS3fmgUj2X'
 }
 
 ///////////
@@ -611,7 +613,7 @@ function help(options) {
   print("")
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|ghost|jakarta|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|ghost|jakarta|kathmandu|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
   print("")
@@ -712,6 +714,16 @@ async function initCompletium(options) {
             'https://jakartanet.tezos.marigold.dev',
             'https://testnet-tezos.giganode.io',
             'https://rpczero.tzbeta.net'
+          ]
+        },
+        {
+          network: 'kathmandu',
+          bcd_url: "https://better-call.dev/kathmandunet/${address}",
+          tzstat_url: "https://kathmandu.tzstats.com",
+          endpoints: [
+            'https://kathmandunet.ecadinfra.com',
+            'https://kathmandunet.smartpy.io',
+            'https://kathmandunet.tezos.marigold.dev'
           ]
         },
         {
@@ -2388,7 +2400,7 @@ async function printGetter(options) {
 }
 
 async function runView(options) {
-  const getterid = options.viewid;
+  const viewid = options.viewid;
   const contractid = options.contract;
   const json = options.json;
 
@@ -2433,15 +2445,18 @@ async function runView(options) {
   const input = {
     "chain_id": chainid,
     "contract": contract_address,
-    "entrypoint": viewid,
-    "gas": "100000",
+    "view": viewid,
+    "unlimited_gas": true,
+    "gas": undefined,
     "input": jarg,
     "payer": source,
     "source": source,
+    "now": undefined,
+    "level": undefined,
     "unparsing_mode": "Readable"
   }
 
-  const res = await rpcPost("/chains/main/blocks/head/helpers/run_script_view", input);
+  const res = await rpcPost("/chains/main/blocks/head/helpers/scripts/run_script_view", input);
   if (res && res.data) {
     if (json) {
       return res.data;
@@ -3656,6 +3671,7 @@ async function exec(options) {
 exports.deploy = deploy;
 exports.callContract = callContract;
 exports.runGetter = runGetter;
+exports.runView = runView;
 exports.getStorage = getStorage;
 exports.getTezosContract = getTezosContract;
 exports.getBalance = getBalance;
