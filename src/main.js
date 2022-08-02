@@ -2661,45 +2661,44 @@ function setMockupNow(options) {
   print("Set mockup now: " + v)
 }
 
-async function generateMichelson(options) {
+async function generateCodeGen(options, target) {
   const value = options.path;
+  const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
+  const json = options.json || false;
 
   const contract = getContract(value);
 
-  var x = value;
+  var file = value;
   if (!isNull(contract)) {
-    x = contract.source;
+    file = contract.source;
   }
 
-  if (!fs.existsSync(x)) {
+  if (!fs.existsSync(file)) {
     print(`File not found.`);
     return new Promise(resolve => { resolve(null) });
   }
-  const res = await callArchetype(options, x, {
-    target: 'michelson'
+  let code = await callArchetype(options, file, {
+    target: target,
+    json: json
   });
-  print(res);
+
+  const with_parameters = await callArchetype(options, file, {
+    with_parameters: true
+  });
+  if (with_parameters !== "") {
+    const contract_parameter = JSON.parse(with_parameters);
+    code = process_code_const(code, parameters, contract_parameter);
+  }
+
+  print(code);
+}
+
+async function generateMichelson(options) {
+  await generateCodeGen(options, 'michelson')
 }
 
 async function generateJavascript(options) {
-  const value = options.path;
-
-  const contract = getContract(value);
-
-  var x = value;
-  if (!isNull(contract)) {
-    x = contract.source;
-  }
-
-  if (!fs.existsSync(x)) {
-    print(`File not found.`);
-    return new Promise(resolve => { resolve(null) });
-  }
-
-  const res = await callArchetype(options, x, {
-    target: 'javascript'
-  });
-  print(res);
+  await generateCodeGen(options, 'javascript')
 }
 
 async function generate_gen(options, a) {
