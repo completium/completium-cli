@@ -49,7 +49,7 @@ const import_endpoint = 'https://jakartanet.ecadinfra.com'; // used for import f
 
 const event_wells = {
   main: 'KT19ij2bHXkhMALzoTZCG88FWgAHRR21247v',
-  ghost: '',
+  ghost: 'KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw',
   jakarta: 'KT1HchD9HwAWLffYitWvPiKEKJGvyZYRWNWh',
   kathmandu: 'KT1JBzRE1T3icJvWQPnyU4zKGjQS3fmgUj2X'
 }
