@@ -1736,18 +1736,20 @@ function replaceAll(data, objValues) {
 async function compute_tzstorage(file, storageType, parameters, contract_parameter, options, s) {
   const parameters_var = []
   const parameters_const = []
-  for (i = 0; i < contract_parameter.length; ++i) {
-    const cp = contract_parameter[i];
-    const name = cp.name;
-    const p = parameters[name];
-    if (p !== undefined) {
-      if (cp.const) {
-        parameters_const.push(p)
+  if (!isNull(contract_parameter)) {
+    for (i = 0; i < contract_parameter.length; ++i) {
+      const cp = contract_parameter[i];
+      const name = cp.name;
+      const p = parameters[name];
+      if (p !== undefined) {
+        if (cp.const) {
+          parameters_const.push(p)
+        } else {
+          parameters_var.push(p)
+        }
       } else {
-        parameters_var.push(p)
+        throw new Error(`Error: parameter "${name}" not found.`)
       }
-    } else {
-      throw new Error(`Error: parameter "${name}" not found.`)
     }
   }
   let michelsonData;
