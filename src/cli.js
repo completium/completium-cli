@@ -243,6 +243,9 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "log" && args[3] === "dump") {
     res = { command: "log_dump" };
     nargs = args.slice(4);
+  } else if (length > 3 && args[2] === "create" && args[3] === "project") {
+    res = { command: "create_project", value: args[4] };
+    nargs = args.slice(5);
   }
 
   const options = arg(
