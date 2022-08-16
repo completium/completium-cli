@@ -700,7 +700,7 @@ async function initCompletium(options) {
         },
         {
           network: 'ghost',
-          bcd_url: "https://better-call.dev/ghost/${address}",
+          bcd_url: "https://better-call.dev/ghostnet/${address}",
           tzstat_url: "https://tzstats.com",
           endpoints: [
             'https://ghostnet.ecadinfra.com',
