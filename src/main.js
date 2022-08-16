@@ -10,6 +10,7 @@ const execa = require('execa');
 const path = require('path');
 const taquito = require('@taquito/taquito');
 const taquitoUtils = require('@taquito/utils');
+const binderTs = require('@completium/archetype-binder-ts');
 const codec = require('@taquito/michel-codec');
 const encoder = require('@taquito/michelson-encoder');
 const bip39 = require('bip39');
@@ -642,8 +643,9 @@ function help(options) {
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
-  print("  generate bindings-js <FILE.arl|CONTRACT_ALIAS>");
-  print("  generate bindings-ts <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate event-binding-js <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate event-binding-ts <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate binding-ts <FILE.arl|CONTRACT_ALIAS>");
   print("  generate contract interface <FILE.arl|CONTRACT_ALIAS>");
   print("")
   print("  show accounts");
@@ -2725,7 +2727,7 @@ async function generate_gen(options, a) {
 }
 
 async function generate_target(options, target) {
-  await generate_gen(options, {
+  return await generate_gen(options, {
     target: target
   })
 }
@@ -2739,12 +2741,24 @@ async function print_generate_whyml(options) {
   await print_generate_target(options, 'whyml')
 }
 
-async function print_generate_bindings_js(options) {
+async function print_generate_event_binding_js(options) {
   await print_generate_target(options, 'bindings-js')
 }
 
-async function print_generate_bindings_ts(options) {
+async function print_generate_event_binding_ts(options) {
   await print_generate_target(options, 'bindings-ts')
+}
+
+async function generate_binding_ts(options) {
+  const contract_interface = await generate_contract_interface(options);
+  const json = JSON.parse(contract_interface);
+  const binding = binderTs.generate_binding(json);
+  return binding;
+}
+
+async function print_generate_binding_ts(options) {
+  const res = await generate_binding_ts(options);
+  print(res)
 }
 
 async function generate_contract_interface(options) {
@@ -3483,7 +3497,7 @@ async function logDump(options) {
   print(JSON.stringify(log, 0, 2))
 }
 
-const gen_contract_template = name =>  `
+const gen_contract_template = name => `
 archetype ${name}
 
 variable s : string = ""
@@ -3676,7 +3690,7 @@ async function createProject(options) {
 
   fs.writeFileSync(contract_path, gen_contract_template(project_name))
   fs.writeFileSync(test_path, gen_test_template(project_name))
-  fs.writeFileSync(package_path, gen_package_json(project_name, {completium_cli: 'latest', experiment_ts: 'latest', mocha: '^10.0.0', types_mocha: '^9.1.1', typescript: '^4.7.4'}))
+  fs.writeFileSync(package_path, gen_package_json(project_name, { completium_cli: 'latest', experiment_ts: 'latest', mocha: '^10.0.0', types_mocha: '^9.1.1', typescript: '^4.7.4' }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
   print(`Project ${project_name} is created.`)
 }
@@ -3799,11 +3813,14 @@ async function exec(options) {
       case "generate_whyml":
         await print_generate_whyml(options);
         break;
-      case "generate_bindings_js":
-        await print_generate_bindings_js(options);
+      case "generate_event_binding_js":
+        await print_generate_event_binding_js(options);
         break;
-      case "generate_bindings_ts":
-        await print_generate_bindings_ts(options);
+      case "generate_event_binding_ts":
+        await print_generate_event_binding_ts(options);
+        break;
+      case "generate_binding_ts":
+        await print_generate_binding_ts(options);
         break;
       case "generate_contract_interface":
         await print_generate_contract_interface(options);

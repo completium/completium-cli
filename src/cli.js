@@ -159,13 +159,17 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "generate" && args[3] === "whyml") {
     res = { command: "generate_whyml", path: args[4] };
     nargs = args.slice(5);
-    // generate bindings-js <FILE.arl>
-  } else if (length > 4 && args[2] === "generate" && args[3] === "bindings-js") {
-    res = { command: "generate_bindings_js", path: args[4] };
+    // generate event-binding-js <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "event-binding-js") {
+    res = { command: "generate_event_binding_js", path: args[4] };
     nargs = args.slice(5);
-    // generate generate_bindings_ts <FILE.arl>
-  } else if (length > 4 && args[2] === "generate" && args[3] === "bindings-ts") {
-    res = { command: "generate_bindings_ts", path: args[4] };
+    // generate event-binding-ts <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "event-binding-ts") {
+    res = { command: "generate_event_binding_ts", path: args[4] };
+    nargs = args.slice(5);
+    // generate binding-ts <FILE.arl>
+  } else if (length > 4 && args[2] === "generate" && args[3] === "binding-ts") {
+    res = { command: "generate_binding_ts", path: args[4] };
     nargs = args.slice(5);
     // generate contract interface <FILE.arl>
   } else if (length > 5 && args[2] === "generate" && args[3] === "contract" && args[4] === "interface") {
