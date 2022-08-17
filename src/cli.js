@@ -281,6 +281,8 @@ function parseCommand(args) {
       '--storage': String,
       '--show-tezos-client-command': Boolean,
       '--event-well': String,
+      '--input-path': String,
+      '--output-path': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -321,6 +323,8 @@ function parseCommand(args) {
     storage: options['--storage'],
     show_tezos_client_command: options['--show-tezos-client-command'],
     event_well: options['--event-well'],
+    input_path: options['--input-path'],
+    output_path: options['--output-path'],
   }
 }
 

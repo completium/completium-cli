@@ -8,6 +8,7 @@
 const fs = require('fs');
 const execa = require('execa');
 const path = require('path');
+const glob = require('glob');
 const taquito = require('@taquito/taquito');
 const taquitoUtils = require('@taquito/utils');
 const binderTs = require('@completium/archetype-binder-ts');
@@ -645,7 +646,7 @@ function help(options) {
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
   print("  generate event-binding-js <FILE.arl|CONTRACT_ALIAS>");
   print("  generate event-binding-ts <FILE.arl|CONTRACT_ALIAS>");
-  print("  generate binding-ts <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate binding-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>]");
   print("  generate contract interface <FILE.arl|CONTRACT_ALIAS>");
   print("")
   print("  show accounts");
@@ -683,8 +684,8 @@ async function initCompletium(options) {
     },
     tezos: {
       force_tezos_client: false,
-      network: 'jakarta',
-      endpoint: 'https://jakartanet.ecadinfra.com',
+      network: 'ghost',
+      endpoint: 'https://ghostnet.ecadinfra.com',
       list: [
         {
           network: 'main',
@@ -2722,8 +2723,12 @@ async function generate_gen(options, a) {
     return new Promise(resolve => { resolve(null) });
   }
 
-  const res = await callArchetype(options, x, a);
-  return res
+  try {
+    const res = await callArchetype(options, x, a);
+    return res
+  } catch (e) {
+    return null
+  }
 }
 
 async function generate_target(options, target) {
@@ -2749,16 +2754,55 @@ async function print_generate_event_binding_ts(options) {
   await print_generate_target(options, 'bindings-ts')
 }
 
-async function generate_binding_ts(options) {
-  const contract_interface = await generate_contract_interface(options);
-  const json = JSON.parse(contract_interface);
-  const binding = binderTs.generate_binding(json);
-  return binding;
+async function generate_unit_binding_ts(path) {
+  try {
+    const contract_interface = await generate_contract_interface({ path: path });
+    if (isNull(contract_interface)) {
+      return null;
+    }
+    const json = JSON.parse(contract_interface);
+    const binding = binderTs.generate_binding(json);
+    return binding;
+  } catch (e) {
+    return null
+  }
 }
 
 async function print_generate_binding_ts(options) {
-  const res = await generate_binding_ts(options);
-  print(res)
+  const input_path = options.input_path;
+  const output_path = options.output_path;
+  if (!isNull(input_path)) {
+    if (isNull(output_path)) {
+      const msg = `output path not set (--output-path)`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+
+    const files = glob.sync(`${input_path}/**/*.arl`, null)
+
+    for (let i = 0; i < files.length; i++) {
+      const input = files[i];
+      const output_tmp = input.replace(input_path, output_path);
+      const output = path.format({ ...path.parse(output_tmp), base: '', ext: '.ts' })
+
+      const content = await generate_unit_binding_ts(input)
+      if (isNull(content)) {
+        print_error(`Invalid file ${input}`);
+        continue;
+      }
+
+      const output_dir = path.dirname(output);
+
+      if (!fs.existsSync(path)) {
+        fs.mkdirSync(output_dir, { recursive: true });
+      }
+
+      fs.writeFileSync(output, content);
+      print(`Wrote ${output}`);
+    }
+  } else {
+    const res = await generate_unit_binding_ts(options.path);
+    print(res)
+  }
 }
 
 async function generate_contract_interface(options) {
