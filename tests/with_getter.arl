@@ -1,0 +1,11 @@
+archetype with_view
+
+variable res : nat = 0
+
+getter get() : nat * string {
+  return ((2, "mystr"))
+}
+
+entry exec () {
+  res := 2
+}

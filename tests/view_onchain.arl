@@ -1,0 +1,12 @@
+archetype view_onchain
+
+variable n : option<nat> = none
+
+onchain view getN() : nat * string {
+  fail("error");
+  return ((2, "mystr"))
+}
+
+entry exec() {
+  n := call_view<nat>(self_address, "getN", Unit)
+}
