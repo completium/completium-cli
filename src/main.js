@@ -3554,7 +3554,7 @@ entry exec() {
 const gen_test_template = name => `
 import * as ex from "@completium/experiment-ts";
 
-import { ${name} } from './${name}'
+import { ${name} } from './binding/${name}'
 
 const assert = require('assert')
 
@@ -3599,7 +3599,7 @@ const gen_package_json = (name, versions) => `
   "version": "1.0.0",
   "scripts": {
     "test": "rm -rf ./build && npx tsc --outDir build && mocha --timeout 0 --slow 99999999999999999 ./build/tests/*.js",
-    "gen": "completium-cli generate contract interface ./contracts/${name}.arl | jq > ./contracts/${name}.json"
+    "gen-binding": "completium-cli generate binding-ts _ --input-path ./contracts/ --output-path ./tests/binding/"
   },
   "dependencies": {
     "@completium/completium-cli": "${versions.completium_cli}",
