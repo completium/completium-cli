@@ -3604,6 +3604,7 @@ const gen_package_json = (name, versions) => `
   "dependencies": {
     "@completium/completium-cli": "${versions.completium_cli}",
     "@completium/experiment-ts": "${versions.experiment_ts}",
+    "@types/node": "${versions.types_node}",
     "mocha": "${versions.mocha}"
   },
   "devDependencies": {
@@ -3734,7 +3735,7 @@ async function createProject(options) {
 
   fs.writeFileSync(contract_path, gen_contract_template(project_name))
   fs.writeFileSync(test_path, gen_test_template(project_name))
-  fs.writeFileSync(package_path, gen_package_json(project_name, { completium_cli: 'latest', experiment_ts: 'latest', mocha: '^10.0.0', types_mocha: '^9.1.1', typescript: '^4.7.4' }))
+  fs.writeFileSync(package_path, gen_package_json(project_name, { completium_cli: 'latest', experiment_ts: 'latest', types_node: 'latest', mocha: '^10.0.0', types_mocha: '^9.1.1', typescript: '^4.7.4' }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
   print(`Project ${project_name} is created.`)
 }
