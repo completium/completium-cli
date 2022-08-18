@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.8'
+const version = '0.4.9'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -47,7 +47,7 @@ const tezos_client_dir = homedir + '/.tezos-client'
 const default_mockup_protocol = 'PtJakart2xVj7pYXJBXrqHgd82rdkLey5ZeeGwDgPp9rhQUbSqY'
 // const default_mockup_protocol = 'PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg'
 
-const import_endpoint = 'https://jakartanet.ecadinfra.com'; // used for import faucet
+const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
 
 const event_wells = {
   main: 'KT19ij2bHXkhMALzoTZCG88FWgAHRR21247v',
