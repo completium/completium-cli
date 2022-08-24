@@ -3598,7 +3598,7 @@ const gen_package_json = (name, versions) => `
   "name": "${name}",
   "version": "1.0.0",
   "scripts": {
-    "test": "rm -rf ./build && npx tsc --outDir build && mocha --timeout 0 --slow 99999999999999999 ./build/tests/*.js",
+    "test": "./run_test.sh",
     "gen-binding": "completium-cli generate binding-ts _ --input-path ./contracts/ --output-path ./tests/binding/"
   },
   "dependencies": {
@@ -3612,9 +3612,10 @@ const gen_package_json = (name, versions) => `
     "typescript": "${versions.typescript}"
   },
   "completium": {
+    "binding_path": "./tests/binding/",
+    "build_path": "./build/",
     "contracts_path": "./contracts/",
-    "tests_path": "./tests/",
-    "binding_path": "./tests/binding/"
+    "tests_path": "./tests/"
   }
 }
 `
@@ -3723,6 +3724,21 @@ const gen_tsconfig = () => `
 }
 `
 
+const gen_run_test = name => '\
+#! /bin/sh\n\
+\n\
+BUILD_PATH=./build\n\
+TESTS_PATH=./tests\n\
+\n\
+if [ $# -ge 1 ]; then\n\
+  TEST_BUILD_PATH=${BUILD_PATH}/${TESTS_PATH}/${1}.js\n\
+else\n\
+  TEST_BUILD_PATH=${BUILD_PATH}/${TESTS_PATH}/*.js\n\
+fi\n\
+\n\
+rm -rf ${BUILD_PATH} && npx tsc --outDir ${BUILD_PATH} && mocha --timeout 0 --slow 99999999999999999 ${TEST_BUILD_PATH}\n\
+'
+
 async function createProject(options) {
   const value = options.value;
   const project_name = value;
@@ -3733,6 +3749,7 @@ async function createProject(options) {
   const test_path = tests_path + `/00-test-hello.ts`;
   const package_path = project_path + '/package.json'
   const tsconfig_path = project_path + '/tsconfig.json'
+  const run_test_path = project_path + '/run_test.sh'
 
   fs.mkdirSync(project_path)
   fs.mkdirSync(contracts_path)
@@ -3742,6 +3759,8 @@ async function createProject(options) {
   fs.writeFileSync(test_path, gen_test_template(project_name))
   fs.writeFileSync(package_path, gen_package_json(project_name, { completium_cli: 'latest', experiment_ts: 'latest', types_node: 'latest', mocha: '^10.0.0', types_mocha: '^9.1.1', typescript: '^4.7.4' }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
+  fs.writeFileSync(run_test_path, gen_run_test())
+  fs.chmodSync(run_test_path, "755");
   print(`Project ${project_name} is created.`)
 }
 
