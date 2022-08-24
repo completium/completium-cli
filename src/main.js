@@ -3610,6 +3610,11 @@ const gen_package_json = (name, versions) => `
   "devDependencies": {
     "@types/mocha": "${versions.types_mocha}",
     "typescript": "${versions.typescript}"
+  },
+  "completium": {
+    "contracts_path": "./contracts/",
+    "tests_path": "./tests/",
+    "binding_path": "./tests/binding/"
   }
 }
 `
@@ -3725,7 +3730,7 @@ async function createProject(options) {
   const contracts_path = project_path + '/contracts';
   const tests_path = project_path + '/tests';
   const contract_path = contracts_path + `/hello.arl`;
-  const test_path = tests_path + `/00-test-${project_name}.ts`;
+  const test_path = tests_path + `/00-test-hello.ts`;
   const package_path = project_path + '/package.json'
   const tsconfig_path = project_path + '/tsconfig.json'
 
@@ -3738,6 +3743,35 @@ async function createProject(options) {
   fs.writeFileSync(package_path, gen_package_json(project_name, { completium_cli: 'latest', experiment_ts: 'latest', types_node: 'latest', mocha: '^10.0.0', types_mocha: '^9.1.1', typescript: '^4.7.4' }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
   print(`Project ${project_name} is created.`)
+}
+
+async function runBinderTs(options) {
+  const package_json_path = './package.json';
+  if (!fs.existsSync(package_json_path)) {
+    const msg = `'./package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const json = JSON.parse(fs.readFileSync(package_json_path, 'utf8'));
+  if (!json.completium) {
+    const msg = `completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (!json.completium.contracts_path) {
+    const msg = `contracts_path in completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (!json.completium.binding_path) {
+    const msg = `binding_path in completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const contracts_path = json.completium.contracts_path;
+  const binding_path = json.completium.binding_path;
+
+  await print_generate_binding_ts({ ...options, input_path: contracts_path, output_path: binding_path })
 }
 
 async function exec(options) {
@@ -3845,6 +3879,9 @@ async function exec(options) {
         break;
       case "run_view":
         await printView(options);
+        break;
+      case "run_binder_ts":
+        await runBinderTs(options);
         break;
       case "run":
         await run(options);

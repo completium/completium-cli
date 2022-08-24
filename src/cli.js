@@ -187,6 +187,10 @@ function parseCommand(args) {
   } else if (length > 6 && args[2] === "run" && args[3] === "view" && args[5] === "on") {
     res = { command: "run_view", viewid: args[4], contract: args[6] };
     nargs = args.slice(7);
+    // run binder-ts
+  } else if (length > 3 && args[2] === "run" && args[3] === "binder-ts") {
+    res = { command: "run_binder_ts" };
+    nargs = args.slice(4);
     // run <FILE.arl>
   } else if (length > 3 && args[2] === "run") {
     res = { command: "run", path: args[3] };
