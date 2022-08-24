@@ -3542,7 +3542,7 @@ async function logDump(options) {
 }
 
 const gen_contract_template = name => `
-archetype ${name}
+archetype hello
 
 variable s : string = ""
 
@@ -3554,7 +3554,7 @@ entry exec() {
 const gen_test_template = name => `
 import * as ex from "@completium/experiment-ts";
 
-import { ${name} } from './binding/${name}'
+import { hello } from './binding/hello'
 
 const assert = require('assert')
 
@@ -3576,18 +3576,18 @@ ex.set_mockup_now(new Date(Date.now()))
 
 /* Scenario ---------------------------------------------------------------- */
 
-describe('[${name.toUpperCase()}] Contract deployment', async () => {
+describe('[HELLO] Contract deployment', async () => {
   it('Deploy test_binding', async () => {
-    await ${name}.deploy({ as: alice })
+    await hello.deploy({ as: alice })
   });
 })
 
-describe('[${name.toUpperCase()}] Call entry', async () => {
+describe('[HELLO] Call entry', async () => {
   it("Call 'myentry'", async () => {
-    const s_before = await ${name}.get_s()
+    const s_before = await hello.get_s()
     assert(s_before === "")
-    await ${name}.exec({ as : alice })
-    const s_after = await ${name}.get_s()
+    await hello.exec({ as : alice })
+    const s_after = await hello.get_s()
     assert(s_after === "Hello Archetype World!")
   })
 })
@@ -3724,7 +3724,7 @@ async function createProject(options) {
   const project_path = './' + project_name;
   const contracts_path = project_path + '/contracts';
   const tests_path = project_path + '/tests';
-  const contract_path = contracts_path + `/${project_name}.arl`;
+  const contract_path = contracts_path + `/hello.arl`;
   const test_path = tests_path + `/00-test-${project_name}.ts`;
   const package_path = project_path + '/package.json'
   const tsconfig_path = project_path + '/tsconfig.json'
