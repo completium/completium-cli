@@ -239,6 +239,10 @@ function parseCommand(args) {
   } else if (length > 5 && args[2] === "get" && args[3] === "balance" && args[4] === "for") {
     res = { command: "get_balance_for", value: args[5] };
     nargs = args.slice(6);
+    // get completium property <VALUE>
+  } else if (length > 5 && args[2] === "get" && args[3] === "completium" && args[4] === "property") {
+    res = { command: "get_completium_property", value: args[5] };
+    nargs = args.slice(6);
   } else if (length > 3 && args[2] === "log" && args[3] === "enable") {
     res = { command: "log_enable" };
     nargs = args.slice(4);

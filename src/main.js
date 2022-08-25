@@ -669,6 +669,7 @@ function help(options) {
   print("  log dump");
   print("")
   print("  create project <PROJECT_NAME>");
+  print("  get completium property <VALUE>");
 }
 
 async function initCompletium(options) {
@@ -3599,7 +3600,7 @@ const gen_package_json = (name, versions) => `
   "version": "1.0.0",
   "scripts": {
     "test": "./run_test.sh",
-    "gen-binding": "completium-cli generate binding-ts _ --input-path ./contracts/ --output-path ./tests/binding/"
+    "gen-binding": "completium-cli run binder-ts"
   },
   "dependencies": {
     "@completium/completium-cli": "${versions.completium_cli}",
@@ -3727,8 +3728,8 @@ const gen_tsconfig = () => `
 const gen_run_test = name => '\
 #! /bin/sh\n\
 \n\
-BUILD_PATH=./build\n\
-TESTS_PATH=./tests\n\
+BUILD_PATH=`completium-cli get completium property build_path`\n\
+TESTS_PATH=`completium-cli get completium property tests_path`\n\
 \n\
 if [ $# -ge 1 ]; then\n\
   TEST_BUILD_PATH=${BUILD_PATH}/${TESTS_PATH}/${1}.js\n\
@@ -3762,6 +3763,34 @@ async function createProject(options) {
   fs.writeFileSync(run_test_path, gen_run_test())
   fs.chmodSync(run_test_path, "755");
   print(`Project ${project_name} is created.`)
+}
+
+async function getCompletiumProperty(options) {
+  const value = options.value;
+
+  const package_json_path = './package.json';
+  if (!fs.existsSync(package_json_path)) {
+    const msg = `'./package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const json = JSON.parse(fs.readFileSync(package_json_path, 'utf8'));
+  if (!json.completium) {
+    const msg = `completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (!json.completium[value]) {
+    const msg = `${value} in completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  return json.completium[value];
+}
+
+async function printCompletiumProperty(options) {
+  const property = await getCompletiumProperty(options);
+  print(property)
 }
 
 async function runBinderTs(options) {
@@ -3976,6 +4005,9 @@ async function exec(options) {
         break;
       case "create_project":
         await createProject(options);
+        break;
+      case "get_completium_property":
+        await printCompletiumProperty(options);
         break;
       default:
         commandNotFound(options);
