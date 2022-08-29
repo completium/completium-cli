@@ -2343,7 +2343,7 @@ async function runGetter(options) {
   } else if (options.argMichelson) {
     jarg = expr_micheline_to_json(options.argMichelson)
   } else if (options.argJsonMichelson) {
-    jarg = JSON.parse(options.argJsonMichelson)
+    jarg = expr_micheline_to_json(json_micheline_to_expr(options.argJsonMichelson));
   } else {
     jarg = expr_micheline_to_json("Unit")
   }
