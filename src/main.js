@@ -3553,7 +3553,7 @@ entry exec() {
 `
 
 const gen_test_template = name => `
-import * as ex from "@completium/experiment-ts";
+import {get_account, set_mockup, set_mockup_now, set_quiet} from "@completium/experiment-ts";
 
 import { hello } from './binding/hello'
 
@@ -3561,19 +3561,19 @@ const assert = require('assert')
 
 /* Accounts ---------------------------------------------------------------- */
 
-const alice = ex.get_account('alice');
+const alice = get_account('alice');
 
 /* Verbose mode ------------------------------------------------------------ */
 
-ex.set_quiet(true);
+set_quiet(true);
 
 /* Endpoint ---------------------------------------------------------------- */
 
-ex.set_mockup()
+set_mockup()
 
 /* Now --------------------------------------------------------------------- */
 
-ex.set_mockup_now(new Date(Date.now()))
+set_mockup_now(new Date(Date.now()))
 
 /* Scenario ---------------------------------------------------------------- */
 
