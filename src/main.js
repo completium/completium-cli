@@ -636,7 +636,7 @@ function help(options) {
   print("  remove account <ACCOUNT_ALIAS>");
   print("")
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
-  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [ --event-well <CONTRACT_ADDRESS> ][--force] [--show-tezos-client-command]");
+  print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS> | --parameters-micheline <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [ --event-well <CONTRACT_ADDRESS> ][--force] [--show-tezos-client-command]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]");
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]");
   print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
@@ -1679,15 +1679,22 @@ function build_from_js(type, jdata) {
 
 var objValues = {};
 
-function build_data_michelson(type, storage_values, parameters) {
+function build_data_michelson(type, storage_values, parameters, parametersMicheline) {
+  const is_micheline = !isNull(parametersMicheline);
+  const p = is_micheline ? parametersMicheline : parameters;
   if (type.annots !== undefined && type.annots.length > 0) {
     const annot1 = type.annots[0];
     const annot = annot1.startsWith("%") ? annot1.substring(1) : annot1;
 
-    if (parameters[annot] !== undefined) {
+    if (p[annot] !== undefined) {
       const t = type;
-      const d = parameters[annot];
-      const data = build_from_js(t, d);
+      let data = null;
+      if (is_micheline) {
+        data = p[annot]
+      } else {
+        const d = p[annot];
+        data = build_from_js(t, d);
+      }
       objValues[annot] = data;
       return data;
     } else if (storage_values[annot] !== undefined) {
@@ -1701,24 +1708,33 @@ function build_data_michelson(type, storage_values, parameters) {
 
     let args;
     if (Object.keys(storage_values).length == 0 && Object.keys(parameters).length == 1) {
-      const ds = Object.values(parameters)[0];
+      const ds = Object.values(p)[0];
       args = [];
       for (let i = 0; i < type.args.length; ++i) {
-        const d = ds[i];
-        const t = type.args[i];
-        const a = build_from_js(t, d);
+        let a = null
+        if (is_micheline) {
+          a = ds[i]
+        } else {
+          const d = ds[i];
+          const t = type.args[i];
+          a = build_from_js(t, d);
+        }
         args.push(a);
       }
     } else {
       args = type.args.map((t) => {
-        return build_data_michelson(t, storage_values, parameters);
+        return build_data_michelson(t, storage_values, parameters, parametersMicheline);
       });
     }
 
     return { "prim": "Pair", args: args };
   } else {
-    const d = Object.values(parameters)[0];
-    return build_from_js(type, d);
+    if (is_micheline) {
+      return Object.values(p)[0]
+    } else {
+      const d = Object.values(p)[0];
+      return build_from_js(type, d);
+    }
   }
 }
 
@@ -1739,14 +1755,15 @@ function replaceAll(data, objValues) {
   }
 }
 
-async function compute_tzstorage(file, storageType, parameters, contract_parameter, options, s) {
+async function compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, s) {
+  const is_micheline = !isNull(parametersMicheline);
   const parameters_var = []
   const parameters_const = []
   if (!isNull(contract_parameter)) {
     for (i = 0; i < contract_parameter.length; ++i) {
       const cp = contract_parameter[i];
       const name = cp.name;
-      const p = parameters[name];
+      const p = is_micheline ? parametersMicheline[name] : parameters[name];
       if (p !== undefined) {
         if (cp.const) {
           parameters_const.push(p)
@@ -1769,7 +1786,7 @@ async function compute_tzstorage(file, storageType, parameters, contract_paramet
     });
 
     objValues = {};
-    const data = build_data_michelson(storageType, obj, parameters);
+    const data = build_data_michelson(storageType, obj, parameters, parametersMicheline);
     michelsonData = replaceAll(data, objValues);
   } else {
     const storage_values = await callArchetype(options, file, {
@@ -1881,6 +1898,7 @@ async function deploy(options) {
   const dry = options.dry;
   const oinit = options.init;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
+  const parametersMicheline = options.iparametersMicheline !== undefined ? JSON.parse(options.iparametersMicheline) : options.iparametersMicheline;
   const otest = options.test;
   const mockup_mode = isMockupMode();
   const force_tezos_client = options.force_tezos_client === undefined ? isForceTezosClient() : options.force_tezos_client;
@@ -1966,7 +1984,7 @@ async function deploy(options) {
       with_parameters: true
     });
     if (with_parameters !== "") {
-      if (isNull(parameters)) {
+      if (isNull(parameters) && isNull(parametersMicheline)) {
         const msg = `The contract has the following parameter:\n${with_parameters}\nPlease use '--parameters' to initialize.`;
         return new Promise((resolve, reject) => { reject(msg) });
       } else {
@@ -1983,7 +2001,7 @@ async function deploy(options) {
   if (!isNull(oinit)) {
     m_storage = expr_micheline_to_json(oinit);
   } else if (!originate) {
-    if (isNull(parameters)) {
+    if (isNull(parameters) && isNull(parametersMicheline)) {
       try {
         const storage = await callArchetype(options, file, {
           target: "michelson-storage",
@@ -1998,7 +2016,7 @@ async function deploy(options) {
         const m_code = expr_micheline_to_json(code);
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
-        m_storage = await compute_tzstorage(file, storageType, parameters, contract_parameter, options, computeSettings(options));
+        m_storage = await compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, computeSettings(options));
       } catch (e) {
         return new Promise((resolve, reject) => { reject(e) });
       }
