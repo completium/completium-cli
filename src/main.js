@@ -1796,7 +1796,7 @@ async function compute_tzstorage(file, storageType, parameters, parametersMichel
   }
 
   if (parameters_const.length > 0) {
-    michelsonData = process_const(michelsonData, parameters, contract_parameter);
+    michelsonData = process_const(michelsonData, parameters, parameters_const, contract_parameter);
   }
 
   return michelsonData;
@@ -1834,17 +1834,23 @@ function process_const(obj, parameters, contract_parameter) {
   return obj;
 }
 
-function process_code_const(str, parameters, contract_parameter) {
+function process_code_const(str, parameters, parametersMicheline, contract_parameter) {
+  const is_micheline = !isNull(parametersMicheline);
   for (i = 0; i < contract_parameter.length; ++i) {
     const cp = contract_parameter[i];
     if (cp.const) {
       const name = cp.name;
       const ty = expr_micheline_to_json(cp.type_);
-      const value = parameters[name];
-      if (isNull(value)) {
-        throw new Error(`Error: parameter "${name}" not found.`)
+      let data = null;
+      if (is_micheline) {
+        data = parametersMicheline[name]
+      } else {
+        const value = parameters[name];
+        if (isNull(value)) {
+          throw new Error(`Error: parameter "${name}" not found.`)
+        }
+        data = build_from_js(ty, value);
       }
-      const data = build_from_js(ty, value);
       const str_data = json_micheline_to_expr(data);
       const pattern = 'const_' + name + '__';
       str = str.replaceAll(pattern, str_data);
@@ -1994,7 +2000,7 @@ async function deploy(options) {
   }
 
   if (contract_parameter != null) {
-    code = process_code_const(code, parameters, contract_parameter);
+    code = process_code_const(code, parameters, parametersMicheline, contract_parameter);
   }
 
   let m_storage;
@@ -2690,6 +2696,7 @@ function setMockupNow(options) {
 async function generateCodeGen(options, target) {
   const value = options.path;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
+  const parametersMicheline = options.iparametersMicheline !== undefined ? JSON.parse(options.iparametersMicheline) : options.iparametersMicheline;
   const json = options.json || false;
 
   const contract = getContract(value);
@@ -2713,7 +2720,7 @@ async function generateCodeGen(options, target) {
   });
   if (with_parameters !== "") {
     const contract_parameter = JSON.parse(with_parameters);
-    code = process_code_const(code, parameters, contract_parameter);
+    code = process_code_const(code, parameters, parametersMicheline, contract_parameter);
   }
 
   print(code);
