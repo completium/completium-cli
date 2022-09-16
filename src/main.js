@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.19'
+const version = '0.4.20'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -1904,7 +1904,7 @@ async function deploy(options) {
   const dry = options.dry;
   const oinit = options.init;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
-  const parametersMicheline = options.iparametersMicheline !== undefined ? JSON.parse(options.iparametersMicheline) : options.iparametersMicheline;
+  const parametersMicheline = options.iparametersMicheline !== undefined ? JSON.parse(options.iparametersMicheline) : options.parametersMicheline;
   const otest = options.test;
   const mockup_mode = isMockupMode();
   const force_tezos_client = options.force_tezos_client === undefined ? isForceTezosClient() : options.force_tezos_client;
