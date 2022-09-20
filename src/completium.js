@@ -299,3 +299,4 @@ exports.isMockup = isMockup;
 exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generateContractInterface = generateContractInterface;
+exports.getRawStorage = Main.getRawStorage

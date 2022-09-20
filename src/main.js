@@ -3065,30 +3065,11 @@ async function showStorage(options) {
 
   const contract_address = getContractAddress(input);
 
-  if (isMockupMode()) {
-    const storage = await getRawStorage(contract_address);
-    if (json) {
-      print(JSON.stringify(storage, 0, 2));
-    } else {
-      print(codec.emitMicheline(storage))
-    }
+  const storage = await getRawStorage(contract_address);
+  if (json) {
+    print(JSON.stringify(storage, 0, 2));
   } else {
-    const config = getConfig();
-    const tezos_endpoint = config.tezos.endpoint;
-    const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/storage';
-    var request = require('request');
-    request(url, function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        const j = JSON.parse(body);
-        if (json) {
-          print(JSON.stringify(j, 0, 2));
-        } else {
-          print(codec.emitMicheline(j))
-        }
-      } else {
-        print(`Error: ${response.statusCode}`)
-      }
-    })
+    print(codec.emitMicheline(storage))
   }
   return;
 }
@@ -4076,3 +4057,4 @@ exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.setMockupNow = setMockupNow;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generate_contract_interface = generate_contract_interface;
+exports.getRawStorage = getRawStorage
