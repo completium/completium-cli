@@ -2431,10 +2431,23 @@ async function printGetter(options) {
     })
 }
 
+async function get_view_return_type(contract_address, viewid) {
+  const uri = "/chains/main/blocks/head/context/contracts/" + contract_address;
+  const c = await rpcGet(uri);
+  for (let i = 0; i < c.script.code.length; ++i) {
+    const p = c.script.code[i];
+    if (p.prim == "view" && p.args[0].string == viewid) {
+      return p.args[2]
+    }
+  }
+  throw new Error(`Error: view "${viewid}" not found.`)
+}
+
 async function runView(options) {
   const viewid = options.viewid;
   const contractid = options.contract;
   const json = options.json;
+  const taquito_schema = options.taquito_schema === undefined ? false : options.taquito_schema;
 
   let jarg;
   if (options.arg) {
@@ -2490,6 +2503,10 @@ async function runView(options) {
 
   const res = await rpcPost("/chains/main/blocks/head/helpers/scripts/run_script_view", input);
   if (res && res.data) {
+    if (taquito_schema) {
+      const ty = await get_view_return_type(contract_address, viewid);
+      return taquitoExecuteSchema(res.data, ty);
+    }
     if (json) {
       return res.data;
     }

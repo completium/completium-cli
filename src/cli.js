@@ -292,6 +292,7 @@ function parseCommand(args) {
       '--event-well': String,
       '--input-path': String,
       '--output-path': String,
+      '--taquito-schema': Boolean,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -335,6 +336,7 @@ function parseCommand(args) {
     event_well: options['--event-well'],
     input_path: options['--input-path'],
     output_path: options['--output-path'],
+    taquito_schema: options['--taquito-schema']
   }
 }
 
