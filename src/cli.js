@@ -289,7 +289,6 @@ function parseCommand(args) {
       '--protocol': String,
       '--storage': String,
       '--show-tezos-client-command': Boolean,
-      '--event-well': String,
       '--input-path': String,
       '--output-path': String,
       '--taquito-schema': Boolean,
@@ -333,7 +332,6 @@ function parseCommand(args) {
     protocol: options['--protocol'],
     storage: options['--storage'],
     show_tezos_client_command: options['--show-tezos-client-command'],
-    event_well: options['--event-well'],
     input_path: options['--input-path'],
     output_path: options['--output-path'],
     taquito_schema: options['--taquito-schema']
