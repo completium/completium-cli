@@ -48,13 +48,6 @@ const default_mockup_protocol = 'PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
 
-const event_wells = {
-  main: 'KT19ij2bHXkhMALzoTZCG88FWgAHRR21247v',
-  ghost: 'KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw',
-  jakarta: 'KT1HchD9HwAWLffYitWvPiKEKJGvyZYRWNWh',
-  kathmandu: 'KT1JBzRE1T3icJvWQPnyU4zKGjQS3fmgUj2X'
-}
-
 ///////////
 // TOOLS //
 ///////////
@@ -216,15 +209,6 @@ function getTezos(forceAccount) {
   return tezos;
 }
 
-function getEventWell(network) {
-  if (network === 'mockup') {
-    const mockupConf = getMockupConfig()
-    return mockupConf.event_well !== undefined ? mockupConf.event_well : "";
-  } else {
-    return event_wells[network]
-  }
-}
-
 function isNull(str) {
   return str === undefined || str === null || str === "";
 }
@@ -235,14 +219,12 @@ function computeSettings(options, settings) {
   const metadata_storage = options.metadata_storage ? options.metadata_storage : (settings ? settings.metadata_storage : undefined);
   const metadata_uri = options.metadata_uri ? options.metadata_uri : (settings ? settings.metadata_uri : undefined);
   const otest = options.test || (settings !== undefined && settings.test_mode);
-  const event_well = options.event_well ? options.event_well : getEventWell(config.tezos.network);
 
   return {
     ...settings,
     "test_mode": otest,
     "metadata_storage": metadata_storage,
-    "metadata_uri": metadata_uri,
-    "event_well_address": event_well
+    "metadata_uri": metadata_uri
   }
 }
 
@@ -2205,6 +2187,7 @@ async function callTransfer(options, contract_address, arg) {
   const force_tezos_client = options.force_tezos_client === undefined ? false : options.force_tezos_client;
   const verbose = options.verbose === undefined ? false : options.verbose;
   const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
+  const only_param = options.only_param === undefined ? false : options.only_param;
 
   const contract_id = options.contract;
 
@@ -2223,6 +2206,13 @@ async function callTransfer(options, contract_address, arg) {
 
   const fee = isNull(options.fee) ? 0 : getAmount(options.fee);
   if (isNull(fee)) { return new Promise(resolve => { resolve(null) }); };
+
+  const transferParam = { to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } };
+
+  if (only_param) {
+    const res = { kind: 'transaction', ...transferParam, cost: undefined }
+    return res;
+  }
 
   if (force_tezos_client || dry || mockup_mode || show_tezos_client_command) {
     const a = (amount / 1000000).toString();
@@ -2275,8 +2265,6 @@ async function callTransfer(options, contract_address, arg) {
     const tezos = getTezos(account.name);
 
     const network = config.tezos.list.find(x => x.network === config.tezos.network);
-
-    const transferParam = { to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } };
 
     try {
       const res = await tezos.estimate.transfer(transferParam);
@@ -2346,6 +2334,36 @@ async function callTransfer(options, contract_address, arg) {
             reject(error);
           }
         );
+    });
+  }
+}
+
+async function exec_batch(transferParams, options) {
+  if (isMockupMode()) {
+    print("TODO");
+  } else {
+    const config = getConfig();
+    const as = isNull(options.as) ? config.account : options.as;
+    const account = getAccountFromIdOrAddr(as);
+    if (isNull(account)) {
+      const msg = `Account '${as}' is not found.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+
+    const tezos = getTezos(account.name);
+    const batch = tezos.contract.batch(transferParams);
+
+    // Inject operations
+    return new Promise(async (resolve, reject) => {
+      try {
+        const op = await batch.send();
+        console.log(`Waiting for ${op.hash} to be confirmed ...`);
+        await op.confirmation(1);
+        console.log(`${op.hash} confirmed ...`);
+        resolve(op)
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 }
@@ -4069,3 +4087,4 @@ exports.setMockupNow = setMockupNow;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generate_contract_interface = generate_contract_interface;
 exports.getRawStorage = getRawStorage
+exports.exec_batch = exec_batch

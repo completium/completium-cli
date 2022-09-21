@@ -268,6 +268,11 @@ async function generateContractInterface(path, options) {
   return JSON.parse(res);
 }
 
+async function exec_batch(ts, options) {
+  const obj = options ? options : {};
+  return await Main.exec_batch(ts, obj);
+}
+
 exports.deploy = deploy;
 exports.originate = originate;
 exports.call = call;
@@ -300,3 +305,4 @@ exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generateContractInterface = generateContractInterface;
 exports.getRawStorage = Main.getRawStorage
+exports.exec_batch = exec_batch

@@ -1,0 +1,7 @@
+archetype inc
+
+variable n : nat = 0
+
+entry inc() {
+  n += 1
+}
