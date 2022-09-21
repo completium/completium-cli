@@ -316,7 +316,6 @@ function parseCommand(args) {
     entry: options['--entry'],
     iargs: options['--arg'],
     argMichelson: options['--arg-michelson'],
-    argJsonMichelson: options['--arg-json-michelson'],
     force: options['--force'] || false,
     verbose: options['--verbose'] || false,
     init: options['--init'],
