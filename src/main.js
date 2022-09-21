@@ -2339,17 +2339,43 @@ async function callTransfer(options, contract_address, arg) {
 }
 
 async function exec_batch(transferParams, options) {
-  if (isMockupMode()) {
-    print("TODO");
-  } else {
-    const config = getConfig();
-    const as = isNull(options.as) ? config.account : options.as;
-    const account = getAccountFromIdOrAddr(as);
-    if (isNull(account)) {
-      const msg = `Account '${as}' is not found.`;
-      return new Promise((resolve, reject) => { reject(msg) });
-    }
+  const verbose = options.verbose === undefined ? false : options.verbose;
 
+  const config = getConfig();
+  const as = isNull(options.as) ? config.account : options.as;
+  const account = getAccountFromIdOrAddr(as);
+  if (isNull(account)) {
+    const msg = `Account '${as}' is not found.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (isMockupMode()) {
+
+    const obj = transferParams.map(x => {
+      const destination = x.to;
+      const arg = x.parameter.value;
+      const entry = x.parameter.entrypoint;
+      const amount = x.mutez ? (x.amount / 1000000).toString() : x.amount.toString();
+
+      return { destination: destination, amount: amount, entrypoint: entry, arg: codec.emitMicheline(arg) }
+    });
+    const arg_json = JSON.stringify(obj);
+
+    const args = [
+      "multiple", "transfers", "from", account.pkh, "using", arg_json
+    ];
+    if (verbose) {
+      print(args);
+    }
+    const { stdout, stderr, failed } = await callTezosClient(args);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      print(stdout);
+    }
+    return new Promise(resolve => { resolve(null) });
+
+  } else {
     const tezos = getTezos(account.name);
     const batch = tezos.contract.batch(transferParams);
 
