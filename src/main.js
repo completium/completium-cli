@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.21'
+const version = '0.4.22'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -1879,6 +1879,8 @@ async function deploy(options) {
   const network = config.tezos.list.find(x => x.network === config.tezos.network);
   const dry = options.dry;
   const oinit = options.init;
+  const contract_json = options.contract_json;
+  const storage_json = options.storage_json;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const parametersMicheline = options.iparametersMicheline !== undefined ? JSON.parse(options.iparametersMicheline) : options.parametersMicheline;
   const otest = options.test;
@@ -1928,6 +1930,11 @@ async function deploy(options) {
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
+  if (!isNull(contract_json) && isNull(named)) {
+    const msg = `\`named\` field missing`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
   const contract_name = named === undefined ? path.basename(file).split('.').slice(0, -1).join('.') : named;
   var confirm = await confirmContract(force || show_tezos_client_command, contract_name);
   if (!confirm) {
@@ -1935,28 +1942,31 @@ async function deploy(options) {
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
-  if (!fs.existsSync(file)) {
-    const msg = `File not found.`;
-    return new Promise((resolve, reject) => { reject(msg) });
-  }
-
   let code;
-  if (originate) {
-    const input = fs.readFileSync(file).toString();
-    if (file.endsWith(".json")) {
-      const jinput = JSON.parse(input);
-      code = json_micheline_to_expr(jinput);
-    } else {
-      code = input;
-    }
+  if (!isNull(contract_json)) {
+    code = json_micheline_to_expr(contract_json);
   } else {
-    try {
-      code = await callArchetype(options, file, {
-        target: "michelson",
-        sci: account.pkh
-      });
-    } catch (e) {
-      return new Promise((resolve, reject) => { reject(e) });
+    if (!fs.existsSync(file)) {
+      const msg = `File not found.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+    if (originate) {
+      const input = fs.readFileSync(file).toString();
+      if (file.endsWith(".json")) {
+        const jinput = JSON.parse(input);
+        code = json_micheline_to_expr(jinput);
+      } else {
+        code = input;
+      }
+    } else {
+      try {
+        code = await callArchetype(options, file, {
+          target: "michelson",
+          sci: account.pkh
+        });
+      } catch (e) {
+        return new Promise((resolve, reject) => { reject(e) });
+      }
     }
   }
 
@@ -1980,7 +1990,9 @@ async function deploy(options) {
   }
 
   let m_storage;
-  if (!isNull(oinit)) {
+  if (!isNull(storage_json)) {
+    m_storage = storage_json;
+  } else if (!isNull(oinit)) {
     m_storage = expr_micheline_to_json(oinit);
   } else if (!originate) {
     if (isNull(parameters) && isNull(parametersMicheline)) {
@@ -2008,7 +2020,10 @@ async function deploy(options) {
   }
 
   const ext = originate ? 'tz' : 'arl';
-  const source = await copySource(file, ext, contract_name);
+  let source = null;
+  if (!isNull(file)) {
+    source = await copySource(file, ext, contract_name);
+  }
   const contract_path = await copyContract(code, contract_name);
   const version = await getArchetypeVersion();
 
