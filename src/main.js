@@ -2362,7 +2362,7 @@ async function exec_batch(transferParams, options) {
     const arg_json = JSON.stringify(obj);
 
     const args = [
-      "multiple", "transfers", "from", account.pkh, "using", arg_json
+      "multiple", "transfers", "from", account.pkh, "using", arg_json, "--burn-cap", "20"
     ];
     if (verbose) {
       print(args);
