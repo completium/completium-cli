@@ -71,9 +71,7 @@ async function test() {
       storage_json: storage_json
     });
     const storage_before = await c.getStorage();
-    assert(storage_before.toNumber() == 0);
-
-
+    assert(storage_before == null);
   } catch (e) {
     console.error(e)
   }
