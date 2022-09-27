@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.22'
+const version = '0.4.23'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -1793,7 +1793,7 @@ function replace_json(obj, id, data) {
   return obj;
 }
 
-function process_const(obj, parameters, contract_parameter) {
+function process_const(obj, parameters, parameters_const, contract_parameter) {
   for (i = 0; i < contract_parameter.length; ++i) {
     const cp = contract_parameter[i];
     if (cp.const) {
