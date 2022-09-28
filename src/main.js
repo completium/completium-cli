@@ -3680,17 +3680,18 @@ const gen_package_json = (name, versions) => `
   "name": "${name}",
   "version": "1.0.0",
   "scripts": {
-    "test": "./run_test.sh",
+    "test": "ts-mocha --timeout 0 --slow 99999999999999999 ./tests/*.ts",
     "gen-binding": "completium-cli run binder-ts"
   },
   "dependencies": {
     "@completium/completium-cli": "${versions.completium_cli}",
-    "@completium/experiment-ts": "${versions.experiment_ts}",
-    "@types/node": "${versions.types_node}",
-    "mocha": "${versions.mocha}"
+    "@completium/experiment-ts": "${versions.experiment_ts}"
   },
   "devDependencies": {
+    "@types/expect": "${versions.types_expect}",
     "@types/mocha": "${versions.types_mocha}",
+    "@types/node": "${versions.types_node}",
+    "ts-mocha": "${versions.ts_mocha}",
     "typescript": "${versions.typescript}"
   },
   "completium": {
@@ -3716,7 +3717,7 @@ const gen_tsconfig = () => `
     // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
 
     /* Language and Environment */
-    "target": "ES6",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "target": "ES6",                                     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     // "jsx": "preserve",                                /* Specify what JSX code is generated. */
     // "experimentalDecorators": true,                   /* Enable experimental support for TC39 stage 2 draft decorators. */
@@ -3747,12 +3748,12 @@ const gen_tsconfig = () => `
     // "maxNodeModuleJsDepth": 1,                        /* Specify the maximum folder depth used for checking JavaScript files from 'node_modules'. Only applicable with 'allowJs'. */
 
     /* Emit */
-    "declaration": true,                              /* Generate .d.ts files from TypeScript and JavaScript files in your project. */
-    "declarationMap": true,                           /* Create sourcemaps for d.ts files. */
+    "declaration": true,                                 /* Generate .d.ts files from TypeScript and JavaScript files in your project. */
+    "declarationMap": true,                              /* Create sourcemaps for d.ts files. */
     // "emitDeclarationOnly": true,                      /* Only output d.ts files and not JavaScript files. */
     "sourceMap": true,                                   /* Create source map files for emitted JavaScript files. */
     // "outFile": "./",                                  /* Specify a file that bundles all outputs into one JavaScript file. If 'declaration' is true, also designates a file that bundles all .d.ts output. */
-    "outDir": "../build",                                   /* Specify an output folder for all emitted files. */
+    "outDir": "../build",                                /* Specify an output folder for all emitted files. */
     // "removeComments": true,                           /* Disable emitting comments. */
     // "noEmit": true,                                   /* Disable emitting files from a compilation. */
     // "importHelpers": true,                            /* Allow importing helper functions from tslib once per project, instead of including them per-file. */
@@ -3805,22 +3806,6 @@ const gen_tsconfig = () => `
   }
 }
 `
-
-const gen_run_test = name => '\
-#! /bin/sh\n\
-\n\
-BUILD_PATH=`completium-cli get completium property build_path`\n\
-TESTS_PATH=`completium-cli get completium property tests_path`\n\
-\n\
-if [ $# -ge 1 ]; then\n\
-  TEST_BUILD_PATH=${BUILD_PATH}/${TESTS_PATH}/${1}.js\n\
-else\n\
-  TEST_BUILD_PATH=${BUILD_PATH}/${TESTS_PATH}/*.js\n\
-fi\n\
-\n\
-rm -rf ${BUILD_PATH} && npx tsc --outDir ${BUILD_PATH} && mocha --timeout 0 --slow 99999999999999999 ${TEST_BUILD_PATH}\n\
-'
-
 async function createProject(options) {
   const value = options.value;
   const project_name = value;
@@ -3831,7 +3816,6 @@ async function createProject(options) {
   const test_path = tests_path + `/00-test-hello.ts`;
   const package_path = project_path + '/package.json'
   const tsconfig_path = project_path + '/tsconfig.json'
-  const run_test_path = project_path + '/run_test.sh'
 
   fs.mkdirSync(project_path)
   fs.mkdirSync(contracts_path)
@@ -3839,10 +3823,16 @@ async function createProject(options) {
 
   fs.writeFileSync(contract_path, gen_contract_template(project_name))
   fs.writeFileSync(test_path, gen_test_template(project_name))
-  fs.writeFileSync(package_path, gen_package_json(project_name, { completium_cli: 'latest', experiment_ts: 'latest', types_node: 'latest', mocha: '^10.0.0', types_mocha: '^9.1.1', typescript: '^4.7.4' }))
+  fs.writeFileSync(package_path, gen_package_json(project_name, {
+    completium_cli: 'latest',
+    experiment_ts: 'latest',
+    ts_mocha: '^10.0.0',
+    types_expect: "^24.3.0",
+    types_mocha: '^10.0.0',
+    types_node: 'latest',
+    typescript: '^4.7.4'
+  }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
-  fs.writeFileSync(run_test_path, gen_run_test())
-  fs.chmodSync(run_test_path, "755");
   print(`Project ${project_name} is created.`)
 }
 
