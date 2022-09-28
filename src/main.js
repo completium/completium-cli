@@ -1772,7 +1772,7 @@ async function compute_tzstorage(file, storageType, parameters, parametersMichel
   }
 
   if (parameters_const.length > 0) {
-    michelsonData = process_const(michelsonData, parameters, parameters_const, contract_parameter);
+    michelsonData = process_const(michelsonData, parameters, parametersMicheline, contract_parameter);
   }
 
   return michelsonData;
@@ -1792,18 +1792,23 @@ function replace_json(obj, id, data) {
   }
   return obj;
 }
-
-function process_const(obj, parameters, parameters_const, contract_parameter) {
+function process_const(obj, parameters, parametersMicheline, contract_parameter) {
+  const is_micheline = !isNull(parametersMicheline);
   for (i = 0; i < contract_parameter.length; ++i) {
     const cp = contract_parameter[i];
     if (cp.const) {
       const name = cp.name;
-      const ty = expr_micheline_to_json(cp.type_);
-      const value = parameters[name];
+      const value = is_micheline ? parametersMicheline[name] : parameters[name];
       if (isNull(value)) {
         throw new Error(`Error: parameter "${name}" not found.`)
       }
-      const data = build_from_js(ty, value);
+      let data = null;
+      if (is_micheline) {
+        data = value;
+      } else {
+        const ty = expr_micheline_to_json(cp.type_);
+        data = build_from_js(ty, value);
+      }
       obj = replace_json(obj, name, data)
     }
   }
