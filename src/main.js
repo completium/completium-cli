@@ -243,6 +243,9 @@ function computeArgsSettings(options, settings, path) {
       if (settings.contract_interface) {
         args.push('--show-contract-interface');
       }
+      if (settings.contract_interface_michelson) {
+        args.push('--show-contract-interface-michelson');
+      }
       if (settings.sci) {
         args.push('--set-caller-init');
         args.push(settings.sci);
@@ -2878,6 +2881,7 @@ async function print_generate_binding_ts(options) {
       return new Promise((resolve, reject) => { reject(msg) });
     }
 
+    // const files = glob.sync(`${input_path}/**/*[.arl|.tz]`, null)
     const files = glob.sync(`${input_path}/**/*.arl`, null)
 
     for (let i = 0; i < files.length; i++) {
@@ -2907,9 +2911,18 @@ async function print_generate_binding_ts(options) {
 }
 
 async function generate_contract_interface(options) {
-  return await generate_gen(options, {
-    contract_interface: true
-  })
+  let obj;
+  const is_michelson = options.path.endsWith(".tz");
+  if (is_michelson) {
+    obj = {
+      contract_interface_michelson: true
+    }
+  } else {
+    obj = {
+      contract_interface: true
+    }
+  }
+  return await generate_gen(options, obj)
 }
 
 async function print_generate_contract_interface(options) {
@@ -3684,6 +3697,7 @@ const gen_package_json = (name, versions) => `
     "gen-binding": "completium-cli run binder-ts"
   },
   "dependencies": {
+    "@completium/archetype-ts-types": "${versions.archetype_ts_types}",
     "@completium/completium-cli": "${versions.completium_cli}",
     "@completium/experiment-ts": "${versions.experiment_ts}"
   },
@@ -3824,6 +3838,7 @@ async function createProject(options) {
   fs.writeFileSync(contract_path, gen_contract_template(project_name))
   fs.writeFileSync(test_path, gen_test_template(project_name))
   fs.writeFileSync(package_path, gen_package_json(project_name, {
+    archetype_ts_types: 'latest',
     completium_cli: 'latest',
     experiment_ts: 'latest',
     ts_mocha: '^10.0.0',
