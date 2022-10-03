@@ -2891,6 +2891,12 @@ async function print_generate_binding_ts(options) {
 
     for (let i = 0; i < files.length; i++) {
       const input = files[i];
+      if (input.endsWith(".tz") ) {
+        const file_arl = input.substring(0, input.length - 2) + 'arl';
+        if (fs.existsSync(file_arl)) {
+          continue
+        }
+      }
       const output_tmp = input.replace(input_path, output_path);
       const output = path.format({ ...path.parse(output_tmp), base: '', ext: '.ts' })
 
