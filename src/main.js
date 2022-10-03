@@ -2881,8 +2881,7 @@ async function print_generate_binding_ts(options) {
       return new Promise((resolve, reject) => { reject(msg) });
     }
 
-    // const files = glob.sync(`${input_path}/**/*[.arl|.tz]`, null)
-    const files = glob.sync(`${input_path}/**/*.arl`, null)
+    const files = glob.sync(`${input_path}/**/*[.arl|.tz]`, null)
 
     for (let i = 0; i < files.length; i++) {
       const input = files[i];
