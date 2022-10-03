@@ -2860,12 +2860,18 @@ async function print_generate_event_binding_ts(options) {
 
 async function generate_unit_binding_ts(path) {
   try {
-    const contract_interface = await generate_contract_interface({ path: path });
+    const is_michelson = path.endsWith(".tz");
+    const contract_interface = await generate_contract_interface({ path: path }, is_michelson);
     if (isNull(contract_interface)) {
       return null;
     }
     const json = JSON.parse(contract_interface);
-    const binding = binderTs.generate_binding(json);
+    const settings = {
+      language: is_michelson ? binderTs.Language.Michelson : binderTs.Language.Archetype,
+      target: binderTs.Target.Experiment,
+      path: './contracts/'
+    }
+    const binding = binderTs.generate_binding(json, settings);
     return binding;
   } catch (e) {
     return null
@@ -2909,9 +2915,8 @@ async function print_generate_binding_ts(options) {
   }
 }
 
-async function generate_contract_interface(options) {
+async function generate_contract_interface(options, is_michelson) {
   let obj;
-  const is_michelson = options.path.endsWith(".tz");
   if (is_michelson) {
     obj = {
       contract_interface_michelson: true
@@ -2925,7 +2930,8 @@ async function generate_contract_interface(options) {
 }
 
 async function print_generate_contract_interface(options) {
-  const res = await generate_contract_interface(options);
+  const is_michelson = options.path.endsWith(".tz");
+  const res = await generate_contract_interface(options, is_michelson);
   print(res)
 }
 

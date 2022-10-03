@@ -38,7 +38,7 @@
   "homepage": "https://github.com/completium/completium-cli#readme",
   "dependencies": {
     "@completium/archetype": "0.4.7",
-    "@completium/archetype-binder-ts": "^0.0.41",
+    "@completium/archetype-binder-ts": "^0.0.42",
     "@taquito/michel-codec": "^14.0.0",
     "@taquito/michelson-encoder": "^14.0.0",
     "@taquito/signer": "^14.0.0",
