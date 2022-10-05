@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.28'
+const version = '0.4.29'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3391,11 +3391,17 @@ function commandNotFound(options) {
   return 1;
 }
 
-async function getValueFromBigMap(id, data, type) {
+async function getValueFromBigMap(id, data, type, type_value) {
   const input = packTyped({ data: data, typ: type });
   const expr = taquitoUtils.encodeExpr(input);
   try {
-    return await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
+    const res = await rpcGet("/chains/main/blocks/head/context/big_maps/" + id + "/" + expr);
+    if (type_value !== undefined) {
+      const schema = new encoder.Schema(type_value);
+      return schema.Execute(res);
+    } else {
+      return res;
+    }
   } catch (e) {
     return null;
   }

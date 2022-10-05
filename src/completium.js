@@ -221,8 +221,8 @@ async function checkBalanceDelta(a, d, f) {
   }
 }
 
-async function getValueFromBigMap(id, data, type) {
-  var v = await Main.getValueFromBigMap(id, data, type);
+async function getValueFromBigMap(id, data, type, type_value) {
+  var v = await Main.getValueFromBigMap(id, data, type, type_value);
   return v;
 }
 
