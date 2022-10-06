@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.29'
+const version = '0.4.30'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3381,6 +3381,16 @@ async function sign(options) {
   return await signer.signer.sign(value);
 }
 
+async function signFromSk(options) {
+  const value = options.value;
+  const sk = options.sk;
+
+  const signer = {
+    signer: new signer.InMemorySigner(sk)
+  };
+  return await signer.signer.sign(value);
+}
+
 function setQuiet(v) {
   settings_quiet = v;
 }
@@ -4140,6 +4150,7 @@ exports.getAccountExt = getAccountExt;
 exports.blake2b = blake2b;
 exports.keccak = keccak;
 exports.sign = sign;
+exports.signFromSk = signFromSk;
 exports.pack = pack;
 exports.packTyped = packTyped;
 exports.setNow = setNow;

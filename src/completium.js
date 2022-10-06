@@ -165,6 +165,11 @@ async function sign(value, obj) {
   return await Main.sign(options);
 }
 
+async function signFromSk(value, obj) {
+  const options = {...obj, value: value };
+  return await Main.signFromSk(options);
+}
+
 function setQuiet(value) {
   Main.setQuiet(value);
 }
@@ -293,6 +298,7 @@ exports.setNow = setNow;
 exports.setMockupNow = setMockupNow;
 exports.transfer = transfer;
 exports.sign = sign;
+exports.signFromSk = signFromSk;
 exports.exprMichelineToJson = expr_micheline_to_json;
 exports.jsonMichelineToExpr = json_micheline_to_expr;
 exports.setQuiet = setQuiet;
