@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.31'
+const version = '0.4.32'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -1261,11 +1261,11 @@ async function getKeysFrom(sk) {
   const signer = new signer.InMemorySigner(sk);
   const pk = await tezos.signer.publicKey();
   const pkh = await tezos.signer.publicKeyHash();
-  const sk = await tezos.signer.secretKey();
+  const sk2 = await tezos.signer.secretKey();
   return {
     pkh: pkh,
     pk: pk,
-    sk: sk,
+    sk: sk2,
   }
 }
 
