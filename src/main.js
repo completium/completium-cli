@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.30'
+const version = '0.4.31'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -1255,6 +1255,18 @@ async function importFaucet(options) {
 
 async function importPrivatekey(options) {
   importAccount("privatekey", options);
+}
+
+async function getKeysFrom(sk) {
+  const signer = new signer.InMemorySigner(sk);
+  const pk = await tezos.signer.publicKey();
+  const pkh = await tezos.signer.publicKeyHash();
+  const sk = await tezos.signer.secretKey();
+  return {
+    pkh: pkh,
+    pk: pk,
+    sk: sk,
+  }
 }
 
 async function showKeysFrom(options) {
@@ -2891,7 +2903,7 @@ async function print_generate_binding_ts(options) {
 
     for (let i = 0; i < files.length; i++) {
       const input = files[i];
-      if (input.endsWith(".tz") ) {
+      if (input.endsWith(".tz")) {
         const file_arl = input.substring(0, input.length - 2) + 'arl';
         if (fs.existsSync(file_arl)) {
           continue
@@ -4167,3 +4179,4 @@ exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generate_contract_interface = generate_contract_interface;
 exports.getRawStorage = getRawStorage
 exports.exec_batch = exec_batch
+exports.getKeysFrom = getKeysFrom
