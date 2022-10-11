@@ -2737,6 +2737,8 @@ async function callContract(options) {
     arg = expr_micheline_to_json(json_micheline_to_expr(argJsonMichelson));
   } else if (argMichelson !== undefined) {
     arg = expr_micheline_to_json(argMichelson);
+  } else if (entry === "default") {
+    arg = args;
   } else {
     arg = await computeArg(args, paramType);
   }
