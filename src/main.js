@@ -2696,9 +2696,17 @@ function taquitoExecuteSchema(data, type) {
   return r;
 }
 
+function isEmptyObject(obj) {
+  if (typeof obj === 'object' && obj != null && Object.keys(obj).length !== 0) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
 async function callContract(options) {
   const input = options.contract;
-  const args = options.arg !== undefined ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
+  const args = options.arg !== undefined && !isEmptyObject(options.arg) ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
   var argJsonMichelson = options.argJsonMichelson;
   var argMichelson = options.argMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
