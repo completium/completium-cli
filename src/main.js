@@ -626,6 +626,7 @@ function help(options) {
   print("  generate event-binding-js <FILE.arl|CONTRACT_ALIAS>");
   print("  generate event-binding-ts <FILE.arl|CONTRACT_ALIAS>");
   print("  generate binding-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>]");
+  print("  generate binding-dapp-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>]");
   print("  generate contract interface <FILE.arl|CONTRACT_ALIAS>");
   print("")
   print("  show accounts");
@@ -2883,7 +2884,7 @@ async function print_generate_event_binding_ts(options) {
   await print_generate_target(options, 'bindings-ts')
 }
 
-async function generate_unit_binding_ts(path) {
+async function generate_unit_binding_ts(path, target) {
   try {
     const is_michelson = path.endsWith(".tz");
     const contract_interface = await generate_contract_interface({ path: path }, is_michelson);
@@ -2893,7 +2894,7 @@ async function generate_unit_binding_ts(path) {
     const json = JSON.parse(contract_interface);
     const settings = {
       language: is_michelson ? binderTs.Language.Michelson : binderTs.Language.Archetype,
-      target: binderTs.Target.Experiment,
+      target: target,
       path: './contracts/'
     }
     const binding = binderTs.generate_binding(json, settings);
@@ -2903,7 +2904,7 @@ async function generate_unit_binding_ts(path) {
   }
 }
 
-async function print_generate_binding_ts(options) {
+async function print_generate_binding_ts_gen(options, target) {
   const input_path = options.input_path;
   const output_path = options.output_path;
   if (!isNull(input_path)) {
@@ -2925,7 +2926,7 @@ async function print_generate_binding_ts(options) {
       const output_tmp = input.replace(input_path, output_path);
       const output = path.format({ ...path.parse(output_tmp), base: '', ext: '.ts' })
 
-      const content = await generate_unit_binding_ts(input)
+      const content = await generate_unit_binding_ts(input, target)
       if (isNull(content)) {
         print_error(`Invalid file ${input}`);
         continue;
@@ -2941,9 +2942,17 @@ async function print_generate_binding_ts(options) {
       print(`Wrote ${output}`);
     }
   } else {
-    const res = await generate_unit_binding_ts(options.path);
+    const res = await generate_unit_binding_ts(options.path, target);
     print(res)
   }
+}
+
+async function print_generate_binding_ts(options) {
+  await print_generate_binding_ts_gen(options, binderTs.Target.Experiment);
+}
+
+async function print_generate_binding_dapp_ts(options) {
+  await print_generate_binding_ts_gen(options, binderTs.Target.Dapp);
 }
 
 async function generate_contract_interface(options, is_michelson) {
@@ -4087,6 +4096,9 @@ async function exec(options) {
         break;
       case "generate_binding_ts":
         await print_generate_binding_ts(options);
+        break;
+      case "generate_binding_dapp_ts":
+        await print_generate_binding_dapp_ts(options);
         break;
       case "generate_contract_interface":
         await print_generate_contract_interface(options);
