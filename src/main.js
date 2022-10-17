@@ -1695,7 +1695,9 @@ function build_data_michelson(type, storage_values, parameters, parametersMichel
       throw new Error(annot + " is not found.");
     }
 
-  } else if (type.prim !== undefined && type.prim === "pair" && type.annots === undefined) {
+  } else if (type.prim !== undefined && type.prim === "pair" && type.annots === undefined
+    && (type.args.length > 2 && type.args[0].prim === "int" && type.args[1].prim === "nat"
+      && type.args[0].annots.length == 0 && type.args[1].annots.length == 0)) {
 
     let args;
     if (Object.keys(storage_values).length == 0 && Object.keys(parameters).length == 1) {
