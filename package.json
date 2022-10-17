@@ -1,6 +1,6 @@
 {
   "name": "@completium/completium-cli",
-  "version": "0.4.35",
+  "version": "0.4.36",
   "description": "Completium CLI",
   "main": "./src/completium.js",
   "module": "./src/completium.js",
@@ -16,7 +16,8 @@
     "access": "public"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags"
   },
   "repository": {
     "type": "git",
@@ -38,7 +39,7 @@
   "homepage": "https://github.com/completium/completium-cli#readme",
   "dependencies": {
     "@completium/archetype": "0.4.7",
-    "@completium/archetype-binder-ts": "^0.0.48",
+    "@completium/archetype-binder-ts": "^0.0.50",
     "@taquito/michel-codec": "^14.0.0",
     "@taquito/michelson-encoder": "^14.0.0",
     "@taquito/signer": "^14.0.0",
