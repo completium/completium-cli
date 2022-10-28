@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.39'
+const version = '0.4.40'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2797,6 +2797,11 @@ function setMockupNow(options) {
   print("Set mockup now: " + v)
 }
 
+function getMockupNow() {
+  const input = loadJS(context_mockup_path);
+  return new Date(input.context.shell_header.timestamp)
+}
+
 async function generateCodeGen(options, target) {
   const value = options.path;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
@@ -4198,6 +4203,7 @@ exports.getValueFromBigMap = getValueFromBigMap;
 exports.getConfig = getConfig;
 exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.setMockupNow = setMockupNow;
+exports.getMockupNow = getMockupNow;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generate_contract_interface = generate_contract_interface;
 exports.getRawStorage = getRawStorage

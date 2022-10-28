@@ -177,9 +177,13 @@ async function setNow(contract_id, date) {
   return op;
 }
 
-async function setMockupNow(date) {
+function setMockupNow(date) {
   const options = { date: date, force: true, verbose: true };
   Main.setMockupNow(options);
+}
+
+function getMockupNow() {
+  return Main.getMockupNow()
 }
 
 async function transfer(from, to, amount) {
@@ -292,6 +296,7 @@ exports.blake2b = blake2b;
 exports.keccak = keccak;
 exports.setNow = setNow;
 exports.setMockupNow = setMockupNow;
+exports.getMockupNow = getMockupNow;
 exports.transfer = transfer;
 exports.sign = sign;
 exports.signFromSk = signFromSk;
