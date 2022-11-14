@@ -1541,6 +1541,18 @@ function is_number(v) {
 
 function build_from_js(type, jdata) {
 
+  const encode = (schema, type, jdata) => {
+    try {
+      return schema.Encode(jdata);
+    } catch (e) {
+      throw {
+        message: 'Typecheck error',
+        data: jdata,
+        type: json_micheline_to_expr(type)
+      }
+    }
+  }
+
   if (type.prim !== undefined) {
     const schema = new encoder.Schema(type);
     const prim = type.prim;
@@ -1565,7 +1577,7 @@ function build_from_js(type, jdata) {
       case 'string':
       case 'ticket':
       case 'unit':
-        return schema.Encode(jdata);
+        return encode(schema, type, jdata)
       case 'bytes':
       case 'chest':
       case 'chest_key':
@@ -1579,7 +1591,7 @@ function build_from_js(type, jdata) {
           const v = getAmount(jdata);
           return { "int": v.toString() }
         } else {
-          return schema.Encode(jdata);
+          return encode(schema, type, jdata)
         }
       case 'timestamp':
         let vdate;
@@ -1592,7 +1604,7 @@ function build_from_js(type, jdata) {
           }
           vdate = toTimestamp(jdata);
         }
-        return schema.Encode(vdate);
+        return encode(schema, type, vdate)
       case 'big_map':
       case 'map':
         const kmtype = type.args[0];
@@ -1648,7 +1660,7 @@ function build_from_js(type, jdata) {
         return largs;
       case 'option':
         if (jdata == null) {
-          return schema.Encode(jdata);
+          return encode(schema, type, jdata)
         } else {
           if (type.args.length == 0) {
             throw new Error("Unknown type option");
