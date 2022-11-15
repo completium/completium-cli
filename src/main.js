@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.45'
+const version = '0.4.46'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2297,7 +2297,7 @@ async function callTransfer(options, contract_address, arg) {
         })
       }
       if (failed) {
-        var rx = /.*with(\n)?(\s)+((.|\n)*)\nFatal .*/g;
+        var rx = /FAILWITH instruction\nwith(\n)?(\s)+((.|\n)*)\nFatal .*/g;
         var arr = rx.exec(stderr);
         let err;
         if (!isNull(arr)) {
