@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.48'
+const version = '0.4.49'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3921,7 +3921,7 @@ async function createProject(options) {
     types_expect: "^24.3.0",
     types_mocha: '^10.0.0',
     types_node: 'latest',
-    typescript: '^4.7.4'
+    typescript: '4.7.4'
   }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
   print(`Project ${project_name} is created.`)
