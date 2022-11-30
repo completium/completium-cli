@@ -45,6 +45,7 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 const tezos_client_dir = homedir + '/.tezos-client'
 
 const default_mockup_protocol = 'PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg'
+// const default_mockup_protocol = 'PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW'
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
 
@@ -594,7 +595,7 @@ function help(options) {
   print("")
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|ghost|jakarta|kathmandu|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|ghost|kathmandu|lima|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
   print("")
@@ -691,18 +692,6 @@ async function initCompletium(options) {
           ]
         },
         {
-          network: 'jakarta',
-          bcd_url: "https://better-call.dev/jakartanet/${address}",
-          tzstat_url: "https://jakarta.tzstats.com",
-          endpoints: [
-            'https://jakartanet.ecadinfra.com',
-            'https://jakartanet.smartpy.io',
-            'https://jakartanet.tezos.marigold.dev',
-            'https://testnet-tezos.giganode.io',
-            'https://rpczero.tzbeta.net'
-          ]
-        },
-        {
           network: 'kathmandu',
           bcd_url: "https://better-call.dev/kathmandunet/${address}",
           tzstat_url: "https://kathmandu.tzstats.com",
@@ -710,6 +699,16 @@ async function initCompletium(options) {
             'https://kathmandunet.ecadinfra.com',
             'https://kathmandunet.smartpy.io',
             'https://kathmandunet.tezos.marigold.dev'
+          ]
+        },
+        {
+          network: 'lima',
+          bcd_url: "https://better-call.dev/limanet/${address}",
+          tzstat_url: "https://lima.tzstats.com",
+          endpoints: [
+            'https://limanet.ecadinfra.com',
+            'https://limanet.smartpy.io',
+            'https://limanet.tezos.marigold.dev'
           ]
         },
         {
