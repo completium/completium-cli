@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.50'
+const version = '0.4.51'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2799,6 +2799,7 @@ function setMockupNow(options) {
     d = new Date(value);
   }
   d.setMilliseconds(0);
+  d.setSeconds(d.getSeconds() - 1)
   const v = d.toISOString();
 
   const input = loadJS(context_mockup_path);
@@ -2810,7 +2811,9 @@ function setMockupNow(options) {
 
 function getMockupNow() {
   const input = loadJS(context_mockup_path);
-  return new Date(input.context.shell_header.timestamp)
+  const d = new Date(input.context.shell_header.timestamp)
+  d.setSeconds(d.getSeconds() + 1)
+  return d
 }
 
 async function generateCodeGen(options, target) {
