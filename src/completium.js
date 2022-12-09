@@ -45,8 +45,19 @@ async function deploy(path, obj, originate = false) {
     if (op != null) {
       op = updateCost(op);
     }
-    const contract = await getContract(contract_id)
-    return [contract, op];
+    let contract = null;
+    try {
+      contract = await Main.getTezosContract(contract_id);
+    } catch (ex) {
+      reject(ex)
+    }
+    const contract_address = contract.address;
+    return contract_address
+
+    // const contract = await getContract(contract_id)
+    // return [contract, op];
+    // const contract = await getContract(contract_id)
+    // return [null, op];
   }
 }
 
@@ -186,6 +197,20 @@ function getMockupNow() {
   return Main.getMockupNow()
 }
 
+function setMockupLevel(level) {
+  const options = { value: level, force: true, verbose: true };
+  Main.setMockupLevel(options);
+}
+
+function getMockupLevel() {
+  return Main.getMockupLevel()
+}
+
+async function mockupBake(obj) {
+  const options = {...obj, force: true, verbose: false };
+  await await Main.mockupBake(options)
+}
+
 async function transfer(from, to, amount) {
   const options = { from: from, to: to, vamount: amount, force: true, verbose: true };
   var op = await Main.transfer(options);
@@ -297,6 +322,9 @@ exports.keccak = keccak;
 exports.setNow = setNow;
 exports.setMockupNow = setMockupNow;
 exports.getMockupNow = getMockupNow;
+exports.setMockupLevel = setMockupLevel;
+exports.getMockupLevel = getMockupLevel;
+exports.mockupBake = mockupBake;
 exports.transfer = transfer;
 exports.sign = sign;
 exports.signFromSk = signFromSk;

@@ -2816,6 +2816,53 @@ function getMockupNow() {
   return d
 }
 
+function setMockupLevel(options) {
+  if (!isMockupMode()) {
+    throw (new Error("Mode mockup is required for setMockupNow."))
+  }
+  const value = options.value;
+
+  const input = loadJS(context_mockup_path);
+  input.context.shell_header.level = value;
+  const content = JSON.stringify(input, 0, 2);
+  fs.writeFileSync(context_mockup_path, content);
+  print("Set mockup level: " + value)
+}
+
+function getMockupLevel() {
+  const input = loadJS(context_mockup_path);
+  return input.context.shell_header.level
+}
+
+
+async function mockupBake(options) {
+  if (!isMockupMode()) {
+    throw (new Error("Mode mockup is required for mockupBake."))
+  }
+
+  const as = isNull(options.as) ? "bootstrap1" : options.as;
+  const verbose = options.verbose;
+  const account = getAccountFromIdOrAddr(as);
+  if (isNull(account)) {
+    const msg = `Account '${as}' is not found.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const args = [
+    "bake", "for", account.pkh, "--minimal-timestamp"
+  ];
+  if (verbose) {
+    print(args);
+  }
+  const { stdout, stderr, failed } = await callTezosClient(args);
+  if (failed) {
+    return new Promise((resolve, reject) => { reject(stderr) });
+  } else {
+    print(stdout);
+  }
+  return new Promise(resolve => { resolve(null) });
+}
+
 async function generateCodeGen(options, target) {
   const value = options.path;
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
@@ -4218,6 +4265,9 @@ exports.getConfig = getConfig;
 exports.exprMichelineFromArg = exprMichelineFromArg;
 exports.setMockupNow = setMockupNow;
 exports.getMockupNow = getMockupNow;
+exports.setMockupLevel = setMockupLevel;
+exports.getMockupLevel = getMockupLevel;
+exports.mockupBake = mockupBake;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generate_contract_interface = generate_contract_interface;
 exports.getRawStorage = getRawStorage
