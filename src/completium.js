@@ -45,19 +45,8 @@ async function deploy(path, obj, originate = false) {
     if (op != null) {
       op = updateCost(op);
     }
-    let contract = null;
-    try {
-      contract = await Main.getTezosContract(contract_id);
-    } catch (ex) {
-      reject(ex)
-    }
-    const contract_address = contract.address;
-    return contract_address
-
-    // const contract = await getContract(contract_id)
-    // return [contract, op];
-    // const contract = await getContract(contract_id)
-    // return [null, op];
+    const contract = await getContract(contract_id)
+    return [contract, op];
   }
 }
 
