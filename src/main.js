@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.54'
+const version = '0.4.55'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -628,7 +628,7 @@ function help(options) {
   print("  generate event-binding-ts <FILE.arl|CONTRACT_ALIAS>");
   print("  generate binding-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>]");
   print("  generate binding-dapp-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>]");
-  print("  generate contract interface <FILE.arl|CONTRACT_ALIAS>");
+  print("  generate contract interface <FILE.arl|FILE.tz|CONTRACT_ALIAS>");
   print("")
   print("  show accounts");
   print("  show account [--with-private-key] [--alias <ALIAS>]");
