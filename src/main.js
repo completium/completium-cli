@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.56'
+const version = '0.4.57'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -44,8 +44,7 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-const default_mockup_protocol = 'PtKathmankSpLLDALzWw7CGD2j2MtyveTwboEYokqUCP4a1LxMg'
-// const default_mockup_protocol = 'PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW'
+const default_mockup_protocol = 'PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW'
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
 
@@ -662,7 +661,7 @@ async function initCompletium(options) {
     },
     bin: {
       archetype: 'archetype',
-      'tezos-client': 'tezos-client'
+      'tezos-client': 'octez-client'
     },
     tezos: {
       force_tezos_client: false,
@@ -2818,7 +2817,7 @@ function getMockupNow() {
 
 function setMockupLevel(options) {
   if (!isMockupMode()) {
-    throw (new Error("Mode mockup is required for setMockupNow."))
+    throw (new Error("Mode mockup is required for setMockupLevel."))
   }
   const value = options.value;
 
@@ -2834,6 +2833,18 @@ function getMockupLevel() {
   return input.context.shell_header.level
 }
 
+function setMockupChainId(options) {
+  if (!isMockupMode()) {
+    throw (new Error("Mode mockup is required for setMockupChainId."))
+  }
+  const value = options.value;
+
+  const input = loadJS(context_mockup_path);
+  input.chain_id = value;
+  const content = JSON.stringify(input, 0, 2);
+  fs.writeFileSync(context_mockup_path, content);
+  print("Set mockup chain_id: " + value)
+}
 
 async function mockupBake(options) {
   if (!isMockupMode()) {
@@ -4267,6 +4278,8 @@ exports.setMockupNow = setMockupNow;
 exports.getMockupNow = getMockupNow;
 exports.setMockupLevel = setMockupLevel;
 exports.getMockupLevel = getMockupLevel;
+exports.getChainId = getChainId;
+exports.setMockupChainId = setMockupChainId;
 exports.mockupBake = mockupBake;
 exports.taquitoExecuteSchema = taquitoExecuteSchema;
 exports.generate_contract_interface = generate_contract_interface;

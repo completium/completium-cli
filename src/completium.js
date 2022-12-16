@@ -195,6 +195,11 @@ function getMockupLevel() {
   return Main.getMockupLevel()
 }
 
+function setMockupChainId(chainid) {
+  const options = { value: chainid, force: true, verbose: true };
+  Main.setMockupChainId(options);
+}
+
 async function mockupBake(obj) {
   const options = {...obj, force: true, verbose: false };
   await await Main.mockupBake(options)
@@ -313,6 +318,8 @@ exports.setMockupNow = setMockupNow;
 exports.getMockupNow = getMockupNow;
 exports.setMockupLevel = setMockupLevel;
 exports.getMockupLevel = getMockupLevel;
+exports.setMockupChainId = setMockupChainId;
+exports.getChainId = Main.getChainId;
 exports.mockupBake = mockupBake;
 exports.transfer = transfer;
 exports.sign = sign;
