@@ -21,7 +21,7 @@ const { Fraction } = require('fractional');
 const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.57'
+const version = '0.4.58'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -344,7 +344,7 @@ async function callArchetype(options, path, s) {
       {
         const docker_bin = 'docker';
         const cwd = process.cwd();
-        const args = ['run', '--rm', '-v', `${cwd}:${cwd}`, '-w', `${cwd}`, 'completium/archetype:latest'].concat(computeArgsSettings(options, s, path));
+        const args = ['run', '--platform=linux/amd64', '--rm', '-v', `${cwd}:${cwd}`, '-w', `${cwd}`, 'completium/archetype:latest'].concat(computeArgsSettings(options, s, path));
 
         if (verbose) {
           print(args);
