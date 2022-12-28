@@ -18,10 +18,9 @@ const bip39 = require('bip39');
 const signer = require('@taquito/signer');
 const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
-const { show_entries } = require('@completium/archetype');
 let archetype = null;
 
-const version = '0.4.58'
+const version = '0.4.59'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2588,19 +2587,23 @@ async function runView(options) {
     "unparsing_mode": "Readable"
   }
 
-  const res = await rpcPost("/chains/main/blocks/head/helpers/scripts/run_script_view", input);
-  if (res && res.data) {
-    if (taquito_schema) {
-      const ty = await get_view_return_type(contract_address, viewid);
-      return taquitoExecuteSchema(res.data, ty);
+  try {
+    const res = await rpcPost("/chains/main/blocks/head/helpers/scripts/run_script_view", input);
+    if (res && res.data) {
+      if (taquito_schema) {
+        const ty = await get_view_return_type(contract_address, viewid);
+        return taquitoExecuteSchema(res.data, ty);
+      }
+      if (json) {
+        return res.data;
+      }
+      return json_micheline_to_expr(res.data);
+    } else {
+      return new Promise((resolve, reject) => { reject(res) });
     }
-    if (json) {
-      return res.data;
-    }
-    return json_micheline_to_expr(res.data);
-  } else {
-    return new Promise((resolve, reject) => { reject(res) });
+  } catch (e) {
   }
+  return undefined
 }
 
 async function printView(options) {
