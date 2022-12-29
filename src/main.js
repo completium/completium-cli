@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.60'
+const version = '0.4.61'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2225,6 +2225,36 @@ async function confirmCall(force, account, contract_id, amount, entry, arg, esti
   return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); }) });
 }
 
+function extract_regexp(rx, input) {
+  const arr = rx.exec(input);
+  return arr[1]
+}
+
+function process_event(input) {
+  let events = [];
+
+  const rx = /Internal Event:(\n)?(\s)+((.|\n)*)Consumed gas: ([0-9]+)/g;
+  const arr = rx.exec(input);
+
+  if (arr && arr.length && arr.length > 0) {
+    const a = arr[0].split('Internal Event:')
+    for (b of a) {
+      const c = b.trim();
+      if (c.length > 1) {
+        const from = extract_regexp(/From: ((.)+)\n/g, c)
+        const type = extract_regexp(/Type: ((.)+)\n/g, c)
+        const tag = extract_regexp(/Tag: ((.)+)\n/g, c)
+        const payload = extract_regexp(/Payload: ((.)+)\n/g, c)
+        const consumed_gas = extract_regexp(/Consumed gas: ((.)+)/g, c)
+        if (from && type && tag && payload && consumed_gas) {
+          events.push({ from: from, type: type, tag, tag, payload: payload, consumed_gas: consumed_gas })
+        }
+      }
+    }
+  }
+  return events
+}
+
 async function callTransfer(options, contract_address, arg) {
   const config = getConfig();
   const force = options.force;
@@ -2293,6 +2323,7 @@ async function callTransfer(options, contract_address, arg) {
           arg_completium: options.arg
         })
       }
+      let events = null
       if (failed) {
         var rx = /FAILWITH instruction\nwith(\n)?(\s)+((.|\n)*)\nFatal .*/g;
         var arr = rx.exec(stderr);
@@ -2306,8 +2337,9 @@ async function callTransfer(options, contract_address, arg) {
         return new Promise((resolve, reject) => { reject(err) });
       } else {
         print(stdout);
+        events = process_event(stdout)
       }
-      return new Promise(resolve => { resolve(null) });
+      return new Promise(resolve => { resolve({ events: events }) });
     }
   } else {
     const tezos = getTezos(account.name);
