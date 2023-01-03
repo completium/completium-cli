@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.61'
+const version = '0.4.62'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2448,12 +2448,14 @@ async function exec_batch(transferParams, options) {
       print(args);
     }
     const { stdout, stderr, failed } = await callTezosClient(args);
+    let events = null;
     if (failed) {
       return new Promise((resolve, reject) => { reject(stderr) });
     } else {
       print(stdout);
+      events = process_event(stdout)
     }
-    return new Promise(resolve => { resolve(null) });
+    return {events: events};
 
   } else {
     const tezos = getTezos(account.name);
