@@ -1,6 +1,6 @@
 {
   "name": "@completium/completium-cli",
-  "version": "0.4.62",
+  "version": "0.4.63",
   "description": "Completium CLI",
   "main": "./src/completium.js",
   "module": "./src/completium.js",
@@ -39,7 +39,7 @@
   "homepage": "https://github.com/completium/completium-cli#readme",
   "dependencies": {
     "@completium/archetype": "0.4.11",
-    "@completium/archetype-binder-ts": "^0.1.2",
+    "@completium/archetype-binder-ts": "^0.1.3",
     "@taquito/michel-codec": "^15.0.0",
     "@taquito/michelson-encoder": "^15.0.0",
     "@taquito/signer": "^15.0.0",

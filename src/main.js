@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.62'
+const version = '0.4.63'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2998,10 +2998,11 @@ async function print_generate_event_binding_ts(options) {
   await print_generate_target(options, 'bindings-ts')
 }
 
-async function generate_unit_binding_ts(path, target) {
+async function generate_unit_binding_ts(ipath, target) {
   try {
-    const is_michelson = path.endsWith(".tz");
-    const contract_interface = await generate_contract_interface({ path: path }, is_michelson);
+    const is_michelson = ipath.endsWith(".tz");
+    const dir_path = path.dirname(ipath) + '/';
+    const contract_interface = await generate_contract_interface({ path: ipath }, is_michelson);
     if (isNull(contract_interface)) {
       return null;
     }
@@ -3009,7 +3010,7 @@ async function generate_unit_binding_ts(path, target) {
     const settings = {
       language: is_michelson ? binderTs.Language.Michelson : binderTs.Language.Archetype,
       target: target,
-      path: './contracts/'
+      path: dir_path
     }
     const binding = binderTs.generate_binding(json, settings);
     return binding;
@@ -3031,6 +3032,9 @@ async function print_generate_binding_ts_gen(options, target) {
 
     for (let i = 0; i < files.length; i++) {
       const input = files[i];
+      if (fs.lstatSync(input).isDirectory()) {
+        continue
+      }
       if (input.endsWith(".tz")) {
         const file_arl = input.substring(0, input.length - 2) + 'arl';
         if (fs.existsSync(file_arl)) {
