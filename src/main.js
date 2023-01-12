@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.63'
+const version = '0.4.64'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
