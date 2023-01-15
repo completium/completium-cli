@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.65'
+const version = '0.4.66'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2242,9 +2242,9 @@ function process_event(input) {
       const c = b.trim();
       if (c.length > 1) {
         const from = extract_regexp(/From: ((.)+)\n/g, c)
-        const type = extract_regexp(/Type: ((.)+)\n/g, c)
+        const type = extract_regexp(/Type: ((.|\n)+)Tag:/g, c).trim()
         const tag = extract_regexp(/Tag: ((.)+)\n/g, c)
-        const payload = extract_regexp(/Payload: ((.)+)\n/g, c)
+        const payload = extract_regexp(/Payload: ((.|\n)+)This event was successfully applied\n/g, c).trim()
         const consumed_gas = extract_regexp(/Consumed gas: ((.)+)/g, c)
         if (from && type && tag && payload && consumed_gas) {
           events.push({ from: from, type: type, tag, tag, payload: payload, consumed_gas: consumed_gas })
