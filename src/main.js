@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.64'
+const version = '0.4.65'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2339,7 +2339,19 @@ async function callTransfer(options, contract_address, arg) {
         print(stdout);
         events = process_event(stdout)
       }
-      return new Promise(resolve => { resolve({ events: events }) });
+      const operation_hash = extractOperationHash(stdout)
+      const storage_size = extractStorageSize(stdout)
+      const consumed_gas = extractConsumedGas(stdout)
+      const paid_storage_size_diff = extractPaidStorageSizeDiff(stdout)
+      return new Promise(resolve => {
+        resolve({
+          operation_hash: operation_hash,
+          storage_size: storage_size,
+          consumed_gas: consumed_gas,
+          paid_storage_size_diff: paid_storage_size_diff,
+          events: events
+        })
+      });
     }
   } else {
     const tezos = getTezos(account.name);
@@ -2455,7 +2467,7 @@ async function exec_batch(transferParams, options) {
       print(stdout);
       events = process_event(stdout)
     }
-    return {events: events};
+    return { events: events };
 
   } else {
     const tezos = getTezos(account.name);
