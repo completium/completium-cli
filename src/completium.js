@@ -338,3 +338,4 @@ exports.generateContractInterface = generateContractInterface;
 exports.getRawStorage = Main.getRawStorage
 exports.exec_batch = exec_batch
 exports.getKeysFrom = Main.getKeysFrom
+exports.registerGlobalConstant = Main.registerGlobalConstant

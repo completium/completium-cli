@@ -262,6 +262,9 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "create" && args[3] === "project") {
     res = { command: "create_project", value: args[4] };
     nargs = args.slice(5);
+  } else if (length > 4 && args[2] === "register" && args[3] === "global" && args[4] === "constant") {
+    res = { command: "register_global_constant", value: args[5] };
+    nargs = args.slice(6);
   }
 
   const options = arg(

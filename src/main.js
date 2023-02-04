@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.71'
+const version = '0.4.72'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -620,6 +620,7 @@ function help(options) {
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]");
   print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
   print("  run getter <GETTER_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]");
+  print("  register global constant <MICHELSON_DATA> [--as <CALLER_ADDRESS>] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
   print("  generate whyml <FILE.arl|CONTRACT_ALIAS>");
@@ -4096,6 +4097,56 @@ async function runBinderTs(options) {
   await print_generate_binding_ts({ ...options, input_path: contracts_path, output_path: binding_path })
 }
 
+function extract_global_address(input) {
+  var rx = /.*Global address: (.)+\n/g;
+  var arr = rx.exec(input);
+  if (arr == null) {
+    return null
+  } else {
+    if (arr.length > 1) {
+      const res = arr[0].trim().substring(16);
+      return res
+    }
+  }
+  return null
+}
+
+async function registerGlobalConstant(options) {
+  const value = options.value;
+  const force = options.force;
+
+  const config = getConfig();
+  const as = isNull(options.as) ? config.account : options.as;
+  const account = getAccountFromIdOrAddr(as);
+  if (isNull(account)) {
+    const msg = `Account '${as}' is not found.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const args = ["register", "global", "constant", value, "from", account.pkh, "--burn-cap", "20"];
+  const { stdout, stderr, failed } = await callTezosClient(args);
+  if (failed) {
+    if (!force) {
+      throw (stderr)
+    } else {
+      return {
+        status: "error",
+        stdout: stdout,
+        stderr: stderr
+      }
+    }
+  } else {
+    print(stdout);
+    const global_address = extract_global_address(stdout);
+    return {
+      status: "passed",
+      global_address: global_address,
+      stdout: stdout,
+      stderr: stderr
+    }
+  }
+}
+
 async function exec(options) {
   try {
     switch (options.command) {
@@ -4286,6 +4337,9 @@ async function exec(options) {
       case "get_completium_property":
         await printCompletiumProperty(options);
         break;
+      case "register_global_constant":
+        await registerGlobalConstant(options);
+        break;
       default:
         commandNotFound(options);
     }
@@ -4338,3 +4392,4 @@ exports.generate_contract_interface = generate_contract_interface;
 exports.getRawStorage = getRawStorage
 exports.exec_batch = exec_batch
 exports.getKeysFrom = getKeysFrom
+exports.registerGlobalConstant = registerGlobalConstant
