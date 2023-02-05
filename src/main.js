@@ -278,7 +278,7 @@ function computeArgsSettings(options, settings, path) {
       if (options.no_js_header) {
         args.push('--no-js-header');
       }
-      if (options.compiler_json) {
+      if (settings.compiler_json) {
         args.push('--json');
       }
     }
