@@ -219,12 +219,14 @@ function computeSettings(options, settings) {
   const metadata_storage = options.metadata_storage ? options.metadata_storage : (settings ? settings.metadata_storage : undefined);
   const metadata_uri = options.metadata_uri ? options.metadata_uri : (settings ? settings.metadata_uri : undefined);
   const otest = options.test || (settings !== undefined && settings.test_mode);
+  const compiler_json = options.compiler_json ? true : false;
 
   return {
     ...settings,
     "test_mode": otest,
     "metadata_storage": metadata_storage,
-    "metadata_uri": metadata_uri
+    "metadata_uri": metadata_uri,
+    "json": compiler_json,
   }
 }
 
@@ -275,6 +277,9 @@ function computeArgsSettings(options, settings, path) {
       }
       if (options.no_js_header) {
         args.push('--no-js-header');
+      }
+      if (options.compiler_json) {
+        args.push('--json');
       }
     }
     args.push(path);
@@ -627,7 +632,7 @@ function help(options) {
   print("  generate event-binding-js <FILE.arl|CONTRACT_ALIAS>");
   print("  generate event-binding-ts <FILE.arl|CONTRACT_ALIAS>");
   print("  generate binding-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>]");
-  print("  generate binding-dapp-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>]");
+  print("  generate binding-dapp-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>] [--with-dapp-originate]");
   print("  generate contract interface <FILE.arl|FILE.tz|CONTRACT_ALIAS>");
   print("")
   print("  show accounts");
@@ -3010,7 +3015,7 @@ async function print_generate_event_binding_ts(options) {
   await print_generate_target(options, 'bindings-ts')
 }
 
-async function generate_unit_binding_ts(ipath, target) {
+async function generate_unit_binding_ts(ipath, target, with_dapp_originate) {
   try {
     const is_michelson = ipath.endsWith(".tz");
     const dir_path = path.dirname(ipath) + '/';
@@ -3019,10 +3024,27 @@ async function generate_unit_binding_ts(ipath, target) {
       return null;
     }
     const json = JSON.parse(contract_interface);
-    const settings = {
+    let settings = {
       language: is_michelson ? binderTs.Language.Michelson : binderTs.Language.Archetype,
       target: target,
       path: dir_path
+    }
+    if (with_dapp_originate && target == binderTs.Target.Dapp && !is_michelson) {
+      const input = await callArchetype({}, ipath, {
+        target: "michelson",
+        compiler_json: true
+      });
+      if (input) {
+        const v_input = JSON.parse(input);
+        const mich_code = v_input.code;
+        const mich_storage = v_input.storage;
+        settings = {
+          ...settings,
+          with_dapp_originate: with_dapp_originate,
+          mich_code: mich_code,
+          mich_storage: mich_storage
+        }
+      }
     }
     const binding = binderTs.generate_binding(json, settings);
     return binding;
@@ -3034,6 +3056,7 @@ async function generate_unit_binding_ts(ipath, target) {
 async function print_generate_binding_ts_gen(options, target) {
   const input_path = options.input_path;
   const output_path = options.output_path;
+  const with_dapp_originate = options.with_dapp_originate;
   if (!isNull(input_path)) {
     if (isNull(output_path)) {
       const msg = `output path not set (--output-path)`;
@@ -3056,7 +3079,7 @@ async function print_generate_binding_ts_gen(options, target) {
       const output_tmp = input.replace(input_path, output_path);
       const output = path.format({ ...path.parse(output_tmp), base: '', ext: '.ts' })
 
-      const content = await generate_unit_binding_ts(input, target)
+      const content = await generate_unit_binding_ts(input, target, with_dapp_originate)
       if (isNull(content)) {
         print_error(`Invalid file ${input}`);
         continue;
@@ -3072,7 +3095,7 @@ async function print_generate_binding_ts_gen(options, target) {
       print(`Wrote ${output}`);
     }
   } else {
-    const res = await generate_unit_binding_ts(options.path, target);
+    const res = await generate_unit_binding_ts(options.path, target, with_dapp_originate);
     print(res)
   }
 }

@@ -299,6 +299,7 @@ function parseCommand(args) {
       '--input-path': String,
       '--output-path': String,
       '--taquito-schema': Boolean,
+      '--with-dapp-originate': Boolean,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -340,7 +341,8 @@ function parseCommand(args) {
     show_tezos_client_command: options['--show-tezos-client-command'],
     input_path: options['--input-path'],
     output_path: options['--output-path'],
-    taquito_schema: options['--taquito-schema']
+    taquito_schema: options['--taquito-schema'],
+    with_dapp_originate: options['--with-dapp-originate'] || false,
   }
 }
 
