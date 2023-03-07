@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.74'
+const version = '0.4.75'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -4416,3 +4416,4 @@ exports.getRawStorage = getRawStorage
 exports.exec_batch = exec_batch
 exports.getKeysFrom = getKeysFrom
 exports.registerGlobalConstant = registerGlobalConstant
+exports.mockupInit = mockupInit
