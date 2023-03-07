@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.75'
+const version = '0.4.76'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3858,8 +3858,18 @@ entry exec() {
 }
 `
 
+const gen_run_test = name => `
+#! /bin/sh
+
+if [ $# -eq 0 ]; then
+  ts-mocha --timeout 0 --slow 99999999999999999 ./tests/*.ts
+else
+  ts-mocha --timeout 0 --slow 99999999999999999 ./tests/$1.ts
+fi
+`
+
 const gen_test_template = name => `
-import {get_account, set_mockup, set_mockup_now, set_quiet} from "@completium/experiment-ts";
+import {get_account, reset_experiment, set_mockup, set_mockup_now} from "@completium/experiment-ts";
 
 import { hello } from './binding/hello'
 
@@ -3869,17 +3879,24 @@ const assert = require('assert')
 
 const alice = get_account('alice');
 
-/* Verbose mode ------------------------------------------------------------ */
+/* Initialisation ---------------------------------------------------------- */
 
-set_quiet(true);
-
-/* Endpoint ---------------------------------------------------------------- */
-
-set_mockup()
-
-/* Now --------------------------------------------------------------------- */
-
-set_mockup_now(new Date(Date.now()))
+describe('Initialisation', async () => {
+  it('Reset experiment', async () => {
+    await reset_experiment({
+      account: 'alice',
+      endpoint: 'mockup',
+      quiet: true,
+    });
+  });
+  it('set_mockup', async () => {
+    set_mockup()
+    // await mockup_init()
+  });
+  it('set_mockup_now', async () => {
+    set_mockup_now(new Date(Date.now()))
+  });
+})
 
 /* Scenario ---------------------------------------------------------------- */
 
@@ -3905,8 +3922,10 @@ const gen_package_json = (name, versions) => `
   "name": "${name}",
   "version": "1.0.0",
   "scripts": {
-    "test": "ts-mocha --timeout 0 --slow 99999999999999999 ./tests/*.ts",
-    "gen-binding": "completium-cli run binder-ts"
+    "test": "./run_test.sh",
+    "gen-binding": "completium-cli run binder-ts",
+    "completium_init": "completium-cli init",
+    "mockup_init": "completium-cli mockup init"
   },
   "dependencies": {
     "@completium/archetype-ts-types": "${versions.archetype_ts_types}",
@@ -4039,9 +4058,10 @@ async function createProject(options) {
   const contracts_path = project_path + '/contracts';
   const tests_path = project_path + '/tests';
   const contract_path = contracts_path + `/hello.arl`;
-  const test_path = tests_path + `/00-test-hello.ts`;
+  const test_path = tests_path + `/hello.spec.ts`;
   const package_path = project_path + '/package.json'
   const tsconfig_path = project_path + '/tsconfig.json'
+  const run_test_path = project_path + `/run_test.sh`;
 
   fs.mkdirSync(project_path)
   fs.mkdirSync(contracts_path)
@@ -4060,6 +4080,8 @@ async function createProject(options) {
     typescript: '4.7.4'
   }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
+  fs.writeFileSync(run_test_path, gen_run_test())
+  fs.chmodSync(run_test_path, "755")
   print(`Project ${project_name} is created.`)
 }
 
