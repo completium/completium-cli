@@ -1,7 +1,7 @@
 /*!
  * completium-cli <https://github.com/completium/completium-cli>
  *
- * Copyright (c) 2021-2022, edukera, SAS.
+ * Copyright (c) 2021-2023, edukera, SAS.
  * Released under the MIT License.
  */
 
@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.76'
+const version = '0.4.77'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -35,7 +35,7 @@ const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
 
 const docker_id = 'oxheadalpha/flextesa:latest'
-const flextesa_script = 'jakartabox'
+const flextesa_script = 'mumbaibox'
 
 var config = null;
 const mockup_path = completium_dir + "/mockup";
@@ -43,8 +43,8 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-//const default_mockup_protocol = 'PtMumbaiiFFEGbew1rRjzSPyzRbA51Tm3RVZL5suHPxSZYDhCEc'
-const default_mockup_protocol = 'PtLimaPtLMwfNinJi9rCfDPWea8dFgTZ1MeJ9f1m2SRic6ayiwW'
+//const default_mockup_protocol = ''
+const default_mockup_protocol = 'PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1'
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
 
@@ -697,23 +697,23 @@ async function initCompletium(options) {
           ]
         },
         {
-          network: 'kathmandu',
-          bcd_url: "https://better-call.dev/kathmandunet/${address}",
-          tzstat_url: "https://kathmandu.tzstats.com",
-          endpoints: [
-            'https://kathmandunet.ecadinfra.com',
-            'https://kathmandunet.smartpy.io',
-            'https://kathmandunet.tezos.marigold.dev'
+          "network": "lima",
+          "bcd_url": "https://better-call.dev/limanet/${address}",
+          "tzstat_url": "https://lima.tzstats.com",
+          "endpoints": [
+            "https://limanet.ecadinfra.com",
+            "https://limanet.smartpy.io",
+            "https://limanet.tezos.marigold.dev"
           ]
         },
         {
-          network: 'lima',
-          bcd_url: "https://better-call.dev/limanet/${address}",
-          tzstat_url: "https://lima.tzstats.com",
-          endpoints: [
-            'https://limanet.ecadinfra.com',
-            'https://limanet.smartpy.io',
-            'https://limanet.tezos.marigold.dev'
+          "network": "mumbai",
+          "bcd_url": "https://better-call.dev/mumbainet/${address}",
+          "tzstat_url": "https://mumbai.tzstats.com",
+          "endpoints": [
+            "https://mumbainet.ecadinfra.com",
+            "https://mumbainet.smartpy.io",
+            "https://mumbainet.tezos.marigold.dev"
           ]
         },
         {
@@ -880,7 +880,7 @@ async function startSandbox(options) {
   const verbose = options.verbose;
   print('Waiting for sandbox to start ...');
   try {
-    const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--cpus', '1', '-e', 'block_time=10', '--detach', '-p', '20000:20000',
+    const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--detach', '-p', '20000:20000', '--cpus', '1', '-e', 'block_time=10',
       docker_id, flextesa_script, 'start'], {});
     if (verbose) {
       print(stdout);
