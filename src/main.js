@@ -43,7 +43,7 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-//const default_mockup_protocol = ''
+// const default_mockup_protocol = 'PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf'
 const default_mockup_protocol = 'PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1'
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
@@ -697,16 +697,6 @@ async function initCompletium(options) {
           ]
         },
         {
-          "network": "lima",
-          "bcd_url": "https://better-call.dev/limanet/${address}",
-          "tzstat_url": "https://lima.tzstats.com",
-          "endpoints": [
-            "https://limanet.ecadinfra.com",
-            "https://limanet.smartpy.io",
-            "https://limanet.tezos.marigold.dev"
-          ]
-        },
-        {
           "network": "mumbai",
           "bcd_url": "https://better-call.dev/mumbainet/${address}",
           "tzstat_url": "https://mumbai.tzstats.com",
@@ -714,6 +704,16 @@ async function initCompletium(options) {
             "https://mumbainet.ecadinfra.com",
             "https://mumbainet.smartpy.io",
             "https://mumbainet.tezos.marigold.dev"
+          ]
+        },
+        {
+          "network": "nairobi",
+          "bcd_url": "https://better-call.dev/nairobinet/${address}",
+          "tzstat_url": "https://nairobi.tzstats.com",
+          "endpoints": [
+            "https://nairobinet.ecadinfra.com",
+            "https://nairobinet.smartpy.io",
+            "https://nairobinet.tezos.marigold.dev"
           ]
         },
         {
