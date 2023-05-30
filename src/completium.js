@@ -340,3 +340,4 @@ exports.exec_batch = exec_batch
 exports.getKeysFrom = Main.getKeysFrom
 exports.registerGlobalConstant = Main.registerGlobalConstant
 exports.mockupInit = Main.mockupInit
+exports.importContract = Main.importContract

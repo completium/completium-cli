@@ -612,6 +612,7 @@ function help(options) {
   print("  generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
   print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
   print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
+  print("  import contract <CONTRACT_ADDRESS> as <CONTRACT_ALIAS> [--network <NETWORK>]");
   print("")
   print("  show keys from <PRIVATE_KEY>");
   print("  set account <ACCOUNT_ALIAS>");
@@ -4192,6 +4193,32 @@ async function registerGlobalConstant(options) {
   }
 }
 
+function getNetwork(inetwork) {
+  const config = getConfig();
+  const network = inetwork === undefined ? config.tezos.network : inetwork;
+  const cnetwork = config.tezos.list.find(x => x.network === network);
+
+  if (isNull(cnetwork)) {
+    const networks = config.tezos.list.map(x => x.network);
+    throw (`'${network}' is not a valid network, expecting one of ${networks}.`)
+  }
+  return network
+}
+
+async function importContract(options) {
+  const value = options.value;
+  const name = options.name;
+  const network = getNetwork(options.network);
+
+  const c = {
+      name: name,
+      address: value,
+      network: network,
+      source: 'import'
+  };
+  saveContract(c, x => { print(`Contract ${value} saved as ${name} on network ${network}.`) });
+}
+
 async function exec(options) {
   try {
     switch (options.command) {
@@ -4385,6 +4412,9 @@ async function exec(options) {
       case "register_global_constant":
         await registerGlobalConstant(options);
         break;
+      case "import_contract":
+        await importContract(options);
+        break;
       default:
         commandNotFound(options);
     }
@@ -4439,3 +4469,4 @@ exports.exec_batch = exec_batch
 exports.getKeysFrom = getKeysFrom
 exports.registerGlobalConstant = registerGlobalConstant
 exports.mockupInit = mockupInit
+exports.importContract = importContract

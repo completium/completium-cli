@@ -265,6 +265,9 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "register" && args[3] === "global" && args[4] === "constant") {
     res = { command: "register_global_constant", value: args[5] };
     nargs = args.slice(6);
+  } else if (length > 5 && args[2] === "import" && args[3] === "contract" && args[5] === "as") {
+    res = { command: "import_contract", value: args[4], name: args[6] };
+    nargs = args.slice(7);
   }
 
   const options = arg(
@@ -300,6 +303,7 @@ function parseCommand(args) {
       '--output-path': String,
       '--taquito-schema': Boolean,
       '--with-dapp-originate': Boolean,
+      '--network': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -343,6 +347,7 @@ function parseCommand(args) {
     output_path: options['--output-path'],
     taquito_schema: options['--taquito-schema'],
     with_dapp_originate: options['--with-dapp-originate'] || false,
+    network: options['--network'],
   }
 }
 
