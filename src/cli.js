@@ -268,6 +268,9 @@ function parseCommand(args) {
   } else if (length > 5 && args[2] === "import" && args[3] === "contract" && args[5] === "as") {
     res = { command: "import_contract", value: args[4], name: args[6] };
     nargs = args.slice(7);
+  } else if (length > 5 && args[2] === "remove" && args[3] === "contracts" && args[4] === "from") {
+    res = { command: "remove_contracts", value: args[5] };
+    nargs = args.slice(6);
   }
 
   const options = arg(

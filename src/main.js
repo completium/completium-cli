@@ -613,6 +613,7 @@ function help(options) {
   print("  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
   print("  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]");
   print("  import contract <CONTRACT_ADDRESS> as <CONTRACT_ALIAS> [--network <NETWORK>]");
+  print("  remove contracts from (mockup|sandbox)");
   print("")
   print("  show keys from <PRIVATE_KEY>");
   print("  set account <ACCOUNT_ALIAS>");
@@ -4210,13 +4211,21 @@ async function importContract(options) {
   const name = options.name;
   const network = getNetwork(options.network);
 
-  const c = {
-      name: name,
-      address: value,
-      network: network,
-      source: 'import'
-  };
   saveContract(c, x => { print(`Contract ${value} saved as ${name} on network ${network}.`) });
+}
+
+async function removeContracts(options) {
+  const network = options.value;
+
+  if (network !== "mockup" && network !== "sandbox") {
+    throw (`Invalid network: '${network}', expected: 'mockup' or 'sandbox'`)
+  }
+
+  var obj = getContracts();
+  const new_contracts = obj.contracts.filter(x => x.network !== network);
+  const count = obj.contracts.length - new_contracts.length;
+  obj.contracts = new_contracts;
+  saveFile(contracts_path, obj, x => { print(`Contracts of ${network} removed from completium: ${count}.`) });
 }
 
 async function exec(options) {
@@ -4414,6 +4423,9 @@ async function exec(options) {
         break;
       case "import_contract":
         await importContract(options);
+        break;
+      case "remove_contracts":
+        await removeContracts(options);
         break;
       default:
         commandNotFound(options);
