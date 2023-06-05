@@ -341,3 +341,7 @@ exports.getKeysFrom = Main.getKeysFrom
 exports.registerGlobalConstant = Main.registerGlobalConstant
 exports.mockupInit = Main.mockupInit
 exports.importContract = Main.importContract
+exports.rpcGet = Main.rpcGet
+exports.getContractScript = Main.getContractScript
+exports.getStorageType = Main.getStorageType
+exports.getParameterType = Main.getParameterType

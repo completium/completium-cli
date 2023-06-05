@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.79'
+const version = '0.4.80'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2756,6 +2756,20 @@ async function getParamTypeEntrypoint(entry, contract_address) {
   }
 }
 
+async function getStorageType(contract_address) {
+  const s = await getContractScript(contract_address);
+  const p = s.code.find(x => x.prim === "storage");
+  const t = p.args[0];
+  return t;
+}
+
+async function getParameterType(contract_address) {
+  const s = await getContractScript(contract_address);
+  const p = s.code.find(x => x.prim === "parameter");
+  const t = p.args[0];
+  return t;
+}
+
 async function exprMichelineFromArg(arg, type) {
   objValues = {};
   const res = await computeArg(arg, type);
@@ -4482,3 +4496,7 @@ exports.getKeysFrom = getKeysFrom
 exports.registerGlobalConstant = registerGlobalConstant
 exports.mockupInit = mockupInit
 exports.importContract = importContract
+exports.rpcGet = rpcGet
+exports.getContractScript = getContractScript
+exports.getStorageType = getStorageType
+exports.getParameterType = getParameterType
