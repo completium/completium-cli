@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.82'
+const version = '0.4.83'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -883,7 +883,7 @@ async function startSandbox(options) {
   print('Waiting for sandbox to start ...');
   try {
     const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--detach', '-p', '20000:20000', '--cpus', '1', '-e', 'block_time=10',
-      docker_id, flextesa_script, 'start'], {});
+      '-e', "flextesa_node_cors_origin='*'", docker_id, flextesa_script, 'start'], {});
     if (verbose) {
       print(stdout);
     }
