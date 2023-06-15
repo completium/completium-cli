@@ -1,7 +1,7 @@
 # completium-cli
 
 
-`$completium-cli` is a command line interface to interact (orginate, call, ...) with <a href='https://archetype-lang.org/'>Archetype</a> smart contracts on the <a href='https://completium.com/docs/dapp-tools/tezos'>Tezos</a> blockchain.
+`$completium-cli` is a command line interface to interact (originate, call, ...) with <a href='https://archetype-lang.org/'>Archetype</a> smart contracts on the <a href='https://completium.com/docs/dapp-tools/tezos'>Tezos</a> blockchain.
 
 ## Getting started
 
@@ -25,11 +25,11 @@ completium-cli help
 
 ## Network
 
-The Tezos blockchain provides serveral networks:
+The Tezos blockchain provides several networks:
 * a main network which is the real operating network where *real* cryptocurrency are exchanged
 * several test networks:
   * one in the same version (to test current network)
-  * one(s) in the future main net version(s) (to test/preprare future version of smart contracts)
+  * one(s) in the future main net version(s) (to test/prepare future version of smart contracts)
   * optionally several in older versions
 
 Each version of the blockchain is given a name (..., Carthage, Edo, Florence, ...).
@@ -374,7 +374,7 @@ $ completium-cli call mycontract --entry payback --arg '{ "i" : -4, "n" : 5 }'
 
 ### Argument
 
-This section presents exemples of parameter and argument values to pass to `deploy --param` and `call --arg` commands.
+This section presents examples of parameter and argument values to pass to `deploy --param` and `call --arg` commands.
 
 | Archetype type | Michelson type | Value examples |
 | -- | -- | -- |
@@ -398,7 +398,7 @@ This section presents exemples of parameter and argument values to pass to `depl
 
 ### Generate javascript
 
-The javascript verion of the contract is required when a DApp is originating the contract using <Link to='/docs/dapp-tools/taquito'>Taquito</Link>.
+The javascript version of the contract is required when a DApp is originating the contract using <Link to='/docs/dapp-tools/taquito'>Taquito</Link>.
 
 The command to generate the javascript version is:
 
