@@ -1829,6 +1829,7 @@ function replace_json(obj, id, data) {
   }
   return obj;
 }
+
 function process_const(obj, parameters, parametersMicheline, contract_parameter) {
   const is_micheline = !isNull(parametersMicheline);
   for (i = 0; i < contract_parameter.length; ++i) {
@@ -1875,6 +1876,29 @@ function process_code_const(str, parameters, parametersMicheline, contract_param
     }
   }
   return str;
+}
+
+function remove_prefix(str) {
+  return str.startsWith("%") ? str.substring(1) : str
+}
+
+function visit_micheline(obj, init) {
+  if (obj.annots && obj.annots?.length > 0) {
+    const annot = remove_prefix(obj.annots[0]);
+    const obj_annot = init[annot]
+    if (obj_annot) {
+      return expr_micheline_to_json(obj_annot);
+    }
+  }
+  if (obj.prim && obj.prim == 'pair') {
+    const args = obj.args ? obj.args.map(x => visit_micheline(x, init)) : undefined;
+    return {...obj, prim: 'Pair', args: args}
+  }
+  throw `Error visit_micheline: ${JSON.stringify(obj)}`
+}
+
+function build_storage(storage_type, init_obj_mich) {
+  return visit_micheline(storage_type, init_obj_mich)
 }
 
 function print_deploy_settings(with_color, account, contract_id, amount, storage, estimated_total_cost) {
@@ -1929,6 +1953,7 @@ async function deploy(options) {
   const mockup_mode = isMockupMode();
   const force_tezos_client = options.force_tezos_client === undefined ? isForceTezosClient() : options.force_tezos_client;
   const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
+  const init_obj_mich = options.init_obj_mich;
 
   if (otest && originate) {
     const msg = `Cannot originate a contract in test mode.`;
@@ -2036,6 +2061,12 @@ async function deploy(options) {
     m_storage = storage_json;
   } else if (!isNull(oinit)) {
     m_storage = expr_micheline_to_json(oinit);
+  } if (!isNull(init_obj_mich)) {
+    const m_code = expr_micheline_to_json(code);
+    const obj_storage = m_code.find(x => x.prim === "storage");
+    const storageType = obj_storage.args[0];
+
+    m_storage = build_storage(storageType, init_obj_mich);
   } else if (!originate) {
     if (isNull(parameters) && isNull(parametersMicheline)) {
       try {
