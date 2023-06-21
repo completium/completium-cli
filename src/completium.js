@@ -345,3 +345,4 @@ exports.rpcGet = Main.rpcGet
 exports.getContractScript = Main.getContractScript
 exports.getStorageType = Main.getStorageType
 exports.getParameterType = Main.getParameterType
+exports.build_json_type = Main.build_json_type

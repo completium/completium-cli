@@ -4273,6 +4273,24 @@ async function removeContracts(options) {
   saveFile(contracts_path, obj, x => { print(`Contracts of ${network} removed from completium: ${count}.`) });
 }
 
+function build_json_type(obj) {
+  if (obj.annots && obj.annots.length > 0) {
+    const annot = remove_prefix(obj.annots[0]);
+    let res = {};
+    res[annot] = {...obj, annots: undefined}
+    return res;
+  }
+  if (obj.prim && obj.prim == 'pair') {
+    let res = {};
+    obj.args.forEach((x => {
+      const r = build_json_type (x);
+      res = {...res, ...r}
+    }))
+    return res
+  }
+  return obj
+}
+
 async function exec(options) {
   try {
     switch (options.command) {
@@ -4531,3 +4549,4 @@ exports.rpcGet = rpcGet
 exports.getContractScript = getContractScript
 exports.getStorageType = getStorageType
 exports.getParameterType = getParameterType
+exports.build_json_type = build_json_type
