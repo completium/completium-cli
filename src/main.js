@@ -1883,7 +1883,7 @@ function remove_prefix(str) {
 }
 
 function visit_micheline(obj, init) {
-  if (obj.annots && obj.annots?.length > 0) {
+  if (obj.annots && obj.annots.length > 0) {
     const annot = remove_prefix(obj.annots[0]);
     const obj_annot = init[annot]
     if (obj_annot) {
@@ -2061,7 +2061,7 @@ async function deploy(options) {
     m_storage = storage_json;
   } else if (!isNull(oinit)) {
     m_storage = expr_micheline_to_json(oinit);
-  } if (!isNull(init_obj_mich)) {
+  } else if (!isNull(init_obj_mich)) {
     const m_code = expr_micheline_to_json(code);
     const obj_storage = m_code.find(x => x.prim === "storage");
     const storageType = obj_storage.args[0];
