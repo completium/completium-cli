@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.85'
+const version = '0.4.86'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -35,7 +35,7 @@ const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
 
 const docker_id = 'oxheadalpha/flextesa:latest'
-const flextesa_script = 'mumbaibox'
+const flextesa_script = 'nairobibox'
 
 var config = null;
 const mockup_path = completium_dir + "/mockup";
@@ -43,8 +43,8 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-// const default_mockup_protocol = 'PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf'
-const default_mockup_protocol = 'PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1'
+// const default_mockup_protocol = 'PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1'
+const default_mockup_protocol = 'PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf'
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
 
@@ -1892,7 +1892,7 @@ function visit_micheline(obj, init) {
   }
   if (obj.prim && obj.prim == 'pair') {
     const args = obj.args ? obj.args.map(x => visit_micheline(x, init)) : undefined;
-    return {...obj, prim: 'Pair', args: args}
+    return { ...obj, prim: 'Pair', args: args }
   }
   throw `Error visit_micheline: ${JSON.stringify(obj)}`
 }
@@ -2417,7 +2417,16 @@ async function callTransfer(options, contract_address, arg) {
         let msgs = [];
         let contract;
         const errors = e.errors.map(x => x);
+        let res = null;
+
         errors.forEach(x => {
+          if (x.kind === "temporary" &&
+            x.id !== undefined &&
+            x.id.endsWith(".script_rejected") &&
+            x.with !== undefined) {
+            const d = codec.emitMicheline(x.with);
+            res = { value: d };
+          }
           if (x.contract_handle !== undefined || x.contract !== undefined) {
             contract = x.contract_handle !== undefined ? x.contract_handle : x.contract;
             const cid = getContractFromIdOrAddress(contract);
@@ -2441,7 +2450,11 @@ async function callTransfer(options, contract_address, arg) {
             msgs.push(msg);
           }
         })
-        throw new Error(msgs.join("\n"));
+        if (isNull(res)) {
+          throw new Error(msgs.join("\n"));
+        } else {
+          return new Promise((resolve, reject) => { reject({...res, msgs: msgs}) });
+        }
       } else {
         throw e
       }
@@ -4277,14 +4290,14 @@ function build_json_type(obj) {
   if (obj.annots && obj.annots.length > 0) {
     const annot = remove_prefix(obj.annots[0]);
     let res = {};
-    res[annot] = {...obj, annots: undefined}
+    res[annot] = { ...obj, annots: undefined }
     return res;
   }
   if (obj.prim && obj.prim == 'pair') {
     let res = {};
     obj.args.forEach((x => {
-      const r = build_json_type (x);
-      res = {...res, ...r}
+      const r = build_json_type(x);
+      res = { ...res, ...r }
     }))
     return res
   }
