@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.86'
+const version = '0.4.87'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3724,7 +3724,8 @@ function initLogData(kind, input) {
 }
 
 function extractUpdatedStorage(input) {
-  const rx = /.*\Updated storage: (.*).*/g;
+  // const rx = /.*\Updated storage: (.*).*/g;
+  const rx = /Updated storage:\s*([\w\s\(\)\"\\x0-9]*)\n/g;
   const arr = rx.exec(input);
   if (!isNull(arr)) {
     const res = unescape(arr[1]);
