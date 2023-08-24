@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.87'
+const version = '0.4.88'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -43,7 +43,7 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-// const default_mockup_protocol = 'PtMumbai2TmsJHNGRkD8v8YDbtao7BLUC3wjASn1inAKLFCjaH1'
+// const default_mockup_protocol = 'ProxfordSW2S7fvchT1Zgj2avb5UES194neRyYVXoaDGvF9egt8'
 const default_mockup_protocol = 'PtNairobiyssHuh87hEhfVBGCVrK3WnS8Z2FT4ymB5tAa4r1nQf'
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
@@ -699,16 +699,6 @@ async function initCompletium(options) {
           ]
         },
         {
-          "network": "mumbai",
-          "bcd_url": "https://better-call.dev/mumbainet/${address}",
-          "tzstat_url": "https://mumbai.tzstats.com",
-          "endpoints": [
-            "https://mumbainet.ecadinfra.com",
-            "https://mumbainet.smartpy.io",
-            "https://mumbainet.tezos.marigold.dev"
-          ]
-        },
-        {
           "network": "nairobi",
           "bcd_url": "https://better-call.dev/nairobinet/${address}",
           "tzstat_url": "https://nairobi.tzstats.com",
@@ -716,6 +706,16 @@ async function initCompletium(options) {
             "https://nairobinet.ecadinfra.com",
             "https://nairobinet.smartpy.io",
             "https://nairobinet.tezos.marigold.dev"
+          ]
+        },
+        {
+          "network": "oxford",
+          "bcd_url": "https://better-call.dev/oxfordnet/${address}",
+          "tzstat_url": "https://oxford.tzstats.com",
+          "endpoints": [
+            "https://oxfordnet.ecadinfra.com",
+            "https://oxfordnet.smartpy.io",
+            "https://oxfordnet.tezos.marigold.dev"
           ]
         },
         {
@@ -3725,7 +3725,19 @@ function initLogData(kind, input) {
 
 function extractUpdatedStorage(input) {
   // const rx = /.*\Updated storage: (.*).*/g;
-  const rx = /Updated storage:\s*([\w\s\(\)\"\\x0-9]*)\n/g;
+  /*
+  ** lib_client/operation_result.ml file around 555 line
+  */
+  let rx = null;
+  if (input.includes('Storage size:')) {
+    rx = /Updated storage:\s*([^]*?)\s*Storage size:/g;
+  } else if (input.includes('Updated big_maps:')) {
+    rx = /Updated storage:\s*([^]*?)\s*Updated big_maps:/g;
+  } else if (input.includes('Paid storage size diff:')) {
+    rx = /Updated storage:\s*([^]*?)\s*Paid storage size diff:/g;
+  } else {
+    rx = /Updated storage:\s*([^]*?)\s*Consumed gas:/g;
+  }
   const arr = rx.exec(input);
   if (!isNull(arr)) {
     const res = unescape(arr[1]);
@@ -4564,3 +4576,5 @@ exports.getContractScript = getContractScript
 exports.getStorageType = getStorageType
 exports.getParameterType = getParameterType
 exports.build_json_type = build_json_type
+
+exports.extractUpdatedStorage = extractUpdatedStorage
