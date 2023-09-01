@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.88'
+const version = '0.4.89'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2062,7 +2062,7 @@ async function deploy(options) {
   } else if (!isNull(oinit)) {
     m_storage = expr_micheline_to_json(oinit);
   } else if (!isNull(init_obj_mich)) {
-    const m_code = expr_micheline_to_json(code);
+    const m_code = (new codec.Parser()).parseScript(code.toString());
     const obj_storage = m_code.find(x => x.prim === "storage");
     const storageType = obj_storage.args[0];
 
