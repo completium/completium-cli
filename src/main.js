@@ -1029,7 +1029,7 @@ async function switchEndpoint(options) {
 }
 
 async function addEndpoint(options) {
-  const network = options.network;
+  const network = options.network_;
   const endpoint = options.endpoint;
 
   const config = getConfig();

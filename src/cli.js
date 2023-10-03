@@ -62,7 +62,7 @@ function parseCommand(args) {
     nargs = args.slice(4);
     // add endpoint (main|edo|florence) <ENDPOINT_URL>
   } else if (length > 5 && args[2] === "add" && args[3] === "endpoint") {
-    res = { command: "add_endpoint", network: args[4], endpoint: args[5] };
+    res = { command: "add_endpoint", network_: args[4], endpoint: args[5] };
     nargs = args.slice(6);
     // set account <ACCOUNT_ALIAS>
   } else if (length > 4 && args[2] === "set" && args[3] === "endpoint") {
