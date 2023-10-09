@@ -3866,6 +3866,37 @@ function addLogOrigination(input) {
   addLog(data)
 }
 
+function process_internal_transactions(input) {
+  let transactions = [];
+
+  const a = input.split('Internal Transaction:')
+  for (b of a) {
+    const c = b.trim();
+    if (c.length > 1) {
+      const from = extract_regexp(/From: ((.)+)\n/g, c)
+      const to = extract_regexp(/To: ((.)+)\n/g, c)
+      const amount = extract_regexp(/Amount: ((.)+)\n/g, c)
+      const entrypoint = c.indexOf("Entrypoint:") != -1 ? extract_regexp(/Entrypoint: ((.)+)\n/g, c) : undefined;
+      const consumed_gas = c.indexOf("Consumed gas:") != -1 ? extract_regexp(/Consumed gas: ((.)+)\n/g, c) : undefined;
+      const updated_storage = c.indexOf("Entrypoint:") != -1 ? extractUpdatedStorage(c) : undefined;
+      const storage_size = c.indexOf("Storage size:") != -1 ? extractStorageSize(c) : undefined;
+
+      if (from && to && consumed_gas) {
+        transactions.push({
+          from: from,
+          to: to,
+          amount: amount,
+          entrypoint: entrypoint,
+          consumed_gas: consumed_gas,
+          updated_storage: updated_storage,
+          storage_size: storage_size
+        })
+      }
+    }
+  }
+  return transactions
+}
+
 function addLogTransaction(input) {
   let data = initLogData('transaction', input);
 
@@ -3907,6 +3938,18 @@ function addLogTransaction(input) {
       updated_storage: extractUpdatedStorage(output),
       storage_size: extractStorageSize(output),
       consumed_gas: extractConsumedGas(output)
+    }
+  }
+
+  const internal_operations_sep = "Internal operations:";
+  if (input.stdout && input.stdout.includes(internal_operations_sep)) {
+    const start_index = input.stdout.indexOf(internal_operations_sep)
+    const output = input.stdout.slice(start_index + internal_operations_sep.length)
+
+    const internal_operations = process_internal_transactions(output);
+    data = {
+      ...data,
+      internal_operations: internal_operations
     }
   }
 
