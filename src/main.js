@@ -2151,6 +2151,7 @@ async function deploy(options) {
           source: account.pkh,
           storage: storage,
           amount: a,
+          name: contract_name
         })
       }
       if (failed) {
@@ -3769,6 +3770,17 @@ function extractConsumedGas(input) {
   }
 }
 
+function extractAddressOriginition(input) {
+  const rx = /.*\New contract (.*) originated/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
 function extractPaidStorageSizeDiff(input) {
   const rx = /.*\Paid storage size diff: (.*) bytes/g;
   const arr = rx.exec(input);
@@ -3779,7 +3791,6 @@ function extractPaidStorageSizeDiff(input) {
     return null
   }
 }
-
 
 
 function extractOperationHash(input) {
@@ -3823,6 +3834,7 @@ function addLogOrigination(input) {
     source: input.source,
     amount: input.amount,
     storage: input.storage,
+    name: input.name,
   }
 
   data = addLogAs(data, input.source)
@@ -3836,6 +3848,7 @@ function addLogOrigination(input) {
       storage_size: extractStorageSize(output),
       consumed_gas: extractConsumedGas(output),
       paid_storage_size_diff: extractPaidStorageSizeDiff(output),
+      address: extractAddressOriginition(output)
     }
   }
 
