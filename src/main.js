@@ -2454,7 +2454,7 @@ async function callTransfer(options, contract_address, arg) {
         if (isNull(res)) {
           throw new Error(msgs.join("\n"));
         } else {
-          return new Promise((resolve, reject) => { reject({...res, msgs: msgs}) });
+          return new Promise((resolve, reject) => { reject({ ...res, msgs: msgs }) });
         }
       } else {
         throw e
@@ -3759,6 +3759,17 @@ function extractStorageSize(input) {
   }
 }
 
+function extractDestination(input) {
+  const rx = /.*\To: (.*)/g;
+  const arr = rx.exec(input);
+  if (!isNull(arr)) {
+    const res = unescape(arr[1]);
+    return res
+  } else {
+    return null
+  }
+}
+
 function extractConsumedGas(input) {
   const rx = /.*\Consumed gas: (.*)/g;
   const arr = rx.exec(input);
@@ -3857,6 +3868,10 @@ function addLogOrigination(input) {
 
 function addLogTransaction(input) {
   let data = initLogData('transaction', input);
+
+  const now = getMockupNow();
+  const level = getMockupLevel();
+
   data = {
     ...data,
     entrypoint: input.entrypoint,
@@ -3866,7 +3881,9 @@ function addLogTransaction(input) {
     source: input.source,
     amount: input.amount,
     destination: input.contract_address,
-    arg_completium: input.arg_completium
+    arg_completium: input.arg_completium,
+    now: now,
+    level: level
   }
 
   data = addLogAs(data, input.source)
@@ -3885,6 +3902,7 @@ function addLogTransaction(input) {
 
     data = {
       ...data,
+      destination: extractDestination(output),
       operation: extractOperationHash(output),
       updated_storage: extractUpdatedStorage(output),
       storage_size: extractStorageSize(output),
