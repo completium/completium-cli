@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.92'
+const version = '0.4.93'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3880,16 +3880,18 @@ function process_internal_transactions(input) {
       const to = extract_regexp(/To: ((.)+)\n/g, c)
       const amount = extract_regexp(/Amount: ((.)+)\n/g, c)
       const entrypoint = c.indexOf("Entrypoint:") != -1 ? extract_regexp(/Entrypoint: ((.)+)\n/g, c) : undefined;
+      const parameter = c.indexOf("Parameter:") != -1 ? extract_regexp(/Parameter: ((.)+)\n/g, c) : undefined;
       const consumed_gas = c.indexOf("Consumed gas:") != -1 ? extract_regexp(/Consumed gas: ((.)+)\n/g, c) : undefined;
       const updated_storage = c.indexOf("Entrypoint:") != -1 ? extractUpdatedStorage(c) : undefined;
       const storage_size = c.indexOf("Storage size:") != -1 ? extractStorageSize(c) : undefined;
 
       if (from && to && consumed_gas) {
         transactions.push({
-          from: from,
-          to: to,
+          source: from,
+          destination: to,
           amount: amount.includes("ꜩ") ? amount.split("ꜩ").join("") : amount,
           entrypoint: entrypoint,
+          parameter: parameter,
           consumed_gas: consumed_gas,
           updated_storage: updated_storage,
           storage_size: storage_size
