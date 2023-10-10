@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.91'
+const version = '0.4.92'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2866,7 +2866,10 @@ async function callContract(options) {
     throw new Error(msg);
   }
 
-  const paramType = await getParamTypeEntrypoint(entry, contract_address);
+  let paramType = await getParamTypeEntrypoint(entry, contract_address);
+  if (entry == "default" && paramType.annots && paramType.annots.length == 1) {
+    paramType = {...paramType, annots : undefined}
+  }
   if (isNull(paramType)) {
     const msg = `'${entry}' entrypoint not found.`;
     throw new Error(msg);
@@ -3885,7 +3888,7 @@ function process_internal_transactions(input) {
         transactions.push({
           from: from,
           to: to,
-          amount: amount,
+          amount: amount.includes("ꜩ") ? amount.split("ꜩ").join("") : amount,
           entrypoint: entrypoint,
           consumed_gas: consumed_gas,
           updated_storage: updated_storage,
