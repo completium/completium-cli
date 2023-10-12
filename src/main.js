@@ -2868,7 +2868,7 @@ async function callContract(options) {
 
   let paramType = await getParamTypeEntrypoint(entry, contract_address);
   if (entry == "default" && paramType.annots && paramType.annots.length == 1) {
-    paramType = {...paramType, annots : undefined}
+    paramType = { ...paramType, annots: undefined }
   }
   if (isNull(paramType)) {
     const msg = `'${entry}' entrypoint not found.`;
@@ -3762,6 +3762,49 @@ function extractStorageSize(input) {
   }
 }
 
+function extractBalanceUpdates(input) {
+  if (input.indexOf("Balance updates:") == -1) {
+    return undefined
+  }
+  const result = [];
+
+  const lines = input.split('\n');
+  let startParsing = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    if (startParsing) {
+      const parts = line.split(" ");
+      const address = parts.slice(0, parts.length - 2).join(' ');
+      const value = parts[parts.length - 1];
+      if (address && address.length > 0 && value && value.length > 0) {
+        result.push({ dest: address, value: value });
+      }
+
+    } else if (line.startsWith("Balance updates:")) {
+      startParsing = true;
+    }
+  }
+
+  return result;
+}
+
+function extractMainBalanceUpdates(input) {
+  const begin = input.indexOf("Transaction:")
+  if (begin == -1) {
+    return undefined
+  }
+  const end = input.indexOf("Internal operations:")
+  let o;
+  if (end == -1) {
+    o = input.substring(begin)
+  } else {
+    o = input.substring(begin, end)
+  }
+  return extractBalanceUpdates(o)
+}
+
 function extractDestination(input) {
   const rx = /.*\To: (.*)/g;
   const arr = rx.exec(input);
@@ -3862,7 +3905,7 @@ function addLogOrigination(input) {
       storage_size: extractStorageSize(output),
       consumed_gas: extractConsumedGas(output),
       paid_storage_size_diff: extractPaidStorageSizeDiff(output),
-      address: extractAddressOriginition(output)
+      address: extractAddressOriginition(output),
     }
   }
 
@@ -3884,6 +3927,7 @@ function process_internal_transactions(input) {
       const consumed_gas = c.indexOf("Consumed gas:") != -1 ? extract_regexp(/Consumed gas: ((.)+)\n/g, c) : undefined;
       const updated_storage = c.indexOf("Entrypoint:") != -1 ? extractUpdatedStorage(c) : undefined;
       const storage_size = c.indexOf("Storage size:") != -1 ? extractStorageSize(c) : undefined;
+      const balance_updates = c.indexOf("Balance updates:") != -1 ? extractBalanceUpdates(c) : undefined;
 
       if (from && to && consumed_gas) {
         transactions.push({
@@ -3891,10 +3935,11 @@ function process_internal_transactions(input) {
           destination: to,
           amount: amount.includes("ꜩ") ? amount.split("ꜩ").join("") : amount,
           entrypoint: entrypoint,
-          parameter: parameter,
+          arg: parameter,
           consumed_gas: consumed_gas,
           updated_storage: updated_storage,
-          storage_size: storage_size
+          storage_size: storage_size,
+          balance_updates: balance_updates
         })
       }
     }
@@ -3942,7 +3987,8 @@ function addLogTransaction(input) {
       operation: extractOperationHash(output),
       updated_storage: extractUpdatedStorage(output),
       storage_size: extractStorageSize(output),
-      consumed_gas: extractConsumedGas(output)
+      consumed_gas: extractConsumedGas(output),
+      balance_updates: extractMainBalanceUpdates(output)
     }
   }
 
