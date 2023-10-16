@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '0.4.96'
+const version = '0.4.97'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3928,6 +3928,8 @@ function process_internal_transactions(input) {
       const updated_storage = c.indexOf("Entrypoint:") != -1 ? extractUpdatedStorage(c) : undefined;
       const storage_size = c.indexOf("Storage size:") != -1 ? extractStorageSize(c) : undefined;
       const balance_updates = c.indexOf("Balance updates:") != -1 ? extractBalanceUpdates(c) : undefined;
+      const paid_storage_size_diff = c.indexOf("Paid storage size diff:") != -1 ? extractPaidStorageSizeDiff(c) : undefined;
+
 
       if (from && to && consumed_gas) {
         transactions.push({
@@ -3939,7 +3941,8 @@ function process_internal_transactions(input) {
           consumed_gas: consumed_gas,
           updated_storage: updated_storage,
           storage_size: storage_size,
-          balance_updates: balance_updates
+          balance_updates: balance_updates,
+          paid_storage_size_diff: paid_storage_size_diff
         })
       }
     }
@@ -3988,7 +3991,8 @@ function addLogTransaction(input) {
       updated_storage: extractUpdatedStorage(output),
       storage_size: extractStorageSize(output),
       consumed_gas: extractConsumedGas(output),
-      balance_updates: extractMainBalanceUpdates(output)
+      balance_updates: extractMainBalanceUpdates(output),
+      paid_storage_size_diff: extractPaidStorageSizeDiff(output)
     }
   }
 
