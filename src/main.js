@@ -34,8 +34,8 @@ const contracts_dir = completium_dir + "/contracts"
 const scripts_dir = completium_dir + "/scripts"
 const sources_dir = completium_dir + "/sources"
 
-const docker_id = 'oxheadalpha/flextesa:latest'
-const flextesa_script = 'nairobibox'
+// const docker_id = 'oxheadalpha/flextesa:latest'
+// const flextesa_script = 'nairobibox'
 
 var config = null;
 const mockup_path = completium_dir + "/mockup";
@@ -590,9 +590,9 @@ function help(options) {
   print("  version")
   print("  archetype version")
   print("  install archetype")
-  print("")
-  print("  start sandbox");
-  print("  stop sandbox");
+  // print("")
+  // print("  start sandbox");
+  // print("  stop sandbox");
   print("")
   print("  mockup init [--protocol <VALUE>]");
   print("  mockup set now <value>");
@@ -878,39 +878,45 @@ async function doInstall(options) {
 
 }
 
-async function startSandbox(options) {
-  const verbose = options.verbose;
-  print('Waiting for sandbox to start ...');
-  try {
-    const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--detach', '-p', '20000:20000', '--cpus', '1', '-e', 'block_time=10',
-      '-e', "flextesa_node_cors_origin='*'", docker_id, flextesa_script, 'start'], {});
-    if (verbose) {
-      print(stdout);
-    }
-    print('sandbox is running');
-    return stdout;
+function print_flextesa_message () {
+  print('This feature is deprecated. Please use Flextesa externally. For more details, visit https://tezos.gitlab.io/flextesa/');
+}
 
-  } catch (error) {
-    print(error);
-    throw error;
-  }
+async function startSandbox(options) {
+  print_flextesa_message ();
+  // const verbose = options.verbose;
+  // print('Waiting for sandbox to start ...');
+  // try {
+  //   const { stdout } = await execa('docker', ['run', '--rm', '--name', 'my-sandbox', '--detach', '-p', '20000:20000', '--cpus', '1', '-e', 'block_time=10',
+  //     '-e', "flextesa_node_cors_origin='*'", docker_id, flextesa_script, 'start'], {});
+  //   if (verbose) {
+  //     print(stdout);
+  //   }
+  //   print('sandbox is running');
+  //   return stdout;
+
+  // } catch (error) {
+  //   print(error);
+  //   throw error;
+  // }
 }
 
 async function stopSandbox(options) {
-  const verbose = options.verbose;
+  print_flextesa_message ();
+  // const verbose = options.verbose;
 
-  try {
-    const { stdout } = await execa('docker', ['kill', 'my-sandbox'], {});
-    if (verbose) {
-      print(stdout);
-    }
-    print('sandbox is stopped');
-    return stdout;
+  // try {
+  //   const { stdout } = await execa('docker', ['kill', 'my-sandbox'], {});
+  //   if (verbose) {
+  //     print(stdout);
+  //   }
+  //   print('sandbox is stopped');
+  //   return stdout;
 
-  } catch (error) {
-    print(error);
-    throw error;
-  }
+  // } catch (error) {
+  //   print(error);
+  //   throw error;
+  // }
 }
 
 async function mockupInit(options) {
