@@ -599,7 +599,7 @@ function help(options) {
   print("")
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|ghost|kathmandu|lima|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|ghost|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
   print("")
