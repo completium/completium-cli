@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.2'
+const version = '1.0.3'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3924,7 +3924,7 @@ function process_internal_transactions(input) {
   const a = input.split('Internal Transaction:')
   for (b of a) {
     const c = b.trim() + '\n';
-    if (c.length > 2) {
+    if (c.length > 2 && c.indexOf("Internal Event:") == -1) {
       const from = extract_regexp(/From: ((.)+)\n/g, c)
       const to = extract_regexp(/To: ((.)+)\n/g, c)
       const amount = extract_regexp(/Amount: ((.)+)\n/g, c)
