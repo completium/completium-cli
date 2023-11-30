@@ -3923,8 +3923,8 @@ function process_internal_transactions(input) {
 
   const a = input.split('Internal Transaction:')
   for (b of a) {
-    const c = b.trim();
-    if (c.length > 1) {
+    const c = b.trim() + '\n';
+    if (c.length > 2) {
       const from = extract_regexp(/From: ((.)+)\n/g, c)
       const to = extract_regexp(/To: ((.)+)\n/g, c)
       const amount = extract_regexp(/Amount: ((.)+)\n/g, c)
@@ -3956,7 +3956,7 @@ function process_internal_transactions(input) {
   return transactions
 }
 
-function addLogTransaction(input) {
+function buildLogTransaction(input) {
   let data = initLogData('transaction', input);
 
   const now = getMockupNow();
@@ -4014,6 +4014,11 @@ function addLogTransaction(input) {
     }
   }
 
+  return data
+}
+
+function addLogTransaction(input) {
+  const data = buildLogTransaction(input)
   addLog(data)
 }
 
@@ -4713,3 +4718,4 @@ exports.getParameterType = getParameterType
 exports.build_json_type = build_json_type
 
 exports.extractUpdatedStorage = extractUpdatedStorage
+exports.buildLogTransaction = buildLogTransaction
