@@ -4082,11 +4082,11 @@ fi
 `
 
 const gen_test_template = name => `
-import {get_account, reset_experiment, set_mockup, set_mockup_now} from "@completium/experiment-ts";
+import {configure_experiment, get_account, set_mockup, set_mockup_now} from "@completium/experiment-ts";
 
 import { hello } from './binding/hello'
 
-const assert = require('assert')
+import assert from 'assert'
 
 /* Accounts ---------------------------------------------------------------- */
 
@@ -4094,32 +4094,32 @@ const alice = get_account('alice');
 
 /* Initialisation ---------------------------------------------------------- */
 
-describe('Initialisation', async () => {
-  it('Reset experiment', async () => {
-    await reset_experiment({
+describe('Initialisation', () => {
+  it('Configure experiment', async () => {
+    await configure_experiment({
       account: 'alice',
       endpoint: 'mockup',
       quiet: true,
     });
   });
-  it('set_mockup', async () => {
+  it('set_mockup', () => {
     set_mockup()
     // await mockup_init()
   });
-  it('set_mockup_now', async () => {
+  it('set_mockup_now', () => {
     set_mockup_now(new Date(Date.now()))
   });
 })
 
 /* Scenario ---------------------------------------------------------------- */
 
-describe('[HELLO] Contract deployment', async () => {
+describe('[HELLO] Contract deployment', () => {
   it('Deploy test_binding', async () => {
     await hello.deploy({ as: alice })
   });
 })
 
-describe('[HELLO] Call entry', async () => {
+describe('[HELLO] Call entry', () => {
   it("Call 'myentry'", async () => {
     const s_before = await hello.get_s()
     assert(s_before === "")
@@ -4149,6 +4149,9 @@ const gen_package_json = (name, versions) => `
     "@types/expect": "${versions.types_expect}",
     "@types/mocha": "${versions.types_mocha}",
     "@types/node": "${versions.types_node}",
+    "@typescript-eslint/eslint-plugin": "${versions.eslint_plugin}",
+    "@typescript-eslint/parser": "${versions.eslint_parser}",
+    "eslint": "${versions.eslint}",
     "ts-mocha": "${versions.ts_mocha}",
     "typescript": "${versions.typescript}"
   },
@@ -4264,6 +4267,29 @@ const gen_tsconfig = () => `
   }
 }
 `
+
+const gen_eslintrc_json = (name, versions) => `
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking"
+  ],
+  "rules": {
+    "@typescript-eslint/await-thenable": "error",
+    "@typescript-eslint/no-unsafe-argument": "warn",
+    "@typescript-eslint/no-unsafe-assignment": "warn"
+
+  }
+}
+`
+
 async function createProject(options) {
   const value = options.value;
   const project_name = value;
@@ -4274,6 +4300,7 @@ async function createProject(options) {
   const test_path = tests_path + `/hello.spec.ts`;
   const package_path = project_path + '/package.json'
   const tsconfig_path = project_path + '/tsconfig.json'
+  const eslintrc_path = project_path + '/.eslintrc.json'
   const run_test_path = project_path + `/run_test.sh`;
 
   fs.mkdirSync(project_path)
@@ -4290,9 +4317,13 @@ async function createProject(options) {
     types_expect: "^24.3.0",
     types_mocha: '^10.0.0',
     types_node: 'latest',
-    typescript: '4.7.4'
+    typescript: '4.7.4',
+    eslint_plugin: "^6.13.1",
+    eslint_parser: "^6.13.1",
+    eslint: "^8.54.0"
   }))
   fs.writeFileSync(tsconfig_path, gen_tsconfig())
+  fs.writeFileSync(eslintrc_path, gen_eslintrc_json())
   fs.writeFileSync(run_test_path, gen_run_test())
   fs.chmodSync(run_test_path, "755")
   print(`Project ${project_name} is created.`)
