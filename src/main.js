@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.6'
+const version = '1.0.7'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2012,7 +2012,7 @@ function getTezosClientArgs(args) {
 }
 
 function is_sandbox_exec(path) {
-  if (path.endsWith(".arl")) {
+  if (fs.existsSync(path) && path.endsWith(".arl")) {
     const content = fs.readFileSync(path).toString();
     return content && content.indexOf("sandbox_exec") >= 0
   }
