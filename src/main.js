@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.5'
+const version = '1.0.6'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -1840,7 +1840,7 @@ function replaceAll(data, objValues) {
   }
 }
 
-async function compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, s) {
+async function compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, s, sandbox_exec_address) {
   const is_micheline = !isNull(parametersMicheline);
   const parameters_var = []
   const parameters_const = []
@@ -1862,7 +1862,11 @@ async function compute_tzstorage(file, storageType, parameters, parametersMichel
   }
   let michelsonData;
   if (parameters_var.length > 0) {
-    const storage_values = await callArchetype({}, file, { ...s, get_storage_values: true });
+    const storage_values = await callArchetype({}, file, {
+      ...s,
+      get_storage_values: true,
+      sandbox_exec_address: sandbox_exec_address
+    });
     const jsv = JSON.parse(storage_values);
     const sv = jsv.map(x => x);
     var obj = {};
@@ -1875,7 +1879,8 @@ async function compute_tzstorage(file, storageType, parameters, parametersMichel
     michelsonData = replaceAll(data, objValues);
   } else {
     const storage_values = await callArchetype(options, file, {
-      target: "michelson-storage"
+      target: "michelson-storage",
+      sandbox_exec_address: sandbox_exec_address
     });
     michelsonData = expr_micheline_to_json(storage_values);
   }
@@ -2184,7 +2189,7 @@ async function deploy(options) {
         const m_code = expr_micheline_to_json(code);
         const obj_storage = m_code.find(x => x.prim === "storage");
         const storageType = obj_storage.args[0];
-        m_storage = await compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, computeSettings(options));
+        m_storage = await compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, computeSettings(options), sandbox_exec_address);
       } catch (e) {
         return new Promise((resolve, reject) => { reject(e) });
       }
