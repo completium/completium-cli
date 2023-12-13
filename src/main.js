@@ -226,7 +226,7 @@ function computeSettings(options, settings) {
     "test_mode": otest,
     "metadata_storage": metadata_storage,
     "metadata_uri": metadata_uri,
-    "json": compiler_json,
+    "json": compiler_json
   }
 }
 
@@ -280,6 +280,10 @@ function computeArgsSettings(options, settings, path) {
       }
       if (settings.compiler_json) {
         args.push('--json');
+      }
+      if (settings.sandbox_exec_address) {
+        args.push('--sandbox-exec-address');
+        args.push(settings.sandbox_exec_address);
       }
     }
     args.push(path);
@@ -621,6 +625,9 @@ function help(options) {
   print("  rename account <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> by <ACCOUNT_ALIAS> [--force]");
   print("  remove account <ACCOUNT_ALIAS>");
   print("")
+  print("  set contract address <CONTRACT_NAME> <ADDRESS>");
+  print("  print contract <CONTRACT_NAME>");
+  print("")
   print("  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]");
   print("  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS> | --parameters-micheline <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--show-tezos-client-command]");
   print("  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]");
@@ -678,7 +685,7 @@ async function initCompletium(options) {
       list: [
         {
           network: 'main',
-          bcd_url: "https://better-call.dev/main/${address}",
+          bcd_url: "https://better-call.dev/mainnet/${address}",
           tzstat_url: "https://tzstats.com",
           endpoints: [
             'https://mainnet.api.tez.ie',
@@ -686,7 +693,8 @@ async function initCompletium(options) {
             'https://mainnet.tezos.marigold.dev',
             'https://mainnet-tezos.giganode.io',
             'https://rpc.tzbeta.net'
-          ]
+          ],
+          sandbox_exec_address: "KT19wkxScvCZghXQbpZNaP2AwTJ63gBhdofE"
         },
         {
           network: 'ghost',
@@ -696,7 +704,8 @@ async function initCompletium(options) {
             'https://ghostnet.ecadinfra.com',
             'https://ghostnet.smartpy.io',
             'https://ghostnet.tezos.marigold.dev'
-          ]
+          ],
+          sandbox_exec_address: "KT1MS3bjqJHYkg4mEiRgVmfXGoGUHAdXUuLL"
         },
         {
           "network": "nairobi",
@@ -878,12 +887,12 @@ async function doInstall(options) {
 
 }
 
-function print_flextesa_message () {
+function print_flextesa_message() {
   print('This feature is deprecated. Please use Flextesa externally. For more details, visit https://tezos.gitlab.io/flextesa/');
 }
 
 async function startSandbox(options) {
-  print_flextesa_message ();
+  print_flextesa_message();
   // const verbose = options.verbose;
   // print('Waiting for sandbox to start ...');
   // try {
@@ -902,7 +911,7 @@ async function startSandbox(options) {
 }
 
 async function stopSandbox(options) {
-  print_flextesa_message ();
+  print_flextesa_message();
   // const verbose = options.verbose;
 
   // try {
@@ -917,6 +926,28 @@ async function stopSandbox(options) {
   //   print(error);
   //   throw error;
   // }
+}
+
+function get_event_well_script() {
+  return `{ storage unit; parameter (bytes %event); code { UNPAIR; DROP; NIL operation; PAIR } }`
+}
+
+function get_sandbox_exec_script() {
+  return `{ storage unit; parameter (pair (list (ticket (pair nat (option bytes)))) (lambda (list (ticket (pair nat (option bytes)))) (list operation))); code { UNPAIR; UNPAIR; EXEC; PAIR} }`
+}
+
+async function deploy_contract(contract_name, script) {
+  await callTezosClient(["originate", "contract", contract_name,
+    "transferring", "0", "from", "bootstrap1",
+    "running", script, "--init", "Unit",
+    "--burn-cap", "20", "--force", "--no-print-source"]);
+
+  const path_contracts = mockup_path + "/contracts";
+  const inputContracts = fs.readFileSync(path_contracts, 'utf8');
+  const cobj = JSON.parse(inputContracts);
+  const o = cobj.find(x => { return (x.name === contract_name) });
+  const contract_address = isNull(o) ? null : o.value;
+  return contract_address
 }
 
 async function mockupInit(options) {
@@ -960,22 +991,17 @@ async function mockupInit(options) {
   }
 
   const event_well_contract_name = 'event_well'
-  const event_well_script = `{ storage unit; parameter (bytes %event); code { UNPAIR; DROP; NIL operation; PAIR } }`
+  const event_well_script = get_event_well_script()
 
-  // deploy event well contract
-  await callTezosClient(["originate", "contract", event_well_contract_name,
-    "transferring", "0", "from", "bootstrap1",
-    "running", event_well_script, "--init", "Unit",
-    "--burn-cap", "20", "--force", "--no-print-source"]);
+  const sandbox_exec_contract_name = 'sandbox_exec'
+  const sandbox_exec_script = get_sandbox_exec_script()
 
-  const path_contracts = mockup_path + "/contracts";
-  const inputContracts = fs.readFileSync(path_contracts, 'utf8');
-  const cobj = JSON.parse(inputContracts);
-  const o = cobj.find(x => { return (x.name === event_well_contract_name) });
-  const contract_address = isNull(o) ? null : o.value;
+  // deploy contracts
+  const event_well_address = await deploy_contract(event_well_contract_name, event_well_script)
+  const sandbox_exec_address = await deploy_contract(sandbox_exec_contract_name, sandbox_exec_script)
 
   const mockupConf = getMockupConfig();
-  saveMockupConfig({ ...mockupConf, event_well: contract_address })
+  saveMockupConfig({ ...mockupConf, event_well: event_well_address, sandbox_exec: sandbox_exec_address })
 }
 
 async function showVersion(options) {
@@ -1440,6 +1466,46 @@ async function confirmTransfer(force, amount, from, to) {
 
   const str = `Confirm transfer ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${config.tezos.network}?`;
   return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
+}
+
+async function setContractAddress(options) {
+  const name = options.name;
+  const address = options.value;
+
+  if (isMockupMode()) {
+    const msg = `Cannot set contract in mockup mode.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  let field = undefined;
+  switch (name) {
+    case "sandbox_exec":
+      field = "sandbox_exec_address"
+      break;
+    default:
+      const msg = `Unknown contract ${name}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+  }
+  const config = getConfig();
+  let network = config.tezos.list.find(x => x.network === config.tezos.network);
+  network[field] = address;
+
+  saveConfig(config, x => { print(`${name} contract saved as ${address} for network ${config.tezos.network}`) });
+}
+
+async function printContract(options) {
+  const name = options.name;
+
+  let script = undefined;
+  switch (name) {
+    case "sandbox_exec":
+      script = get_sandbox_exec_script()
+      break;
+    default:
+      const msg = `Unknown contract ${name}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+  }
+  print(script)
 }
 
 async function transfer(options) {
@@ -1940,6 +2006,23 @@ function getTezosClientArgs(args) {
   return b.toString()
 }
 
+function is_sandbox_exec(path) {
+  if (path.endsWith(".arl")) {
+    const content = fs.readFileSync(path).toString();
+    return content && content.indexOf("sandbox_exec") >= 0
+  }
+  return false
+}
+
+function fetch_sandbox_exec_address_from_network(network) {
+  if (isMockupMode()) {
+    const mockupConf = getMockupConfig();
+    return mockupConf.sandbox_exec;
+  } else {
+    return network.sandbox_exec_address
+  }
+}
+
 async function deploy(options) {
   const config = getConfig();
 
@@ -1960,6 +2043,16 @@ async function deploy(options) {
   const force_tezos_client = options.force_tezos_client === undefined ? isForceTezosClient() : options.force_tezos_client;
   const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
   const init_obj_mich = options.init_obj_mich;
+  const is_sandbox_exec_here = is_sandbox_exec(file);
+  let sandbox_exec_address = options.sandbox_exec_address;
+
+  if (isNull(sandbox_exec_address) && is_sandbox_exec_here) {
+    sandbox_exec_address = fetch_sandbox_exec_address_from_network(network)
+    if (isNull(sandbox_exec_address)) {
+      const msg = `Cannot fetch sandbox_exec address for network: ${config.tezos.network}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+  }
 
   if (otest && originate) {
     const msg = `Cannot originate a contract in test mode.`;
@@ -2035,7 +2128,8 @@ async function deploy(options) {
       try {
         code = await callArchetype(options, file, {
           target: "michelson",
-          sci: account.pkh
+          sci: account.pkh,
+          sandbox_exec_address: sandbox_exec_address
         });
       } catch (e) {
         return new Promise((resolve, reject) => { reject(e) });
@@ -2078,7 +2172,8 @@ async function deploy(options) {
       try {
         const storage = await callArchetype(options, file, {
           target: "michelson-storage",
-          sci: account.pkh
+          sci: account.pkh,
+          sandbox_exec_address: sandbox_exec_address
         });
         m_storage = expr_micheline_to_json(storage);
       } catch (e) {
@@ -4577,6 +4672,12 @@ async function exec(options) {
         break;
       case "remove_account":
         await removeAccount(options);
+        break;
+      case "set_contract_address":
+        await setContractAddress(options);
+        break;
+      case "print_contract":
+        await printContract(options);
         break;
       case "transfer":
         await transfer(options);

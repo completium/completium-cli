@@ -132,6 +132,14 @@ function parseCommand(args) {
   } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
     res = { command: "remove_account", account: args[4] };
     nargs = args.slice(5);
+    // set contract address <CONTRACT_NAME> <ADDRESS>
+  } else if (length > 6 && args[2] === "set" && args[3] === "contract" && args[4] === "address") {
+    res = { command: "set_contract_address", name: args[5], value: args[6] };
+    nargs = args.slice(7);
+    // print contract <CONTRACT_NAME>
+  } else if (length > 4 && args[2] === "print" && args[3] === "contract") {
+    res = { command: "print_contract", name: args[4] };
+    nargs = args.slice(5);
     // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
     res = { command: "transfer", vamount: args[3], from: args[5], to: args[7] };
@@ -307,6 +315,7 @@ function parseCommand(args) {
       '--taquito-schema': Boolean,
       '--with-dapp-originate': Boolean,
       '--network': String,
+      '--sandbox-exec-address': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -351,6 +360,7 @@ function parseCommand(args) {
     taquito_schema: options['--taquito-schema'],
     with_dapp_originate: options['--with-dapp-originate'] || false,
     network: options['--network'],
+    sandbox_exec_address: options['--sandbox-exec-address'],
   }
 }
 
