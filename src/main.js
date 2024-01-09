@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.8'
+const version = '1.0.9'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2374,7 +2374,11 @@ async function confirmCall(force, account, contract_id, amount, entry, arg, esti
 
 function extract_regexp(rx, input) {
   const arr = rx.exec(input);
-  return arr[1]
+  if (arr && arr.length && arr.length > 0) {
+    return arr[1]
+  } else {
+    return null
+  }
 }
 
 function process_event(input) {
