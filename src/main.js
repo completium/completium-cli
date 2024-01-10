@@ -1,7 +1,7 @@
 /*!
  * completium-cli <https://github.com/completium/completium-cli>
  *
- * Copyright (c) 2021-2023, edukera, SAS.
+ * Copyright (c) 2021-2024, edukera, SAS.
  * Released under the MIT License.
  */
 
@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.9'
+const version = '1.0.10'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -3107,6 +3107,7 @@ async function generateCodeGen(options, target) {
   const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
   const parametersMicheline = options.iparametersMicheline !== undefined ? JSON.parse(options.iparametersMicheline) : options.iparametersMicheline;
   const json = options.json || false;
+  let sandbox_exec_address = options.sandbox_exec_address;
 
   const contract = getContract(value);
 
@@ -3119,13 +3120,28 @@ async function generateCodeGen(options, target) {
     print(`File not found.`);
     return new Promise(resolve => { resolve(null) });
   }
+
+  const is_sandbox_exec_here = is_sandbox_exec(file);
+  if (isNull(sandbox_exec_address) && is_sandbox_exec_here) {
+    const config = getConfig()
+    const network = config.tezos.list.find(x => x.network === config.tezos.network);
+
+    sandbox_exec_address = fetch_sandbox_exec_address_from_network(network)
+    if (isNull(sandbox_exec_address)) {
+      const msg = `Cannot fetch sandbox_exec address for network: ${config.tezos.network}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+  }
+
   let code = await callArchetype(options, file, {
     target: target,
-    json: json
+    json: json,
+    sandbox_exec_address: sandbox_exec_address
   });
 
   const with_parameters = await callArchetype(options, file, {
-    with_parameters: true
+    with_parameters: true,
+    sandbox_exec_address: sandbox_exec_address
   });
   if (with_parameters !== "") {
     const contract_parameter = JSON.parse(with_parameters);
