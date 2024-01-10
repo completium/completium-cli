@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.10'
+const version = '1.0.11'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -934,6 +934,13 @@ function get_event_well_script() {
 
 function get_sandbox_exec_script() {
   return `{ storage unit; parameter (pair (list (ticket (pair nat (option bytes)))) (lambda (list (ticket (pair nat (option bytes)))) (list operation))); code { UNPAIR; UNPAIR; EXEC; PAIR} }`
+}
+
+function get_sandbox_exec_address() {
+  const config = getConfig()
+  const network = config.tezos.list.find(x => x.network === config.tezos.network)
+
+  return fetch_sandbox_exec_address_from_network(network)
 }
 
 async function deploy_contract(contract_name, script) {
@@ -3123,10 +3130,7 @@ async function generateCodeGen(options, target) {
 
   const is_sandbox_exec_here = is_sandbox_exec(file);
   if (isNull(sandbox_exec_address) && is_sandbox_exec_here) {
-    const config = getConfig()
-    const network = config.tezos.list.find(x => x.network === config.tezos.network);
-
-    sandbox_exec_address = fetch_sandbox_exec_address_from_network(network)
+    sandbox_exec_address = get_sandbox_exec_address()
     if (isNull(sandbox_exec_address)) {
       const msg = `Cannot fetch sandbox_exec address for network: ${config.tezos.network}.`;
       return new Promise((resolve, reject) => { reject(msg) });
@@ -3208,8 +3212,13 @@ async function print_generate_event_binding_ts(options) {
 async function generate_unit_binding_ts(ipath, target, with_dapp_originate) {
   try {
     const is_michelson = ipath.endsWith(".tz");
+    const is_archetype = ipath.endsWith(".arl");
+    let sandbox_exec_address = undefined
+    if (is_archetype && is_sandbox_exec(ipath)) {
+      sandbox_exec_address = get_sandbox_exec_address()
+    }
     const dir_path = path.dirname(ipath) + '/';
-    const contract_interface = await generate_contract_interface({ path: ipath }, is_michelson);
+    const contract_interface = await generate_contract_interface({ path: ipath, sandbox_exec_address: sandbox_exec_address }, is_michelson);
     if (isNull(contract_interface)) {
       return null;
     }
@@ -3302,11 +3311,13 @@ async function generate_contract_interface(options, is_michelson) {
   let obj;
   if (is_michelson) {
     obj = {
-      contract_interface_michelson: true
+      contract_interface_michelson: true,
+      sandbox_exec_address: options.sandbox_exec_address
     }
   } else {
     obj = {
-      contract_interface: true
+      contract_interface: true,
+      sandbox_exec_address: options.sandbox_exec_address
     }
   }
   return await generate_gen(options, obj)
@@ -4876,3 +4887,4 @@ exports.build_json_type = build_json_type
 
 exports.extractUpdatedStorage = extractUpdatedStorage
 exports.buildLogTransaction = buildLogTransaction
+exports.get_sandbox_exec_address = get_sandbox_exec_address
