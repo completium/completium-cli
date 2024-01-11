@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.11'
+const version = '1.0.12'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -4844,6 +4844,7 @@ exports.runView = runView;
 exports.getStorage = getStorage;
 exports.getTezosContract = getTezosContract;
 exports.getBalance = getBalance;
+exports.retrieveBalanceFor = retrieveBalanceFor;
 exports.exec = exec;
 exports.setAccount = setAccount;
 exports.setEndpoint = setEndpoint;

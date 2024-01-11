@@ -305,6 +305,7 @@ exports.runView = runView;
 exports.getStorage = getStorage;
 exports.getContract = getContract;
 exports.getBalance = getBalance;
+exports.retrieveBalanceFor = Main.retrieveBalanceFor;
 exports.setAccount = setAccount;
 exports.setEndpoint = setEndpoint;
 exports.getAddress = getAddress;
