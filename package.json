@@ -1,6 +1,6 @@
 {
   "name": "@completium/completium-cli",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "Completium CLI",
   "main": "./src/completium.js",
   "module": "./src/completium.js",
@@ -52,7 +52,7 @@
     "esm": "^3.2.25",
     "execa": "^4.0.3",
     "fractional": "^1.0.0",
-    "glob": "^10.3.10",
+    "glob": "7.2.3",
     "inquirer": "^7.3.3",
     "keccak": "^3.0.2",
     "minimatch": ">=3.0.5",
