@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.15'
+const version = '1.0.16'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -4584,7 +4584,11 @@ async function importContract(options) {
   const name = options.name;
   const network = getNetwork(options.network);
 
-  saveContract(c, x => { print(`Contract ${value} saved as ${name} on network ${network}.`) });
+  saveContract({
+      name: name,
+      address: value,
+      network: network
+    }, x => { print(`Contract ${value} saved as ${name} on network ${network}.`) });
 }
 
 async function removeContracts(options) {
