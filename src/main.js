@@ -634,6 +634,7 @@ function help(options) {
   print("  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]");
   print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
   print("  run getter <GETTER_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]");
+  print("  run view <VIEW_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg-michelson <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]");
   print("  register global constant <MICHELSON_DATA> [--as <CALLER_ADDRESS>] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
