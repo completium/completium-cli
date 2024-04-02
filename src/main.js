@@ -1236,7 +1236,9 @@ async function generateAccount(options) {
 
   const seed = bip39.mnemonicToSeedSync(mnemonic);
 
-  const privateK = taquitoUtils.b58cencode(seed.slice(0, 32), taquitoUtils.prefix.edsk2);
+  const buffer = seed.slice(0, 32);
+  // const buffer = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const privateK = taquitoUtils.b58cencode(buffer, taquitoUtils.prefix.edsk2);
   const signer_ = await signer.InMemorySigner.fromSecretKey(privateK);
 
   const pubk = await signer_.publicKey();
