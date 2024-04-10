@@ -2836,7 +2836,7 @@ async function printView(options) {
     })
 }
 
-async function run(options) {
+async function run_internal(options) {
   const path = options.path;
   const arg = options.argMichelson !== undefined ? options.argMichelson : "Unit";
   const entry = options.entry !== undefined ? options.entry : "default";
@@ -2885,9 +2885,124 @@ async function run(options) {
   if (failed) {
     return new Promise((resolve, reject) => { reject(stderr) });
   } else {
-    print(stdout);
+    return new Promise((resolve, reject) => { resolve(stdout) });
   }
-  return new Promise(resolve => { resolve(null) });
+}
+
+async function run(options) {
+  const stdout = await run_internal(options);
+  print(stdout)
+}
+
+function extractOperations(text) {
+    const transactionRegex = /Internal Transaction:\s+Amount: (ꜩ\d+(?:\.\d+)?)\s+From: (\S+)\s+To: (\S+)(?:\s+Entrypoint: (\S+))?(?:\s+Parameter: (\d+))?/g;
+
+    const eventRegex = /Internal Event:\s+From: (\S+)\s+Type: \(((?:.|\s)*?)\)\s+Tag: (\S+)\s+Payload: \(((?:.|\s)*?)\)/g;
+
+    const operations = [];
+
+    let match;
+
+    while ((match = transactionRegex.exec(text)) !== null) {
+        operations.push({
+            kind: "Transaction",
+            amount: match[1],
+            from: match[2],
+            to: match[3],
+            entrypoint: match[4] || null,
+            parameter: match[5] || null
+        });
+    }
+
+    while ((match = eventRegex.exec(text)) !== null) {
+        operations.push({
+            kind: "Event",
+            from: match[1],
+            type: match[2],
+            tag: match[3],
+            payload: match[4]
+        });
+    }
+
+    return operations;
+}
+
+function extractBigMapDiff(text) {
+    // Séparation du texte en lignes
+    const lines = text.split('\n');
+
+    const mapOperations = [];
+
+    lines.forEach(line => {
+        let match;
+        if (match = line.match(/New map\((\d+)\) of type \((.+?)\)/)) {
+            mapOperations.push({
+                kind: "New",
+                id: match[1],
+                type: match[2]
+            });
+        } else if (match = line.match(/Set map\((\d+)\)\["(.+?)"\] to (\d+)/)) {
+            mapOperations.push({
+                kind: "Set",
+                id: match[1],
+                key: match[2],
+                value: match[3]
+            });
+        } else if (match = line.match(/Unset map\((\d+)\)\["(.+?)"\]/)) {
+            mapOperations.push({
+                kind: "Unset",
+                id: match[1],
+                key: match[2]
+            });
+        } else if (match = line.match(/Clear map\((\d+)\)/)) {
+            mapOperations.push({
+                kind: "Clear",
+                mapId: match[1]
+            });
+        } else if (match = line.match(/Copy map\((\d+)\) to map\((\d+)\)/)) {
+            mapOperations.push({
+                kind: "Copy",
+                sourceId: match[1],
+                targetId: match[2]
+            });
+        }
+    });
+
+    return mapOperations;
+}
+
+function extract_trace_interp(text) {
+  if (isNull(text)) {
+    return {}
+  }
+  const storageRegex = /storage\n\s+([\s\S]+?)\nemitted operations\n/;
+  const operationsRegex = /emitted operations\s+([\s\S]+?)big_map diff/;
+  const bigMapDiffRegex = /big_map diff\s+([\s\S]+)/;
+
+  const storageMatch = text.match(storageRegex);
+  const operationsMatch = text.match(operationsRegex);
+  const bigMapDiffMatch = text.match(bigMapDiffRegex);
+
+  const input_operations = operationsMatch[1].trim()
+  const input_big_map_diff = bigMapDiffMatch[1].trim();
+
+  return {
+    storage: storageMatch ? storageMatch[1].trim() : null,
+    operations: operationsMatch ? extractOperations(input_operations) : [],
+    big_map_diff: bigMapDiffMatch ? extractBigMapDiff(input_big_map_diff) : []
+  };
+}
+
+exports.extract_trace_interp = extract_trace_interp
+
+async function interp(options) {
+  const stdout = await run_internal(options);
+  return extract_trace_interp(stdout)
+}
+
+async function interpDisplay(option) {
+  const json = await interp(option)
+  print(JSON.stringify(json))
 }
 
 async function computeArg(args, paramType) {
@@ -4588,10 +4703,10 @@ async function importContract(options) {
   const network = getNetwork(options.network);
 
   saveContract({
-      name: name,
-      address: value,
-      network: network
-    }, x => { print(`Contract ${value} saved as ${name} on network ${network}.`) });
+    name: name,
+    address: value,
+    network: network
+  }, x => { print(`Contract ${value} saved as ${name} on network ${network}.`) });
 }
 
 async function removeContracts(options) {
@@ -4743,6 +4858,9 @@ async function exec(options) {
         break;
       case "run":
         await run(options);
+        break;
+      case "interp":
+        await interpDisplay(options);
         break;
       case "generate_michelson":
         await generateMichelson(options);

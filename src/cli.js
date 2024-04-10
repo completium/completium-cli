@@ -207,6 +207,10 @@ function parseCommand(args) {
   } else if (length > 3 && args[2] === "run") {
     res = { command: "run", path: args[3] };
     nargs = args.slice(4);
+    // interp <FILE.[arl|tz]>
+  } else if (length > 3 && args[2] === "interp") {
+    res = { command: "interp", path: args[3] };
+    nargs = args.slice(4);
     // show entries of <CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
     res = { command: "show_entries", contract: args[4] };
