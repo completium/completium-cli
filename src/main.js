@@ -635,6 +635,7 @@ function help(options) {
   print("  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]");
   print("  run getter <GETTER_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]");
   print("  run view <VIEW_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg-michelson <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]");
+  print("  interp <FILE.[arl|tz]> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--force]");
   print("  register global constant <MICHELSON_DATA> [--as <CALLER_ADDRESS>] [--force]");
   print("  generate michelson <FILE.arl|CONTRACT_ALIAS>");
   print("  generate javascript <FILE.arl|CONTRACT_ALIAS>");
@@ -2895,80 +2896,80 @@ async function run(options) {
 }
 
 function extractOperations(text) {
-    const transactionRegex = /Internal Transaction:\s+Amount: (ꜩ\d+(?:\.\d+)?)\s+From: (\S+)\s+To: (\S+)(?:\s+Entrypoint: (\S+))?(?:\s+Parameter: (\d+))?/g;
+  const transactionRegex = /Internal Transaction:\s+Amount: (ꜩ\d+(?:\.\d+)?)\s+From: (\S+)\s+To: (\S+)(?:\s+Entrypoint: (\S+))?(?:\s+Parameter: (\d+))?/g;
 
-    const eventRegex = /Internal Event:\s+From: (\S+)\s+Type: \(((?:.|\s)*?)\)\s+Tag: (\S+)\s+Payload: \(((?:.|\s)*?)\)/g;
+  const eventRegex = /Internal Event:\s+From: (\S+)\s+Type: \(((?:.|\s)*?)\)\s+Tag: (\S+)\s+Payload: \(((?:.|\s)*?)\)/g;
 
-    const operations = [];
+  const operations = [];
 
-    let match;
+  let match;
 
-    while ((match = transactionRegex.exec(text)) !== null) {
-        operations.push({
-            kind: "Transaction",
-            amount: match[1],
-            from: match[2],
-            to: match[3],
-            entrypoint: match[4] || null,
-            parameter: match[5] || null
-        });
-    }
+  while ((match = transactionRegex.exec(text)) !== null) {
+    operations.push({
+      kind: "Transaction",
+      amount: match[1],
+      from: match[2],
+      to: match[3],
+      entrypoint: match[4] || null,
+      parameter: match[5] || null
+    });
+  }
 
-    while ((match = eventRegex.exec(text)) !== null) {
-        operations.push({
-            kind: "Event",
-            from: match[1],
-            type: match[2],
-            tag: match[3],
-            payload: match[4]
-        });
-    }
+  while ((match = eventRegex.exec(text)) !== null) {
+    operations.push({
+      kind: "Event",
+      from: match[1],
+      type: match[2],
+      tag: match[3],
+      payload: match[4]
+    });
+  }
 
-    return operations;
+  return operations;
 }
 
 function extractBigMapDiff(text) {
-    // Séparation du texte en lignes
-    const lines = text.split('\n');
+  // Séparation du texte en lignes
+  const lines = text.split('\n');
 
-    const mapOperations = [];
+  const mapOperations = [];
 
-    lines.forEach(line => {
-        let match;
-        if (match = line.match(/New map\((\d+)\) of type \((.+?)\)/)) {
-            mapOperations.push({
-                kind: "New",
-                id: match[1],
-                type: match[2]
-            });
-        } else if (match = line.match(/Set map\((\d+)\)\["(.+?)"\] to (\d+)/)) {
-            mapOperations.push({
-                kind: "Set",
-                id: match[1],
-                key: match[2],
-                value: match[3]
-            });
-        } else if (match = line.match(/Unset map\((\d+)\)\["(.+?)"\]/)) {
-            mapOperations.push({
-                kind: "Unset",
-                id: match[1],
-                key: match[2]
-            });
-        } else if (match = line.match(/Clear map\((\d+)\)/)) {
-            mapOperations.push({
-                kind: "Clear",
-                mapId: match[1]
-            });
-        } else if (match = line.match(/Copy map\((\d+)\) to map\((\d+)\)/)) {
-            mapOperations.push({
-                kind: "Copy",
-                sourceId: match[1],
-                targetId: match[2]
-            });
-        }
-    });
+  lines.forEach(line => {
+    let match;
+    if (match = line.match(/New map\((\d+)\) of type \((.+?)\)/)) {
+      mapOperations.push({
+        kind: "New",
+        id: match[1],
+        type: match[2]
+      });
+    } else if (match = line.match(/Set map\((\d+)\)\["(.+?)"\] to (\d+)/)) {
+      mapOperations.push({
+        kind: "Set",
+        id: match[1],
+        key: match[2],
+        value: match[3]
+      });
+    } else if (match = line.match(/Unset map\((\d+)\)\["(.+?)"\]/)) {
+      mapOperations.push({
+        kind: "Unset",
+        id: match[1],
+        key: match[2]
+      });
+    } else if (match = line.match(/Clear map\((\d+)\)/)) {
+      mapOperations.push({
+        kind: "Clear",
+        mapId: match[1]
+      });
+    } else if (match = line.match(/Copy map\((\d+)\) to map\((\d+)\)/)) {
+      mapOperations.push({
+        kind: "Copy",
+        sourceId: match[1],
+        targetId: match[2]
+      });
+    }
+  });
 
-    return mapOperations;
+  return mapOperations;
 }
 
 function extract_trace_interp(text) {
@@ -2993,11 +2994,33 @@ function extract_trace_interp(text) {
   };
 }
 
-exports.extract_trace_interp = extract_trace_interp
+function extract_fail_interp(input) {
+  const failRegex = /script reached FAILWITH instruction\nwith([\s\S]+)\nFatal error:/;
+
+  const failMatch = input.match(failRegex);
+
+  const data = failMatch[1].trim()
+  let res = data
+  try {
+    res = json_micheline_to_expr(expr_micheline_to_json(data))
+    if (isNull(res)) {
+      res = data
+    }
+  } catch (e) {
+    res = data
+  }
+
+  return {failwith: res}
+}
 
 async function interp(options) {
-  const stdout = await run_internal(options);
-  return extract_trace_interp(stdout)
+  let stdout;
+  try {
+    stdout = await run_internal(options);
+  } catch (e) {
+    return extract_fail_interp(e)
+  }
+ return extract_trace_interp(stdout)
 }
 
 async function interpDisplay(option) {
