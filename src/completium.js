@@ -348,3 +348,4 @@ exports.getStorageType = Main.getStorageType
 exports.getParameterType = Main.getParameterType
 exports.build_json_type = Main.build_json_type
 exports.get_sandbox_exec_address = Main.get_sandbox_exec_address
+exports.interp = Main.interp
