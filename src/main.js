@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.18'
+const version = '1.0.19'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -2876,6 +2876,27 @@ async function run_internal(options) {
   const args = [
     "run", "script", michelson_path, "on", "storage", d_storage, "and", "input", arg, "--entrypoint", entry, "--amount", d_amount
   ];
+  if (options.opt_balance) {
+    args.push("--balance")
+    args.push(options.opt_balance)
+  }
+  if (options.opt_source) {
+    args.push("--source")
+    args.push(options.opt_source)
+  }
+  if (options.opt_self_address) {
+    args.push("--self-address")
+    args.push(options.opt_self_address)
+  }
+  if (options.opt_now) {
+    args.push("--now")
+    args.push(options.opt_now)
+  }
+  if (options.opt_level) {
+    args.push("--level")
+    args.push(options.opt_level)
+  }
+
   if (trace) {
     args.push("--trace-stack");
   }
@@ -5038,3 +5059,5 @@ exports.extractUpdatedStorage = extractUpdatedStorage
 exports.buildLogTransaction = buildLogTransaction
 exports.get_sandbox_exec_address = get_sandbox_exec_address
 exports.interp = interp
+exports.extract_fail_interp = extract_fail_interp
+exports.extract_trace_interp = extract_trace_interp

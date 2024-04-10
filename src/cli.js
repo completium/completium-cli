@@ -320,6 +320,11 @@ function parseCommand(args) {
       '--with-dapp-originate': Boolean,
       '--network': String,
       '--sandbox-exec-address': String,
+      '--balance': String,
+      '--source': String,
+      '--self-address': String,
+      '--now': String,
+      '--level': String,
 
       // '-y': '--yes',
       '-d': '--dry',
@@ -365,6 +370,11 @@ function parseCommand(args) {
     with_dapp_originate: options['--with-dapp-originate'] || false,
     network: options['--network'],
     sandbox_exec_address: options['--sandbox-exec-address'],
+    opt_balance: options['--balance'],
+    opt_source: options['--source'],
+    opt_self_address: options['--self-address'],
+    opt_now: options['--now'],
+    opt_level: options['--level'],
   }
 }
 
