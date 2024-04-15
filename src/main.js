@@ -2950,7 +2950,6 @@ function extractOperations(text) {
 }
 
 function extractBigMapDiff(text) {
-  // Séparation du texte en lignes
   const lines = text.split('\n');
 
   const mapOperations = [];
@@ -2993,6 +2992,14 @@ function extractBigMapDiff(text) {
   return mapOperations;
 }
 
+function simplifyMicheline(data) {
+  try {
+    return json_micheline_to_expr(expr_micheline_to_json(data))
+  } catch (e) {
+    return data
+  }
+}
+
 function extract_trace_interp(text) {
   if (isNull(text)) {
     return {}
@@ -3009,7 +3016,7 @@ function extract_trace_interp(text) {
   const input_big_map_diff = bigMapDiffMatch[1].trim();
 
   return {
-    storage: storageMatch ? storageMatch[1].trim() : null,
+    storage: storageMatch ? simplifyMicheline(storageMatch[1].trim()) : null,
     operations: operationsMatch ? extractOperations(input_operations) : [],
     big_map_diff: bigMapDiffMatch ? extractBigMapDiff(input_big_map_diff) : []
   };
@@ -3023,7 +3030,7 @@ function extract_fail_interp(input) {
   const data = failMatch[1].trim()
   let res = data
   try {
-    res = json_micheline_to_expr(expr_micheline_to_json(data))
+    res = simplifyMicheline(data)
     if (isNull(res)) {
       res = data
     }
@@ -3031,7 +3038,7 @@ function extract_fail_interp(input) {
     res = data
   }
 
-  return {failwith: res}
+  return { failwith: res }
 }
 
 async function interp(options) {
@@ -3041,7 +3048,7 @@ async function interp(options) {
   } catch (e) {
     return extract_fail_interp(e)
   }
- return extract_trace_interp(stdout)
+  return extract_trace_interp(stdout)
 }
 
 async function interpDisplay(option) {
