@@ -2900,6 +2900,7 @@ async function run_internal(options) {
   if (trace) {
     args.push("--trace-stack");
   }
+  // console.log(args.join(' '))
   if (verbose) {
     print(args);
   }
@@ -3038,7 +3039,15 @@ function extract_fail_interp(input) {
     res = data
   }
 
-  return { failwith: res }
+  return {failwith: res}
+}
+
+function handle_fail(e) {
+  if (e.indexOf("script reached FAILWITH instruction") >= 0) {
+    return extract_fail_interp(e)
+  } else {
+    return {error: e}
+  }
 }
 
 async function interp(options) {
@@ -3046,9 +3055,9 @@ async function interp(options) {
   try {
     stdout = await run_internal(options);
   } catch (e) {
-    return extract_fail_interp(e)
+    return handle_fail(e)
   }
-  return extract_trace_interp(stdout)
+ return extract_trace_interp(stdout)
 }
 
 async function interpDisplay(option) {
