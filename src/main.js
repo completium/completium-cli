@@ -2886,7 +2886,7 @@ async function run_internal(options) {
   }
   if (options.opt_payer) {
     args.push("--payer")
-    args.push(options.opt_source)
+    args.push(options.opt_payer)
   }
   if (options.opt_self_address) {
     args.push("--self-address")
