@@ -3043,14 +3043,14 @@ function extract_fail_interp(input) {
     res = data
   }
 
-  return {failwith: res}
+  return { failwith: res }
 }
 
 function handle_fail(e) {
   if (e.indexOf("script reached FAILWITH instruction") >= 0) {
     return extract_fail_interp(e)
   } else {
-    return {error: e}
+    return { error: e }
   }
 }
 
@@ -3061,7 +3061,7 @@ async function interp(options) {
   } catch (e) {
     return handle_fail(e)
   }
- return extract_trace_interp(stdout)
+  return extract_trace_interp(stdout)
 }
 
 async function interpDisplay(option) {
@@ -4805,6 +4805,65 @@ function build_json_type(obj) {
   return obj
 }
 
+async function decompile_internal(options) {
+  const value = options.value
+
+  const config = getConfig();
+  const isFrombin = config.archetype_from_bin ? config.archetype_from_bin : false;
+
+  if (!isFrombin) {
+    throw new Error("Decompiling is only available in archetype binary mode")
+  }
+  const bin = config.bin.archetype;
+
+  const args = []
+  args.push('-d');
+  if (value.endsWith(".tz") || value.endsWith(".json")) {
+
+    if (!fs.existsSync(value)) {
+      const msg = `File not found: ${value}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+
+    if (value.endsWith(".json")) {
+      args.push('-ij');
+    }
+    args.push(value)
+  } else if (value.startsWith("KT1")) {
+    const content = await getContractScript(value)
+
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync({ prefix: value, postfix: '.json' });
+
+    const path = tmpobj.name;
+    fs.writeFileSync(path, JSON.stringify(content));
+    args.push('-ij');
+    args.push(path)
+  } else {
+    const msg = `Invalid value: ${value}.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { stdout, stderr, failed } = await execa(bin, args, {});
+      if (failed) {
+        const msg = "Archetype compiler: " + stderr;
+        reject(msg);
+      } else {
+        resolve(stdout)
+      }
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+async function decompile(options) {
+  const output = await decompile_internal(options);
+  print(output)
+}
+
 async function exec(options) {
   try {
     switch (options.command) {
@@ -5012,6 +5071,9 @@ async function exec(options) {
         break;
       case "remove_contracts":
         await removeContracts(options);
+        break;
+      case "decompile":
+        await decompile(options);
         break;
       default:
         commandNotFound(options);

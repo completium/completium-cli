@@ -283,6 +283,10 @@ function parseCommand(args) {
   } else if (length > 5 && args[2] === "remove" && args[3] === "contracts" && args[4] === "from") {
     res = { command: "remove_contracts", value: args[5] };
     nargs = args.slice(6);
+    // decompile <CONTRACT_ADDRESS|FILE.[tz|json]>
+  } else if (length > 2 && args[2] === "decompile") {
+    res = { command: "decompile", value: args[3] };
+    nargs = args.slice(3);
   }
 
   const options = arg(
