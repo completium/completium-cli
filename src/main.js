@@ -20,7 +20,7 @@ const { BigNumber } = require('bignumber.js');
 const { Fraction } = require('fractional');
 let archetype = null;
 
-const version = '1.0.22'
+const version = '1.0.23'
 
 const homedir = require('os').homedir();
 const completium_dir = homedir + '/.completium'
@@ -43,8 +43,8 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-// const default_mockup_protocol = 'PtParisBQscdCm6Cfow6ndeU6wKJyA3aV1j4D3gQBQMsTQyJCrz'
-const default_mockup_protocol = 'ProxfordYmVfjWnRcgjWH36fW6PArwqykTFzotUxRs6gmTcZDuH'
+// const default_mockup_protocol = 'ProxfordYmVfjWnRcgjWH36fW6PArwqykTFzotUxRs6gmTcZDuH'
+const default_mockup_protocol = 'PtParisBxoLz5gzMmn3d9WBQNoPSZakgnkMC2VNuQ3KXfUtUQeZ'
 
 const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
 
