@@ -1,9 +1,0 @@
-archetype counter_two_numbers
-
-variable v1 : nat = 6
-variable v2 : nat = 7
-
-entry incrementBoth (inc1 : nat, inc2 : nat) {
-  v1 += inc1;
-  v2 += inc2;
-}

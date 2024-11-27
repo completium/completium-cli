@@ -1,5 +1,0 @@
-archetype addnumber
-
-variable count : nat = 2
-
-entry increment(quantity : nat) { count += quantity }
