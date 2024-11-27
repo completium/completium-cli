@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "arg": "^5.0.2",
     "axios": "^1.7.8",
     "bignumber.js": "^9.1.2"
   },
