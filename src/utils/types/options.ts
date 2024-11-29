@@ -81,4 +81,3 @@ export const emptyOptions : Options = {
    "with_dapp_originate": false,
    "with_tezos_client": false,
  }
- 

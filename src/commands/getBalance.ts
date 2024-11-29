@@ -1,7 +1,7 @@
 import { getBalanceFor } from "../utils/tezos";
 import { handleError } from "../utils/errorHandler";
 import { RPC_URL } from "../utils/constants";
-import { Options } from "../utils/types";
+import { Options } from "../utils/types/options";
 import { Printer } from "../utils/printer";
 
 /**

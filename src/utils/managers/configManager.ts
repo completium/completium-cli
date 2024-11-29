@@ -1,0 +1,71 @@
+import fs from "fs";
+import path from "path";
+import { Config } from "../types/configuration";
+
+export class ConfigManager {
+  private static readonly configPath = path.resolve(
+    process.env.HOME || "",
+    ".completium/config.json"
+  );
+
+  /**
+   * Loads the configuration from the file system.
+   * Throws an error if the configuration file does not exist.
+   */
+  private static loadConfig(): Config {
+    if (fs.existsSync(ConfigManager.configPath)) {
+      const rawData = fs.readFileSync(ConfigManager.configPath, "utf-8");
+      return JSON.parse(rawData) as Config;
+    } else {
+      throw new Error("Configuration file not found. Please run `completium-cli init`.");
+    }
+  }
+
+  /**
+   * Saves the configuration to the file system.
+   */
+  private static saveConfig(config: Config): void {
+    const configDir = path.dirname(ConfigManager.configPath);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(ConfigManager.configPath, JSON.stringify(config, null, 2), "utf-8");
+  }
+
+  /**
+   * Updates the configuration with the provided values and saves it.
+   * @param updatedConfig The new configuration values to merge with the existing configuration.
+   */
+  public static updateConfig(updatedConfig: Partial<Config>): void {
+    const config = { ...this.loadConfig(), ...updatedConfig };
+    this.saveConfig(config);
+  }
+
+  /**
+   * Retrieves the current configuration.
+   */
+  public static getConfig(): Config {
+    return this.loadConfig();
+  }
+
+  /**
+   * Retrieves the default account from the configuration.
+   */
+  public static getDefaultAccount(): string {
+    return this.getConfig().account;
+  }
+
+  /**
+   * Switches the current Tezos network and updates the active endpoint.
+   */
+  public static switchTezosNetwork(network: string): void {
+    const config = this.loadConfig();
+    const target = config.tezos.list.find((net) => net.network === network);
+    if (!target) {
+      throw new Error(`Network ${network} not found in configuration.`);
+    }
+    config.tezos.network = target.network;
+    config.tezos.endpoint = target.endpoints[0];
+    this.saveConfig(config);
+  }
+}

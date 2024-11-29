@@ -2,8 +2,9 @@
 
 import { getBalanceCommand } from "./commands/getBalance";
 import arg from 'arg';
-import { Options } from "./utils/types";
+import { Options } from "./utils/types/options";
 import { Printer } from "./utils/printer";
+import { initCompletium } from "./commands/init";
 
 interface ParsedCommand {
   command?: string;
@@ -426,6 +427,9 @@ async function execCommand(parsedCommand: ParsedCommand) {
   }
   try {
     switch (parsedCommand.command) {
+      case "init":
+        await initCompletium()
+        break;
       case "help":
         const h = help();
         Printer.print(h);
@@ -467,7 +471,7 @@ export async function cli(args: string[]) {
 
 function help(): string {
   const res =
-`
+    `
 usage: [command] [options]
 command:
   init
