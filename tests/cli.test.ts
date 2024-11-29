@@ -1,6 +1,6 @@
 import { cli } from "../src/cli";
 import { getBalanceCommand } from "../src/commands/getBalance";
-import { emptyOptions } from "../src/utils/types";
+import { emptyOptions } from "../src/utils/types/options";
 
 jest.mock("../src/commands/getBalance");
 
