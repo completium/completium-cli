@@ -15,7 +15,7 @@ export async function mockupInitCommand(option: Options): Promise<void> {
 
     let protocol = option.protocol;
 
-    if (!protocol) {   
+    if (!protocol) {
 
       const protocols = TezosClientManager.listMockupProtocols();
 

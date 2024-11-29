@@ -69,7 +69,7 @@ export class TezosClientManager {
    * @param mockupDir The directory for the mockup environment.
    * @param options Optional parameters, including the protocol to use.
    */
-  public static initializeMockup(mockupDir: string, protocol : string): void {
+  public static initializeMockup(mockupDir: string, protocol: string): void {
     if (fs.existsSync(mockupDir)) {
       fs.rmSync(mockupDir, { force: true, recursive: true });
       fs.mkdirSync(mockupDir);
@@ -114,7 +114,7 @@ export class TezosClientManager {
   public static listMockupProtocols(): string[] {
     try {
       const output = this.executeCommand(["list", "mockup", "protocols"]);
-      
+
       // Split the output into lines and filter out any empty lines
       const protocols = output.split("\n").filter((line) => line.trim() !== "");
 
