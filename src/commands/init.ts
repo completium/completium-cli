@@ -49,26 +49,6 @@ export async function initCompletium(): Promise<void> {
           sandbox_exec_address: "KT1MS3bjqJHYkg4mEiRgVmfXGoGUHAdXUuLL",
         },
         {
-          network: "nairobi",
-          bcd_url: "https://better-call.dev/nairobinet/${address}",
-          tzstat_url: "https://nairobi.tzstats.com",
-          endpoints: [
-            "https://nairobinet.ecadinfra.com",
-            "https://nairobinet.smartpy.io",
-            "https://nairobinet.tezos.marigold.dev",
-          ],
-        },
-        {
-          network: "oxford",
-          bcd_url: "https://better-call.dev/oxfordnet/${address}",
-          tzstat_url: "https://oxford.tzstats.com",
-          endpoints: [
-            "https://oxfordnet.ecadinfra.com",
-            "https://oxfordnet.smartpy.io",
-            "https://oxfordnet.tezos.marigold.dev",
-          ],
-        },
-        {
           network: "sandbox",
           bcd_url: "https://localhost:8080/sandbox/${address}",
           endpoints: ["http://localhost:20000", "http://localhost:8732"],
@@ -158,37 +138,34 @@ export async function initCompletium(): Promise<void> {
   ];
 
   // Configuration initialization
-  try {
-    ConfigManager.getConfig();
+  if (!ConfigManager.configExists()) {
+    try {
+      ConfigManager.createConfig(defaultConfig);
+      Printer.print("Configuration initialized successfully.");
+    } catch (error) {
+      Printer.error(`Error initializing configuration: ${error}`);
+      return;
+    }
+  } else {
     Printer.print("Configuration already exists. Skipping creation.");
-  } catch {
-    ConfigManager.updateConfig(defaultConfig);
-    Printer.print("Configuration initialized successfully.");
   }
 
   // Accounts initialization
-  try {
-    const existingAccounts = AccountsManager.getAccounts();
-    if (existingAccounts.length === 0) {
-      defaultAccounts.forEach((account) => AccountsManager.addAccount(account));
-      Printer.print("Default accounts created successfully.");
-    } else {
-      Printer.print("Accounts already exist. Skipping creation.");
-    }
-  } catch {
+  const existingAccounts = AccountsManager.getAccounts();
+  if (existingAccounts.length === 0) {
     defaultAccounts.forEach((account) => AccountsManager.addAccount(account));
-    Printer.print("Accounts initialized successfully.");
+    Printer.print("Default accounts created successfully.");
+  } else {
+    Printer.print("Accounts already exist. Skipping creation.");
   }
 
   // Contracts initialization
-  try {
-    const contracts = ContractManager.getAllContracts();
-    if (contracts.length === 0) {
-      Printer.print("Contracts already initialized.");
-    }
-  } catch {
+  const contracts = ContractManager.getAllContracts();
+  if (contracts.length === 0) {
     Printer.print("No contracts found. Initializing empty contracts file.");
-    const contractsFile: ContractsFile = { contracts: [] };
-    ContractManager.saveContracts(contractsFile);
+    ContractManager.saveContracts({ contracts: [] });
+    Printer.print("Empty contracts file created.");
+  } else {
+    Printer.print("Contracts already exist. Skipping creation.");
   }
 }

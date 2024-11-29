@@ -9,6 +9,27 @@ export class ConfigManager {
   );
 
   /**
+   * Checks if the configuration file exists.
+   * @returns True if the configuration file exists, otherwise false.
+   */
+  public static configExists(): boolean {
+    return fs.existsSync(this.configPath);
+  }
+
+  /**
+   * Creates a new configuration file with the provided default values.
+   * If the parent directory does not exist, it is created.
+   * @param config The default configuration to write to the file.
+   */
+  public static createConfig(config: Config): void {
+    const configDir = path.dirname(ConfigManager.configPath);
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(ConfigManager.configPath, JSON.stringify(config, null, 2), "utf-8");
+  }
+
+  /**
    * Loads the configuration from the file system.
    * Throws an error if the configuration file does not exist.
    */
