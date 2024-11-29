@@ -3,6 +3,7 @@
 import { getBalanceCommand } from "./commands/getBalance";
 import arg from 'arg';
 import { Options } from "./utils/types";
+import { Printer } from "./utils/printer";
 
 interface ParsedCommand {
   command?: string;
@@ -78,7 +79,7 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 3 && args[2] === "switch" && args[3] === "endpoint") {
     res = { command: "switch_endpoint" };
     nargs = args.slice(4);
-    // add endpoint (main|edo|florence) <ENDPOINT_URL>
+    // add endpoint (main|ghost|sandbox) <ENDPOINT_URL>
   } else if (length > 5 && args[2] === "add" && args[3] === "endpoint") {
     res = { command: "add_endpoint", network_: args[4], endpoint: args[5] };
     nargs = args.slice(6);
@@ -110,7 +111,7 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 5 && args[2] === "show" && args[3] === "binary" && args[4] === "path") {
     res = { command: "show_bin_path", bin: args[5] };
     nargs = args.slice(6);
-    // generate account as <ACCOUNT_ALIAS> [--force]
+    // generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
   } else if (length > 5 && args[2] === "generate" && args[3] === "account" && args[4] === "as") {
     res = { command: "generate_account", value: args[5] };
     nargs = args.slice(6);
@@ -193,7 +194,7 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 4 && args[2] === "generate" && args[3] === "event-binding-ts") {
     res = { command: "generate_event_binding_ts", path: args[4] };
     nargs = args.slice(5);
-    // generate binding-ts <FILE.arl>
+    // generate binding-ts <FILE.arl> [--input-path <PATH>  --output-path <PATH>]
   } else if (length > 4 && args[2] === "generate" && args[3] === "binding-ts") {
     res = { command: "generate_binding_ts", path: args[4] };
     nargs = args.slice(5);
@@ -201,7 +202,7 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 4 && args[2] === "generate" && args[3] === "binding-dapp-ts") {
     res = { command: "generate_binding_dapp_ts", path: args[4] };
     nargs = args.slice(5);
-    // generate contract interface <FILE.arl>
+    // generate contract interface <FILE.arl|FILE.tz|CONTRACT_ALIAS>
   } else if (length > 5 && args[2] === "generate" && args[3] === "contract" && args[4] === "interface") {
     res = { command: "generate_contract_interface", path: args[5] };
     nargs = args.slice(6);
@@ -305,6 +306,9 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 2 && args[2] === "decompile") {
     res = { command: "decompile", value: args[3] };
     nargs = args.slice(3);
+  } else if (length > 2 && args[2] === "completion") {
+    res = { command: "completion" };
+    nargs = args.slice(2);
   } else {
     res = { command: undefined }
   }
@@ -414,7 +418,7 @@ function parseCommand(args: string[]): ParsedCommand {
  * Execute the appropriate command based on the parsed input.
  * @param options - The parsed command and its parameters.
  */
-async function execCommand(parsedCommand : ParsedCommand) {
+async function execCommand(parsedCommand: ParsedCommand) {
   if (!parsedCommand.command) {
     console.error("[Error]: Command not found.");
     console.error('Type "completium-cli help" for a list of available commands.');
@@ -422,6 +426,16 @@ async function execCommand(parsedCommand : ParsedCommand) {
   }
   try {
     switch (parsedCommand.command) {
+      case "help":
+        const h = help();
+        Printer.print(h);
+        break;
+
+      case "completion":
+        const scriptCompletion = completion();
+        Printer.print(scriptCompletion);
+        break;
+
       case "get_balance_for":
         if (!parsedCommand.value) {
           throw new Error("No address provided for 'get balance for'.");
@@ -451,3 +465,144 @@ export async function cli(args: string[]) {
 }
 
 
+function help(): string {
+  const res =
+`
+usage: [command] [options]
+command:
+  init
+  help
+  completion
+  version
+  archetype version
+  install archetype
+
+  mockup init [--protocol <VALUE>]
+  mockup set now <value>
+
+  show endpoint
+  switch endpoint
+  add endpoint (main|ghost|sandbox) <ENDPOINT_URL>
+  set endpoint <ENDPOINT_URL>
+  remove endpoint <ENDPOINT_URL>
+
+  set mode archetype (js|docker|binary)
+  switch mode archetype
+  show mode archetype
+  set binary path (archetype|tezos-client) <PATH>
+  show binary path (archetype|tezos-client)
+
+  generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
+  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
+  import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
+  import contract <CONTRACT_ADDRESS> as <CONTRACT_ALIAS> [--network <NETWORK>]
+
+  show keys from <PRIVATE_KEY>
+  set account <ACCOUNT_ALIAS>
+  switch account
+  rename account <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> by <ACCOUNT_ALIAS> [--force]
+  remove account <ACCOUNT_ALIAS>
+
+  set contract address <CONTRACT_NAME> <ADDRESS>
+  print contract <CONTRACT_NAME>
+
+  transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]
+  deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS> | --parameters-micheline <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--show-tezos-client-command]
+  originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]
+  call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]
+  run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]
+  run getter <GETTER_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]
+  run view <VIEW_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg-michelson <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]
+  interp <FILE.[arl|tz]> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--force]
+  register global constant <MICHELSON_DATA> [--as <CALLER_ADDRESS>] [--force]
+  generate michelson <FILE.arl|CONTRACT_ALIAS>
+  generate javascript <FILE.arl|CONTRACT_ALIAS>
+  generate whyml <FILE.arl|CONTRACT_ALIAS>
+  generate event-binding-js <FILE.arl|CONTRACT_ALIAS>
+  generate event-binding-ts <FILE.arl|CONTRACT_ALIAS>
+  generate binding-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH>  --output-path <PATH>]
+  generate binding-dapp-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>] [--with-dapp-originate]
+  generate contract interface <FILE.arl|FILE.tz|CONTRACT_ALIAS>
+
+  show accounts
+  show account [--with-private-key] [--alias <ALIAS>]
+  show contracts
+  show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
+  show entries <CONTRACT_ADDRESS>
+  rename contract <CONTRACT_ALIAS|CONTRACT_ADDRESS> by <CONTRACT_ALIAS> [--force]
+  remove contract <CONTRACT_ALIAS>
+  show url <CONTRACT_ALIAS>
+  show source <CONTRACT_ALIAS>
+  show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>
+  show storage <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]
+  show script <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--json]
+  get balance for <ACCOUNT_NAME|ACCOUNT_ADDRESS>
+
+  log enable
+  log disable
+  log clear [--force]
+  log dump
+
+  create project <PROJECT_NAME>
+  get completium property <VALUE>`;
+  return res;
+}
+
+
+function completion(): string {
+  return `
+_completium_cli_completions() {
+  local cur prev words cword
+  _init_completion || return
+
+  local commands="init help version archetype install mockup show switch add set remove generate import rename transfer deploy originate call run interp register log create get"
+
+  local subcommands_mockup="init set"
+  local subcommands_show="endpoint accounts account contracts contract entries url source address storage script"
+  local subcommands_switch="endpoint account mode"
+  local subcommands_add="endpoint"
+  local subcommands_set="endpoint mode account contract"
+  local subcommands_remove="endpoint account contract"
+  local subcommands_generate="account michelson javascript whyml event-binding-js event-binding-ts binding-ts binding-dapp-ts contract interface"
+  local subcommands_log="enable disable clear dump"
+  local subcommands_get="balance completium"
+
+  case $prev in
+    completium-cli)
+      COMPREPLY=($(compgen -W "$commands" -- "$cur"))
+      ;;
+    mockup)
+      COMPREPLY=($(compgen -W "$subcommands_mockup" -- "$cur"))
+      ;;
+    show)
+      COMPREPLY=($(compgen -W "$subcommands_show" -- "$cur"))
+      ;;
+    switch)
+      COMPREPLY=($(compgen -W "$subcommands_switch" -- "$cur"))
+      ;;
+    add)
+      COMPREPLY=($(compgen -W "$subcommands_add" -- "$cur"))
+      ;;
+    set)
+      COMPREPLY=($(compgen -W "$subcommands_set" -- "$cur"))
+      ;;
+    remove)
+      COMPREPLY=($(compgen -W "$subcommands_remove" -- "$cur"))
+      ;;
+    generate)
+      COMPREPLY=($(compgen -W "$subcommands_generate" -- "$cur"))
+      ;;
+    log)
+      COMPREPLY=($(compgen -W "$subcommands_log" -- "$cur"))
+      ;;
+    get)
+      COMPREPLY=($(compgen -W "$subcommands_get" -- "$cur"))
+      ;;
+    *)
+      COMPREPLY=()
+      ;;
+  esac
+}
+complete -F _completium_cli_completions completium-cli
+  `;
+};
