@@ -1,10 +1,12 @@
+import { Printer } from "./printer";
+
 /**
  * Log an error message and exit the process with a given code.
  * @param message - The error message to display.
  * @param exitCode - The code to exit the process with (default: 1).
  */
 export function handleError(message: string, exitCode = 1): void {
-  console.error(`[Error]: ${message}`);
+  Printer.error(`[Error]: ${message}`);
   process.exit(exitCode);
 }
 
@@ -13,7 +15,7 @@ export function handleError(message: string, exitCode = 1): void {
  * @param err - The error object thrown by the system.
  */
 export function handleSystemError(err: any): void {
-  console.error(`[System Error]: ${err.message}`);
+  Printer.error(`[System Error]: ${err.message}`);
   process.exit(1);
 }
 
@@ -23,11 +25,11 @@ export function handleSystemError(err: any): void {
  */
 export function handleNetworkError(err: any): void {
   if (err.code === "ECONNABORTED") {
-    console.error("[Network Error]: Request timed out.");
+    Printer.error("[Network Error]: Request timed out.");
   } else if (err.response) {
-    console.error(`[Network Error]: ${err.response.status} - ${err.response.data}`);
+    Printer.error(`[Network Error]: ${err.response.status} - ${err.response.data}`);
   } else {
-    console.error(`[Network Error]: ${err.message}`);
+    Printer.error(`[Network Error]: ${err.message}`);
   }
   process.exit(1);
 }

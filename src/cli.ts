@@ -2,48 +2,7 @@
 
 import { getBalanceCommand } from "./commands/getBalance";
 import arg from 'arg';
-
-interface CommandOptions {
-  dry?: boolean;
-  withSecret?: boolean;
-  withPrivateKey?: boolean;
-  amount?: string;
-  fee?: string;
-  burnCap?: string;
-  as?: string;
-  alias?: string;
-  named?: string;
-  entry?: string;
-  iargs?: string;
-  argMichelson?: string;
-  force?: boolean;
-  verbose?: boolean;
-  init?: string;
-  iparameters?: string;
-  iparametersMicheline?: string;
-  metadata_storage?: string;
-  metadata_uri?: string;
-  test?: boolean;
-  json?: boolean;
-  trace?: boolean;
-  force_tezos_client?: boolean;
-  with_tezos_client?: boolean;
-  protocol?: string;
-  storage?: string;
-  show_tezos_client_command?: boolean;
-  input_path?: string;
-  output_path?: string;
-  taquito_schema?: boolean;
-  with_dapp_originate?: boolean;
-  network?: string;
-  sandbox_exec_address?: string;
-  opt_balance?: string;
-  opt_source?: string;
-  opt_payer?: string;
-  opt_self_address?: string;
-  opt_now?: string;
-  opt_level?: string;
-}
+import { Options } from "./utils/types";
 
 interface ParsedCommand {
   command?: string;
@@ -61,7 +20,7 @@ interface ParsedCommand {
   path?: string,
   getterid?: string,
   viewid?: string,
-  options: CommandOptions;
+  options: Options;
 }
 
 /**
@@ -455,23 +414,23 @@ function parseCommand(args: string[]): ParsedCommand {
  * Execute the appropriate command based on the parsed input.
  * @param options - The parsed command and its parameters.
  */
-async function execCommand(options: { command?: string; value?: string }) {
-  if (!options.command) {
+async function execCommand(parsedCommand : ParsedCommand) {
+  if (!parsedCommand.command) {
     console.error("[Error]: Command not found.");
     console.error('Type "completium-cli help" for a list of available commands.');
     process.exit(1); // General error code for invalid commands
   }
   try {
-    switch (options.command) {
+    switch (parsedCommand.command) {
       case "get_balance_for":
-        if (!options.value) {
+        if (!parsedCommand.value) {
           throw new Error("No address provided for 'get balance for'.");
         }
-        await getBalanceCommand(options.value);
+        await getBalanceCommand(parsedCommand.value, parsedCommand.options);
         break;
 
       default:
-        console.error(`[Error]: Command ${options.command} not implemented yet.`);
+        console.error(`[Error]: Command ${parsedCommand.command} not implemented yet.`);
         console.error("Please refer to the documentation or check back later.");
         process.exit(255); // Special error code for unimplemented commands
     }
@@ -486,9 +445,9 @@ async function execCommand(options: { command?: string; value?: string }) {
  * @param args - The arguments from process.argv.
  */
 export async function cli(args: string[]) {
-  const options = parseCommand(args);
+  const parsedCommand = parseCommand(args);
 
-  await execCommand(options);
+  await execCommand(parsedCommand);
 }
 
 

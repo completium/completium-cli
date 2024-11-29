@@ -1,5 +1,6 @@
 import { cli } from "../src/cli";
 import { getBalanceCommand } from "../src/commands/getBalance";
+import { emptyOptions } from "../src/utils/types";
 
 jest.mock("../src/commands/getBalance");
 
@@ -29,7 +30,7 @@ describe("CLI - get balance for", () => {
     await cli(args);
 
     // Assert
-    expect(mockGetBalanceCommand).toHaveBeenCalledWith(address); // Verify the address passed
+    expect(mockGetBalanceCommand).toHaveBeenCalledWith(address, emptyOptions); // Verify the address passed
     expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining("[Error]")); // Ensure no errors were logged
 
     // Cleanup
