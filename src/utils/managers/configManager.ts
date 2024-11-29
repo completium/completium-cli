@@ -89,4 +89,13 @@ export class ConfigManager {
     config.tezos.endpoint = target.endpoints[0];
     this.saveConfig(config);
   }
+
+  /**
+ * Retrieves the configured binaries for archetype and tezos-client.
+ * @returns An object containing the binary paths.
+ */
+  public static getBinaries(): Config["bin"] {
+    const config = this.getConfig();
+    return config.bin;
+  }
 }

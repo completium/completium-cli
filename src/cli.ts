@@ -5,6 +5,8 @@ import arg from 'arg';
 import { Options } from "./utils/types/options";
 import { Printer } from "./utils/printer";
 import { initCompletium } from "./commands/init";
+import { VERSION } from "./utils/constants";
+import { ArchetypeManager } from "./utils/managers/archetypeManager";
 
 interface ParsedCommand {
   command?: string;
@@ -430,6 +432,7 @@ async function execCommand(parsedCommand: ParsedCommand) {
       case "init":
         await initCompletium()
         break;
+
       case "help":
         const h = help();
         Printer.print(h);
@@ -438,6 +441,15 @@ async function execCommand(parsedCommand: ParsedCommand) {
       case "completion":
         const scriptCompletion = completion();
         Printer.print(scriptCompletion);
+        break;
+
+      case "show_version":
+        Printer.print(VERSION);
+        break;
+
+      case "show_archetype_version":
+        const archetypeVersion = ArchetypeManager.getVersion();
+        Printer.print(archetypeVersion);
         break;
 
       case "get_balance_for":
