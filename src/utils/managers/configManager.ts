@@ -98,4 +98,15 @@ export class ConfigManager {
     const config = this.getConfig();
     return config.bin;
   }
+
+  /**
+ * Gets the path for the mockup directory.
+ * Ensures the directory exists.
+ * @returns The path to the mockup directory.
+ */
+  public static getMockupDir(): string {
+    const homeDir = process.env.HOME || ".";
+    const mockupDir = path.join(homeDir, ".completium", "mockup");
+    return mockupDir;
+  }
 }

@@ -7,6 +7,8 @@ import { Printer } from "./utils/printer";
 import { initCompletium } from "./commands/init";
 import { VERSION } from "./utils/constants";
 import { ArchetypeManager } from "./utils/managers/archetypeManager";
+import { TezosClientManager } from "./utils/managers/tezosClientManager";
+import { mockupInitCommand } from "./commands/mockup";
 
 interface ParsedCommand {
   command?: string;
@@ -54,17 +56,13 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 3 && args[2] === "archetype" && args[3] === "version") {
     res = { command: "show_archetype_version" };
     nargs = args.slice(4);
+    // octez-client version
+  } else if (length > 3 && args[2] === "octez-client" && args[3] === "version") {
+    res = { command: "show_octez_client_version" };
+    nargs = args.slice(4);
     // install
   } else if (length > 2 && args[2] === "install") {
     res = { command: "install", bin: args[3] };
-    nargs = args.slice(4);
-    // start sandbox
-  } else if (length > 3 && args[2] === "start" && args[3] === "sandbox") {
-    res = { command: "start_sandbox" };
-    nargs = args.slice(4);
-    // stop sandbox
-  } else if (length > 3 && args[2] === "stop" && args[3] === "sandbox") {
-    res = { command: "stop_sandbox" };
     nargs = args.slice(4);
     // mockup init
   } else if (length > 3 && args[2] === "mockup" && args[3] === "init") {
@@ -452,12 +450,204 @@ async function execCommand(parsedCommand: ParsedCommand) {
         Printer.print(archetypeVersion);
         break;
 
+      case "show_octez_client_version":
+        const tezosVersion = TezosClientManager.getVersion();
+        Printer.print(tezosVersion);
+        break;
+
+      case "install":
+        throw new Error("TODO: install");
+
+      case "mockup_init":
+        await mockupInitCommand(parsedCommand.options);
+        break;
+
+      case "mockup_set_now":
+        throw new Error("TODO: mockup_set_now");
+
+      case "show_endpoint":
+        throw new Error("TODO: show_endpoint");
+
+      case "switch_endpoint":
+        throw new Error("TODO: switch_endpoint");
+
+      case "add_endpoint":
+        throw new Error("TODO: add_endpoint");
+
+      case "set_endpoint":
+        throw new Error("TODO: set_endpoint");
+
+      case "remove_endpoint":
+        throw new Error("TODO: remove_endpoint");
+
+      case "set_mode":
+        throw new Error("TODO: set_mode");
+
+      case "switch_mode":
+        throw new Error("TODO: switch_mode");
+
+      case "show_mode":
+        throw new Error("TODO: show_mode");
+
+      case "set_bin_path":
+        throw new Error("TODO: set_bin_path");
+
+      case "show_bin_path":
+        throw new Error("TODO: show_bin_path");
+
+      case "generate_account":
+        throw new Error("TODO: generate_account");
+
+      case "import_faucet":
+        throw new Error("TODO: import_faucet");
+
+      case "import_privatekey":
+        throw new Error("TODO: import_privatekey");
+
+      case "show_keys_from":
+        throw new Error("TODO: show_keys_from");
+
+      case "show_accounts":
+        throw new Error("TODO: show_accounts");
+
+      case "show_account":
+        throw new Error("TODO: show_account");
+
+      case "set_account":
+        throw new Error("TODO: set_account");
+
+      case "switch_account":
+        throw new Error("TODO: switch_account");
+
+      case "rename_account":
+        throw new Error("TODO: rename_account");
+
+      case "remove_account":
+        throw new Error("TODO: remove_account");
+
+      case "set_contract_address":
+        throw new Error("TODO: set_contract_address");
+
+      case "print_contract":
+        throw new Error("TODO: print_contract");
+
+      case "transfer":
+        throw new Error("TODO: transfer");
+
+      case "deploy":
+        throw new Error("TODO: deploy");
+
+      case "call_contract":
+        throw new Error("TODO: call_contract");
+
+      case "generate_michelson":
+        throw new Error("TODO: generate_michelson");
+
+      case "generate_javascript":
+        throw new Error("TODO: generate_javascript");
+
+      case "generate_whyml":
+        throw new Error("TODO: generate_whyml");
+
+      case "generate_event_binding_js":
+        throw new Error("TODO: generate_event_binding_js");
+
+      case "generate_event_binding_ts":
+        throw new Error("TODO: generate_event_binding_ts");
+
+      case "generate_binding_ts":
+        throw new Error("TODO: generate_binding_ts");
+
+      case "generate_binding_dapp_ts":
+        throw new Error("TODO: generate_binding_dapp_ts");
+
+      case "generate_contract_interface":
+        throw new Error("TODO: generate_contract_interface");
+
+      case "check_michelson":
+        throw new Error("TODO: check_michelson");
+
+      case "run_getter":
+        throw new Error("TODO: run_getter");
+
+      case "run_view":
+        throw new Error("TODO: run_view");
+
+      case "run_binder_ts":
+        throw new Error("TODO: run_binder_ts");
+
+      case "run":
+        throw new Error("TODO: run");
+
+      case "interp":
+        throw new Error("TODO: interp");
+
+      case "show_entries":
+        throw new Error("TODO: show_entries");
+
+      case "show_contracts":
+        throw new Error("TODO: show_contracts");
+
+      case "show_contract":
+        throw new Error("TODO: show_contract");
+
+      case "rename_contract":
+        throw new Error("TODO: rename_contract");
+
+      case "remove_contract":
+        throw new Error("TODO: remove_contract");
+
+      case "show_url":
+        throw new Error("TODO: show_url");
+
+      case "show_source":
+        throw new Error("TODO: show_source");
+
+      case "show_address":
+        throw new Error("TODO: show_address");
+
+      case "show_storage":
+        throw new Error("TODO: show_storage");
+
+      case "show_script":
+        throw new Error("TODO: show_script");
+
       case "get_balance_for":
         if (!parsedCommand.value) {
           throw new Error("No address provided for 'get balance for'.");
         }
         await getBalanceCommand(parsedCommand.value, parsedCommand.options);
         break;
+
+      case "get_completium_property":
+        throw new Error("TODO: get_completium_property");
+
+      case "log_enable":
+        throw new Error("TODO: log_enable");
+
+      case "log_disable":
+        throw new Error("TODO: log_disable");
+
+      case "log_clear":
+        throw new Error("TODO: log_clear");
+
+      case "log_dump":
+        throw new Error("TODO: log_dump");
+
+      case "create_project":
+        throw new Error("TODO: create_project");
+
+      case "register_global_constant":
+        throw new Error("TODO: register_global_constant");
+
+      case "import_contract":
+        throw new Error("TODO: import_contract");
+
+      case "remove_contracts":
+        throw new Error("TODO: remove_contracts");
+
+      case "decompile":
+        throw new Error("TODO: decompile");
 
       default:
         console.error(`[Error]: Command ${parsedCommand.command} not implemented yet.`);

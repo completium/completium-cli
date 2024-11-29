@@ -20,6 +20,16 @@ export function handleSystemError(err: any): void {
 }
 
 /**
+ * Handle tezos errors.
+ * @param err - The error object thrown by the system.
+ */
+export function handleTezosError(err: any): void {
+  Printer.error(`[Tezos Error]: ${err.message}`);
+  process.exit(1);
+}
+
+
+/**
  * Handle network-related errors, providing clear feedback to the user.
  * @param err - The error object thrown by a network call.
  */
