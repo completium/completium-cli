@@ -8,7 +8,8 @@ import { initCompletium } from "./commands/init";
 import { VERSION } from "./utils/constants";
 import { ArchetypeManager } from "./utils/managers/archetypeManager";
 import { TezosClientManager } from "./utils/managers/tezosClientManager";
-import { mockupInitCommand } from "./commands/mockup";
+import { mockupInitCommand, mockupSetNowCommand } from "./commands/mockup";
+import { handleError } from "./utils/errorHandler";
 
 interface ParsedCommand {
   command?: string;
@@ -463,7 +464,12 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "mockup_set_now":
-        throw new Error("TODO: mockup_set_now");
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: Value unset.`);
+          process.exit(1);
+        }
+        await mockupSetNowCommand(parsedCommand.value, null);
+        break;
 
       case "show_endpoint":
         throw new Error("TODO: show_endpoint");
@@ -681,6 +687,7 @@ command:
   completion
   version
   archetype version
+  octez-client version
   install archetype
 
   mockup init [--protocol <VALUE>]

@@ -109,4 +109,8 @@ export class ConfigManager {
     const mockupDir = path.join(homeDir, ".completium", "mockup");
     return mockupDir;
   }
+
+  public static isMockupMode() {
+    return true;
+  }
 }

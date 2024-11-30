@@ -37,3 +37,42 @@ export async function mockupInitCommand(option: Options): Promise<void> {
     Printer.error(`Failed to initialize mockup environment: ${err.message}`);
   }
 }
+
+export async function mockupSetNowCommand(value : string, date ?: any): Promise<void> {
+  // Ensure the current mode is mockup
+  if (!ConfigManager.isMockupMode()) {
+    throw new Error("Mode mockup is required for setMockupNow.");
+  }
+
+  let targetDate: Date;
+
+  // Determine the target date
+  if (date) {
+    if (typeof date === "number") {
+      // Check if the timestamp is valid
+      if (date > 253400000000) {
+        throw new Error("Invalid value (expecting timestamp in seconds).");
+      }
+      targetDate = new Date(date * 1000); // Convert seconds to milliseconds
+    } else {
+      targetDate = date;
+    }
+  } else {
+    if (!value) {
+      throw new Error("No value provided for setMockupNow.");
+    }
+    targetDate = new Date(value);
+  }
+
+  // Adjust the date to remove milliseconds and subtract 1 second
+  targetDate.setMilliseconds(0);
+  targetDate.setSeconds(targetDate.getSeconds() - 1);
+
+  // Format the date to ISO string
+  const isoTimestamp = targetDate.toISOString();
+
+  // Load the mockup context
+  const mockupDir = ConfigManager.getMockupDir();
+  TezosClientManager.setMockupNow(mockupDir, isoTimestamp);
+
+}

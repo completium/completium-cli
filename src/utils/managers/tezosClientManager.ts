@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import { execSync } from "child_process";
 import { ConfigManager } from "./configManager";
 import { Printer } from "../printer";
@@ -89,22 +90,21 @@ export class TezosClientManager {
    * @param mockupDir The directory for the mockup environment.
    * @param timestamp The desired timestamp (ISO 8601 or relative, e.g., `+1h`).
    */
-  public static setMockupNow(mockupDir: string, timestamp: string): void {
-    Printer.print(`Setting mockup timestamp to ${timestamp} in ${mockupDir}...`);
-    this.executeCommand(["--base-dir", mockupDir, "set", "mockup", "now", timestamp]);
-    Printer.print("Mockup timestamp updated successfully.");
-  }
+  public static setMockupNow(mockupDir: string, isoTimestamp: string): void {
+    const contextPath = path.join(mockupDir, "mockup", "context.json");
 
-  /**
-   * Gets the current block timestamp in the mockup environment.
-   * @param mockupDir The directory for the mockup environment.
-   * @returns The current mockup timestamp.
-   */
-  public static getMockupNow(mockupDir: string): string {
-    Printer.print(`Fetching mockup timestamp from ${mockupDir}...`);
-    const result = this.executeCommand(["--base-dir", mockupDir, "get", "mockup", "now"]);
-    Printer.print(`Current mockup timestamp: ${result}`);
-    return result;
+    if (!fs.existsSync(contextPath)) {
+      throw new Error(`Mockup context file not found at ${contextPath}.`);
+    }
+  
+    // Update the timestamp in the context file
+    const context = JSON.parse(fs.readFileSync(contextPath, "utf-8"));
+    context.context.shell_header.timestamp = isoTimestamp;
+  
+    // Save the updated context back to the file
+    fs.writeFileSync(contextPath, JSON.stringify(context, null, 2), "utf-8");
+  
+    Printer.print(`Set mockup now to: ${isoTimestamp}`);
   }
 
   /**
