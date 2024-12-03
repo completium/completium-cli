@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { Config } from "../types/configuration";
+import { handleError } from "../errorHandler";
+import { Printer } from "../printer";
 
 export class ConfigManager {
   private static readonly configPath = path.resolve(
@@ -159,6 +161,122 @@ export class ConfigManager {
     const homeDir = process.env.HOME || ".";
     const mockupDir = path.join(homeDir, ".completium", "mockup");
     return mockupDir;
+  }
+
+  // public static findNetwork(network: string): Config['tezos']['list'][number] {
+  //   const config = this.loadConfig();
+  //   const target = config.tezos.list.find((net) => net.network === network);
+  //   if (!target) {
+  //     throw new Error(`Network ${network} not found in configuration.`);
+  //   }
+  //   return target
+  // }
+
+  // public static getNetworks(): string[] {
+  //   const config = this.loadConfig();
+
+  //   const networks = config.tezos.list.map(x => x.network);
+  //   return networks
+  // }
+
+
+  public static showEndpoint() {
+    Printer.print(`Current network: ${ConfigManager.getNetwork()}`);
+    Printer.print(`Current endpoint: ${ConfigManager.getEndpoint()}`);
+  }
+
+  /**
+ * Sets the Tezos endpoint in the configuration.
+ * Updates the current network and endpoint based on the provided value.
+ * Throws an error if the endpoint is not found in any network.
+ * @param endpoint The endpoint URL to set as the default.
+ */
+  public static setEndpoint(endpoint: string): void {
+    const config = this.getConfig();
+
+    // Search for the network containing the specified endpoint
+    const targetNetwork = config.tezos.list.find((network) =>
+      network.endpoints.includes(endpoint)
+    );
+
+    if (!targetNetwork) {
+      throw new Error(`Endpoint '${endpoint}' is not found in any configured network.`);
+    }
+
+    // Update the default network and endpoint
+    config.tezos.network = targetNetwork.network;
+    config.tezos.endpoint = endpoint;
+
+    // Save the updated configuration
+    this.saveConfig(config);
+
+    // Print a success message
+    Printer.print(`Endpoint '${endpoint}' set for network '${targetNetwork.network}'.`);
+  }
+
+  /**
+   * Updates the configuration for a specific network by adding a new endpoint.
+   * If the endpoint already exists, no changes are made.
+   * @param network The name of the network to update.
+   * @param endpoint The new endpoint to add.
+   */
+  public static addEndpoint(network: string, endpoint: string): void {
+    const config = this.loadConfig();
+
+    // Find the network in the configuration
+    const targetNetwork = config.tezos.list.find((net) => net.network === network);
+
+    if (!targetNetwork) {
+      return handleError(`Network '${network}' not found in configuration.`);
+    }
+
+    // Check if the endpoint already exists
+    if (!targetNetwork.endpoints.includes(endpoint)) {
+      targetNetwork.endpoints.push(endpoint);
+      this.saveConfig(config);
+      Printer.print(`Successfully added endpoint '${endpoint}' to network '${network}'.`);
+    } else {
+      return handleError(`Endpoint '${endpoint}' already exists for network '${network}'.`);
+    }
+  }
+
+  /**
+   * Removes a specified endpoint from all networks in the configuration.
+   * If the endpoint is the current default endpoint, an error message is printed, and no changes are made.
+   * @param endpoint The endpoint to remove.
+   */
+  public static removeEndpoint(endpoint: string): void {
+    const config = this.loadConfig();
+
+    // Check if the endpoint is the current default
+    if (config.tezos.endpoint === endpoint) {
+      Printer.print(
+        `Cannot remove endpoint '${endpoint}' because it is currently set as the default endpoint. Switch to another endpoint before removing.`
+      );
+      return;
+    }
+
+    // Iterate over all networks to remove the endpoint
+    let found = false;
+    config.tezos.list.forEach((network) => {
+      const initialLength = network.endpoints.length;
+      network.endpoints = network.endpoints.filter((ep) => ep !== endpoint);
+
+      if (network.endpoints.length < initialLength) {
+        found = true;
+        Printer.print(
+          `Removed endpoint '${endpoint}' from network '${network.network}'.`
+        );
+      }
+    });
+
+    if (!found) {
+      Printer.print(`Endpoint '${endpoint}' not found in any network.`);
+      return;
+    }
+
+    // Save the updated configuration
+    this.saveConfig(config);
   }
 
 }

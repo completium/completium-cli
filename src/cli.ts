@@ -10,6 +10,8 @@ import { ArchetypeManager } from "./utils/managers/archetypeManager";
 import { TezosClientManager } from "./utils/managers/tezosClientManager";
 import { mockupInitCommand, mockupSetNowCommand } from "./commands/mockup";
 import { handleError } from "./utils/errorHandler";
+import { switchEndpoint } from "./commands/switchCommand";
+import { ConfigManager } from "./utils/managers/configManager";
 
 interface ParsedCommand {
   command?: string;
@@ -472,19 +474,40 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "show_endpoint":
-        throw new Error("TODO: show_endpoint");
+        ConfigManager.showEndpoint()
+        break;
 
       case "switch_endpoint":
-        throw new Error("TODO: switch_endpoint");
+        switchEndpoint()
+        break;
 
       case "add_endpoint":
-        throw new Error("TODO: add_endpoint");
+        if (!parsedCommand.network_) {
+          Printer.error(`[Error]: network unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.endpoint) {
+          Printer.error(`[Error]: endpoint unset.`);
+          process.exit(1);
+        }
+        ConfigManager.addEndpoint(parsedCommand.network_, parsedCommand.endpoint)
+        break;
 
       case "set_endpoint":
-        throw new Error("TODO: set_endpoint");
+        if (!parsedCommand.endpoint) {
+          Printer.error(`[Error]: endpoint unset.`);
+          process.exit(1);
+        }
+        ConfigManager.setEndpoint(parsedCommand.endpoint);
+        break;
 
       case "remove_endpoint":
-        throw new Error("TODO: remove_endpoint");
+        if (!parsedCommand.endpoint) {
+          Printer.error(`[Error]: endpoint unset.`);
+          process.exit(1);
+        }
+        ConfigManager.removeEndpoint(parsedCommand.endpoint);
+        break;
 
       case "set_mode":
         throw new Error("TODO: set_mode");
@@ -661,8 +684,7 @@ async function execCommand(parsedCommand: ParsedCommand) {
         process.exit(255); // Special error code for unimplemented commands
     }
   } catch (err: any) {
-    console.error(`[Error]: ${err.message}`);
-    process.exit(1); // General error code
+    return handleError(err.message)
   }
 }
 
