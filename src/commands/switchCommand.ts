@@ -51,3 +51,39 @@ export async function switchEndpoint(): Promise<void> {
     Printer.error(`Failed to switch endpoint: ${error.message}`);
   }
 }
+
+/**
+ * Allows the user to switch the mode for a specific binary.
+ * Displays a list of modes (`js`, `docker`, `binary`) and updates the configuration
+ * based on the user's selection using ConfigManager.
+ * @param bin The binary for which the mode should be switched ('archetype' or 'tezos-client').
+ */
+export async function switchMode(bin: "archetype" | "tezos-client"): Promise<void> {
+  try {
+    // Validate the binary type
+    if (!["archetype", "tezos-client"].includes(bin)) {
+      throw new Error(`Invalid binary: '${bin}'. Expected 'archetype' or 'tezos-client'.`);
+    }
+
+    // Retrieve the current mode for the binary
+    const currentMode = ConfigManager.getConfig().mode[bin];
+    Printer.print(`Current mode for '${bin}': '${currentMode}'`);
+
+    const { Select } = require("enquirer");
+
+    // Display the selection prompt for available modes
+    const prompt = new Select({
+      name: "mode",
+      message: `Switch ${bin} mode`,
+      choices: ["js", "docker", "binary"],
+    });
+
+    const selectedMode = await prompt.run();
+
+    // Update the mode in the configuration
+    ConfigManager.setModeArchetype(selectedMode as "js" | "docker" | "binary");
+  } catch (err) {
+    const error = err as Error;
+    Printer.error(`Failed to switch mode for '${bin}': ${error.message}`);
+  }
+}

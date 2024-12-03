@@ -10,8 +10,9 @@ import { ArchetypeManager } from "./utils/managers/archetypeManager";
 import { TezosClientManager } from "./utils/managers/tezosClientManager";
 import { mockupInitCommand, mockupSetNowCommand } from "./commands/mockup";
 import { handleError } from "./utils/errorHandler";
-import { switchEndpoint } from "./commands/switchCommand";
+import { switchEndpoint, switchMode } from "./commands/switchCommand";
 import { ConfigManager } from "./utils/managers/configManager";
+import { Config } from "./utils/types/configuration";
 
 interface ParsedCommand {
   command?: string;
@@ -96,12 +97,12 @@ function parseCommand(args: string[]): ParsedCommand {
     res = { command: "remove_endpoint", endpoint: args[4] };
     nargs = args.slice(6);
     // set mode <bin> <mode>
-  } else if (length > 5 && args[2] === "set" && args[3] === "mode") {
-    res = { command: "set_mode", bin: args[4], value: args[5] };
+  } else if (length > 5 && args[2] === "set" && args[3] === "mode" && args[4] === "archetype") {
+    res = { command: "set_mode_archetype", value: args[5] };
     nargs = args.slice(6);
     // switch mode <bin>
-  } else if (length > 4 && args[2] === "switch" && args[3] === "mode") {
-    res = { command: "switch_mode", bin: args[4] };
+  } else if (length > 4 && args[2] === "switch" && args[3] === "mode" && args[4] === "archetype") {
+    res = { command: "switch_mode_archetype" };
     nargs = args.slice(5);
     // show mode <bin>
   } else if (length > 4 && args[2] === "show" && args[3] === "mode") {
@@ -509,20 +510,83 @@ async function execCommand(parsedCommand: ParsedCommand) {
         ConfigManager.removeEndpoint(parsedCommand.endpoint);
         break;
 
-      case "set_mode":
-        throw new Error("TODO: set_mode");
+      case "set_mode_archetype":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: Value unset.`);
+          process.exit(1);
+        }
+        const validModes = ["js", "docker", "binary"] as const;
+        if (!validModes.includes(parsedCommand.value as any)) {
+          Printer.error(`[Error]: Invalid value: '${parsedCommand.value}', expected one of: ${validModes.join(", ")}.`);
+          process.exit(1);
+        }
+        const mode: Config["mode"]["archetype"] = parsedCommand.value as Config["mode"]["archetype"];
+        ConfigManager.setModeArchetype(mode);
+        break;
 
-      case "switch_mode":
-        throw new Error("TODO: switch_mode");
+      case "switch_mode_archetype":
+        switchMode("archetype");
+        break;
 
       case "show_mode":
-        throw new Error("TODO: show_mode");
+        if (!parsedCommand.bin) {
+          Printer.error(`[Error]: Bin unset.`);
+          process.exit(1);
+        }
+        if (parsedCommand.bin != "archetype" && parsedCommand.bin != "tezos-client") {
+          Printer.error(`[Error]: Invalid Bin value.`);
+          process.exit(1);
+        }
+        ConfigManager.showMode(parsedCommand.bin);
+        break;
 
       case "set_bin_path":
-        throw new Error("TODO: set_bin_path");
+        const validBins_set_bin_path = ["archetype", "tezos-client"] as const;
+
+        // Check if the binary name is unset
+        if (!parsedCommand.bin) {
+          Printer.error("[Error]: Bin not provided.");
+          process.exit(1);
+        }
+
+        // Check if the binary name is valid
+        if (!validBins_set_bin_path.includes(parsedCommand.bin as any)) {
+          Printer.error(`[Error]: Invalid bin value: '${parsedCommand.bin}', expected 'archetype' or 'tezos-client'.`);
+          process.exit(1);
+        }
+
+        // Check if the path is unset
+        if (!parsedCommand.value) {
+          Printer.error("[Error]: Path not provided.");
+          process.exit(1);
+        }
+
+        // Convert the bin into its type and set the binary path
+        const bin_set_bin_path: keyof Config["bin"] = parsedCommand.bin as keyof Config["bin"];
+        ConfigManager.setBinaryPath(bin_set_bin_path, parsedCommand.value);
+        Printer.print(`Binary path for '${bin_set_bin_path}' successfully set to '${parsedCommand.value}'.`);
+        break;
+
 
       case "show_bin_path":
-        throw new Error("TODO: show_bin_path");
+        if (!parsedCommand.bin) {
+          Printer.error(`[Error]: bin unset.`);
+          process.exit(1);
+        }
+
+        const validBins_show_bin_path = ["archetype", "tezos-client"] as const;
+
+        // Check if the binary name is valid
+        if (!validBins_show_bin_path.includes(parsedCommand.bin as any)) {
+          Printer.error(`[Error]: Invalid bin value: '${parsedCommand.bin}', expected 'archetype' or 'tezos-client'.`);
+          process.exit(1);
+        }
+
+        // Convert the bin into its type and set the binary path
+        const bin_show_bin_path: keyof Config["bin"] = parsedCommand.bin as keyof Config["bin"];
+
+        ConfigManager.showBinaryPath(bin_show_bin_path);
+        break;
 
       case "generate_account":
         throw new Error("TODO: generate_account");

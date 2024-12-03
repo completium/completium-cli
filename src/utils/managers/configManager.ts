@@ -279,4 +279,53 @@ export class ConfigManager {
     this.saveConfig(config);
   }
 
+
+  /**
+   * Sets the mode for the Archetype binary.
+   * @param mode The mode to set: 'js', 'docker', or 'binary'.
+   */
+  public static setModeArchetype(mode: Config["mode"]["archetype"]): void {
+    const config = this.loadConfig();
+
+    config.mode.archetype = mode;
+    this.saveConfig(config);
+
+    Printer.print(`Mode for Archetype binary set to '${mode}'.`);
+  }
+
+  /**
+   * Displays the current mode for the specified binary.
+   * @param bin The binary for which to display the mode ('archetype' or 'tezos-client').
+   */
+  public static showMode(bin : keyof Config['bin']): void {
+    const config = this.loadConfig();
+
+    Printer.print(`Current mode for '${bin}' binary: '${config.mode[bin]}'.`);
+  }
+
+  /**
+ * Sets the binary path for a specified binary (e.g., Archetype or Tezos client).
+ * @param bin The binary to update ('archetype' or 'tezos-client').
+ * @param path The new path to set for the binary.
+ */
+  public static setBinaryPath(bin: keyof Config["bin"], path: string): void {
+    const config = this.loadConfig();
+
+    config.bin[bin] = path;
+    this.saveConfig(config);
+
+    Printer.print(`Binary path for '${bin}' set to '${path}'.`);
+  }
+
+  /**
+   * Displays the binary path for a specified binary (e.g., Archetype or Tezos client).
+   * @param bin The binary to display ('archetype' or 'tezos-client').
+   */
+  public static showBinaryPath(bin: keyof Config["bin"]): void {
+    const config = this.loadConfig();
+
+    const path = config.bin[bin];
+    Printer.print(`Binary path for '${bin}': '${path}'.`);
+  }
+
 }
