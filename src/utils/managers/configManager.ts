@@ -77,6 +77,66 @@ export class ConfigManager {
   }
 
   /**
+   * Retrieves the mode for Archetype from the configuration.
+   * @returns The mode for Archetype (e.g., "js", "docker", or "binary").
+   */
+  public static getModeArchetype(): Config["mode"]["archetype"] {
+    return this.getConfig().mode.archetype;
+  }
+
+  /**
+   * Retrieves the binary path for Archetype from the configuration.
+   * @returns The path to the Archetype binary.
+   */
+  public static getBinArchetype(): string {
+    return this.getConfig().bin.archetype;
+  }
+
+  /**
+   * Retrieves the binary path for Octez Client (tezos-client) from the configuration.
+   * @returns The path to the Octez Client binary.
+   */
+  public static getBinOctezClient(): string {
+    return this.getConfig().bin["tezos-client"];
+  }
+
+  /**
+   * Checks if the `force_tezos_client` option is enabled in the configuration.
+   * @returns `true` if `force_tezos_client` is enabled, otherwise `false`.
+   */
+  public static isForceOctezClient(): boolean {
+    return this.getConfig().tezos.force_tezos_client;
+  }
+
+  /**
+   * Retrieves the current Tezos endpoint from the configuration.
+   * @returns The current Tezos RPC endpoint.
+   */
+  public static getEndpoint(): string {
+    return this.getConfig().tezos.endpoint;
+  }
+
+  /**
+   * Retrieves the current Tezos network name from the configuration.
+   * @returns The name of the active Tezos network.
+   */
+  public static getNetwork(): string {
+    return this.getConfig().tezos.network;
+  }
+
+  /**
+   * Checks if the current mode is set to "mockup".
+   * @returns `true` if the endpoint is "mockup", otherwise `false`.
+   */
+  public static isMockupMode(): boolean {
+    return this.getEndpoint() === "mockup";
+  }
+
+  public static isOctezClientConfig() {
+    return this.isMockupMode() || this.isForceOctezClient();
+  }
+
+  /**
    * Switches the current Tezos network and updates the active endpoint.
    */
   public static switchTezosNetwork(network: string): void {
@@ -91,15 +151,6 @@ export class ConfigManager {
   }
 
   /**
- * Retrieves the configured binaries for archetype and tezos-client.
- * @returns An object containing the binary paths.
- */
-  public static getBinaries(): Config["bin"] {
-    const config = this.getConfig();
-    return config.bin;
-  }
-
-  /**
  * Gets the path for the mockup directory.
  * Ensures the directory exists.
  * @returns The path to the mockup directory.
@@ -110,7 +161,4 @@ export class ConfigManager {
     return mockupDir;
   }
 
-  public static isMockupMode() {
-    return true;
-  }
 }

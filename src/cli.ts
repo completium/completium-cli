@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { getBalanceCommand } from "./commands/getBalance";
+import { getBalanceCommand } from "./commands/tezosCommand";
 import arg from 'arg';
-import { Options } from "./utils/types/options";
+import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
 import { initCompletium } from "./commands/init";
 import { VERSION } from "./utils/constants";
@@ -447,12 +447,12 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "show_archetype_version":
-        const archetypeVersion = ArchetypeManager.getVersion();
+        const archetypeVersion = await ArchetypeManager.getVersion();
         Printer.print(archetypeVersion);
         break;
 
       case "show_octez_client_version":
-        const tezosVersion = TezosClientManager.getVersion();
+        const tezosVersion = await TezosClientManager.getVersion();
         Printer.print(tezosVersion);
         break;
 

@@ -1,7 +1,7 @@
 import { TezosClientManager } from "../utils/managers/tezosClientManager";
 import { Printer } from "../utils/printer";
 import path from "path";
-import { Options } from "../utils/types/options";
+import { Options } from "../utils/options";
 import { ConfigManager } from "../utils/managers/configManager";
 
 /**
@@ -17,7 +17,7 @@ export async function mockupInitCommand(option: Options): Promise<void> {
 
     if (!protocol) {
 
-      const protocols = TezosClientManager.listMockupProtocols();
+      const protocols = await TezosClientManager.listMockupProtocols();
 
       // Ensure there are at least two protocols available
       if (protocols.length < 2) {

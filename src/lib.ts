@@ -20,7 +20,7 @@ export const getStorage = () => notImplemented("getStorage")
 export const getContract = () => notImplemented("getContract")
 
 export async function getBalance(alias: string, obj : any): Promise<BigNumber> {
-  return await getBalanceFor(RPC_URL, alias);
+  return await getBalanceFor(alias);
 }
 
 export const retrieveBalanceFor = () => notImplemented("retrieveBalanceFor")

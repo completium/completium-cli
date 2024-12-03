@@ -13,7 +13,7 @@ export class Printer {
    * Print a standard message to the console (stdout).
    * @param msg - The message to print.
    */
-  public static print(msg: string): void {
+  public static print(msg: any): void {
     if (!Printer.isQuiet) {
       console.log(msg);
     }
@@ -23,7 +23,7 @@ export class Printer {
    * Print an error message to the console (stderr).
    * @param msg - The error message to print.
    */
-  public static error(msg: string): void {
+  public static error(msg: any): void {
     console.error(msg);
   }
 }
