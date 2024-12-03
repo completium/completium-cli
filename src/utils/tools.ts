@@ -7,7 +7,7 @@ export interface ExecResult {
   exitCode?: number
 }
 
-export async function exec(bin : string, args : string[]) : Promise<ExecResult> {
+export async function exec(bin: string, args: string[]): Promise<ExecResult> {
   const { execa } = await import("execa");
   const { stdout, stderr, failed, exitCode } = await execa(bin, args, {});
   return { stdout, stderr, failed, exitCode }

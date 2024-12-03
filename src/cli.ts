@@ -13,6 +13,7 @@ import { handleError } from "./utils/errorHandler";
 import { switchEndpoint, switchMode } from "./commands/switchCommand";
 import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
+import { generateAccount } from "./commands/generate";
 
 interface ParsedCommand {
   command?: string;
@@ -589,7 +590,13 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "generate_account":
-        throw new Error("TODO: generate_account");
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+
+        await generateAccount(parsedCommand.value, parsedCommand.options);
+        break;
 
       case "import_faucet":
         throw new Error("TODO: import_faucet");

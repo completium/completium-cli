@@ -10,17 +10,16 @@ export class AccountsManager {
     "accounts.json"
   );
 
-  /**
-   * Loads the accounts from the file system.
-   * If the file does not exist, an empty structure is initialized.
-   */
   private static loadAccounts(): AccountsFile {
-    if (fs.existsSync(AccountsManager.accountsFilePath)) {
-      const rawData = fs.readFileSync(AccountsManager.accountsFilePath, "utf8");
-      return JSON.parse(rawData) as AccountsFile;
-    } else {
-      return { accounts: [] };
+    try {
+      if (fs.existsSync(AccountsManager.accountsFilePath)) {
+        const rawData = fs.readFileSync(AccountsManager.accountsFilePath, "utf8");
+        return JSON.parse(rawData) as AccountsFile;
+      }
+    } catch (error) {
+      console.error(`Error loading accounts: ${(error as Error).message}`);
     }
+    return { accounts: [] }; // Return empty structure in case of an error
   }
 
   /**
@@ -54,6 +53,15 @@ export class AccountsManager {
   }
 
   /**
+   * Checks if an account exists by its name.
+   * @param name The name of the account to check.
+   * @returns True if the account exists, otherwise false.
+   */
+  public static accountExists(name: string): boolean {
+    return !!AccountsManager.getAccountByName(name); // Converts the result to a boolean
+  }
+
+  /**
    * Finds an account by its public key hash (pkh).
    * @param pkh The public key hash of the account to find.
    */
@@ -70,6 +78,28 @@ export class AccountsManager {
     if (this.getAccountByName(account.name) || this.getAccountByPkh(account.pkh)) {
       throw new Error(`Account with name '${account.name}' or pkh '${account.pkh}' already exists.`);
     }
+    accountsData.accounts.push(account);
+    this.saveAccounts(accountsData);
+  }
+
+  /**
+   * Adds a new account or updates an existing account.
+   * If an account with the same name exists, it is updated.
+   * @param account The account to add or update.
+   */
+  public static addOrUpdateAccount(account: Account): void {
+    const accountsData = this.loadAccounts();
+
+    // Check if an account with the same name exists
+    const existingAccountByName = this.getAccountByName(account.name);
+    if (existingAccountByName) {
+      // Update the existing account with the new values
+      Object.assign(existingAccountByName, account);
+      this.saveAccounts(accountsData);
+      return;
+    }
+
+    // If no existing account is found, add the new account
     accountsData.accounts.push(account);
     this.saveAccounts(accountsData);
   }
