@@ -13,7 +13,7 @@ import { handleError } from "./utils/errorHandler";
 import { switchEndpoint, switchMode } from "./commands/switchCommand";
 import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
-import { generateAccount } from "./commands/generate";
+import { generateAccount, importPrivatekey } from "./commands/account";
 
 interface ParsedCommand {
   command?: string;
@@ -121,10 +121,6 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 5 && args[2] === "generate" && args[3] === "account" && args[4] === "as") {
     res = { command: "generate_account", value: args[5] };
     nargs = args.slice(6);
-    // import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--force]
-  } else if (length > 6 && args[2] === "import" && args[3] === "faucet" && args[5] === "as") {
-    res = { command: "import_faucet", value: args[4], account: args[6] };
-    nargs = args.slice(7);
     // import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--force]
   } else if (length > 6 && args[2] === "import" && args[3] === "privatekey" && args[5] === "as") {
     res = { command: "import_privatekey", value: args[4], account: args[6] };
@@ -598,11 +594,17 @@ async function execCommand(parsedCommand: ParsedCommand) {
         await generateAccount(parsedCommand.value, parsedCommand.options);
         break;
 
-      case "import_faucet":
-        throw new Error("TODO: import_faucet");
-
       case "import_privatekey":
-        throw new Error("TODO: import_privatekey");
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.account) {
+          Printer.error(`[Error]: account unset.`);
+          process.exit(1);
+        }
+        await importPrivatekey(parsedCommand.value, parsedCommand.account, parsedCommand.options)
+        break;
 
       case "show_keys_from":
         throw new Error("TODO: show_keys_from");
@@ -799,7 +801,6 @@ command:
   show binary path (archetype|tezos-client)
 
   generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
-  import faucet <FAUCET_FILE> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
   import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
   import contract <CONTRACT_ADDRESS> as <CONTRACT_ALIAS> [--network <NETWORK>]
 

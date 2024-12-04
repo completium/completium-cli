@@ -1,4 +1,5 @@
 import * as bip39 from "bip39";
+import { TezosToolkit } from "@taquito/taquito"
 import { InMemorySigner } from "@taquito/signer";
 import { b58cencode, prefix } from "@taquito/utils";
 import { confirmAccount } from "../utils/interaction";
@@ -6,6 +7,9 @@ import { Printer } from "../utils/printer";
 import { Options } from "../utils/options";
 import { AccountsManager } from "../utils/managers/accountsManager";
 import { Account } from "../utils/types/configuration";
+import { ConfigManager } from "../utils/managers/configManager";
+import { RPC_URL } from "../utils/constants";
+import { TezosClientManager } from "../utils/managers/tezosClientManager";
 
 /**
  * Generates a new account with a mnemonic, public/private key pair, and saves it.
@@ -18,7 +22,7 @@ export async function generateAccount(alias: string, options: Options): Promise<
     const force = options.force ?? false;
 
     // Confirm account overwrite if necessary
-    const confirm = await confirmAccount(force, alias, AccountsManager.accountExists);
+    const confirm = await confirmAccount(force, alias);
     if (!confirm) {
       Printer.print("Account generation cancelled.");
       return;
@@ -73,5 +77,34 @@ async function saveAccountWithId(alias: string, pubk: string, pkh: string, prik:
   } catch (error) {
     const err = error as Error;
     Printer.error(`Failed to save account: ${err.message}`);
+  }
+}
+
+export async function importPrivatekey(privateSk: string, alias: string, options: Options) {
+  const force = options.force ?? false;
+  const with_tezos_client = options.with_tezos_client;
+
+  var confirm = await confirmAccount(force, alias);
+  if (!confirm) {
+    return;
+  }
+
+  const tezos = new TezosToolkit(RPC_URL);
+  tezos.setProvider({
+    signer: new InMemorySigner(privateSk),
+  });
+  const pubk = await tezos.signer.publicKey();
+  const pkh = await tezos.signer.publicKeyHash();
+  let sk = await tezos.signer.secretKey();
+  if (!sk) {
+    sk = privateSk;
+  }
+  saveAccountWithId(alias, pubk, pkh, sk);
+  if (with_tezos_client || ConfigManager.isMockupMode()) {
+    const args = ["import", "secret", "key", alias, ("unencrypted:" + sk)];
+    await TezosClientManager.callDryTezosClient(args);
+    if (ConfigManager.isMockupMode()) {
+      await TezosClientManager.callTezosClient(["transfer", "10000", "from", "bootstrap1", "to", pkh, "--burn-cap", "0.06425"]);
+    }
   }
 }

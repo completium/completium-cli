@@ -1,18 +1,48 @@
 import axios, { AxiosResponse } from "axios";
+import { spawn } from "child_process";
 
 export interface ExecResult {
   stdout: string,
   stderr: string,
   failed: boolean,
-  exitCode?: number
+  exitCode: number | null
 }
+
+// export async function exec(bin: string, args: string[]): Promise<ExecResult> {
+//   const { execa } = await import("execa");
+//   const { stdout, stderr, failed, exitCode } = await execa(bin, args, {});
+//   return { stdout, stderr, failed, exitCode }
+// }
 
 export async function exec(bin: string, args: string[]): Promise<ExecResult> {
-  const { execa } = await import("execa");
-  const { stdout, stderr, failed, exitCode } = await execa(bin, args, {});
-  return { stdout, stderr, failed, exitCode }
-}
+  return new Promise((resolve, reject) => {
+    const child = spawn(bin, args, { shell: true });
 
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.on("close", (exitCode) => {
+      resolve({
+        stdout,
+        stderr,
+        failed: exitCode !== 0,
+        exitCode,
+      });
+    });
+
+    child.on("error", (err) => {
+      reject(err);
+    });
+  });
+}
 
 /**
  * Performs an HTTP GET request to a specified RPC endpoint.

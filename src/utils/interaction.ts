@@ -1,4 +1,5 @@
 import readline from "readline";
+import { AccountsManager } from "./managers/accountsManager";
 
 /**
  * Asks the user a yes/no question via the command line.
@@ -51,11 +52,10 @@ export function askQuestionBool(
  */
 export async function confirmAccount(
   force: boolean,
-  account: string,
-  accountExists: (accountName: string) => boolean
+  account: string
 ): Promise<boolean> {
   // Automatically confirm if force is true or the account does not exist
-  if (force || !accountExists(account)) {
+  if (force || !AccountsManager.accountExists(account)) {
     return true;
   }
 
