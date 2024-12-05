@@ -1,3 +1,4 @@
+import { AccountsManager } from "../utils/managers/accountsManager";
 import { ConfigManager } from "../utils/managers/configManager";
 import { Printer } from "../utils/printer";
 
@@ -85,5 +86,58 @@ export async function switchMode(bin: "archetype" | "tezos-client"): Promise<voi
   } catch (err) {
     const error = err as Error;
     Printer.error(`Failed to switch mode for '${bin}': ${error.message}`);
+  }
+}
+
+/**
+ * Allows the user to switch the default account.
+ * Displays a list of available accounts and updates the default account
+ * in the configuration based on the user's selection.
+ */
+export async function switchAccount(): Promise<void> {
+  try {
+    // Retrieve the current configuration and accounts
+    const currentAccount = ConfigManager.getDefaultAccount();
+    const accounts = AccountsManager.getAccounts();
+
+    // Notify the user of the current default account
+    if (currentAccount) {
+      Printer.print(`Current account: ${currentAccount}`);
+    }
+
+    const accountMap = new Map<string, string>();
+
+    // Prepare choices for the selection prompt
+    const choices = accounts.flatMap((account) => {
+      const displayName = `${account.name.padEnd(60)} ${account.pkh}`;
+      accountMap.set(displayName, account.name);
+      return displayName;
+    });
+
+
+    const { Select } = require("enquirer");
+
+    // Create the selection prompt
+    const prompt = new Select({
+      name: "account",
+      message: "Switch account",
+      choices,
+    });
+
+    // Display the prompt and handle the user's selection
+    const selectedAnswer = await prompt.run();
+    const selectedAccount = accountMap.get(selectedAnswer);
+
+    if (!selectedAccount) {
+      throw new Error("Unexpected error: selected account not found.");
+    }
+
+    // Update the default account in the configuration
+    ConfigManager.setDefaultAccount(selectedAccount);
+
+    Printer.print(`Account switched to '${selectedAccount}'.`);
+  } catch (err) {
+    const error = err as Error;
+    Printer.error(`Failed to switch account: ${error.message}`);
   }
 }

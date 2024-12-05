@@ -11,6 +11,7 @@ import { ConfigManager } from "../utils/managers/configManager";
 import { RPC_URL } from "../utils/constants";
 import { TezosClientManager } from "../utils/managers/tezosClientManager";
 import { getBalanceFor } from "../utils/tezos";
+import { handleError } from "../utils/errorHandler";
 
 /**
  * Generates a new account with a mnemonic, public/private key pair, and saves it.
@@ -97,6 +98,10 @@ export async function importPrivatekey(privateSk: string, alias: string, options
   if (!sk) {
     sk = privateSk;
   }
+  const acc = AccountsManager.getAccountByPkh(pkh);
+  if (acc) {
+    handleError(`Account '${pkh}' already exists as '${acc.name}'.`);
+  }
   saveAccountWithId(alias, pubk, pkh, sk);
   if (with_tezos_client || ConfigManager.isMockupMode()) {
     const args = ["import", "secret", "key", alias, ("unencrypted:" + sk)];
@@ -115,7 +120,7 @@ export async function showAccounts() {
   });
 }
 
-export async function showKeyInfo(pubk : string, pkh : string, prik : string | null) {
+export async function showKeyInfo(pubk: string, pkh: string, prik: string | null) {
   Printer.print(`Public  key hash:\t${pkh}`);
   Printer.print(`Public  key:\t\t${pubk}`);
   if (prik) {
@@ -123,7 +128,7 @@ export async function showKeyInfo(pubk : string, pkh : string, prik : string | n
   }
 }
 
-export async function showAccount(options : Options) {
+export async function showAccount(options: Options) {
   const alias = options.alias ?? ConfigManager.getDefaultAccount();
   const withPrivateKey = options.withPrivateKey;
 
@@ -142,7 +147,7 @@ export async function showAccount(options : Options) {
   }
 }
 
-export async function showKeysFrom(value : string) {
+export async function showKeysFrom(value: string) {
   const signer = new InMemorySigner(value);
   const pubk = await signer.publicKey();
   const pkh = await signer.publicKeyHash();
@@ -151,4 +156,13 @@ export async function showKeysFrom(value : string) {
     sk = value;
   }
   showKeyInfo(pubk, pkh, sk);
+}
+
+export async function setAccount(alias: string) {
+  const account = AccountsManager.getAccountByName(alias);
+  if (!account) {
+    handleError(`'${alias}' is not found.`);
+  }
+  ConfigManager.setDefaultAccount(alias);
+  Printer.print(`Default account set to '${alias}'.`);
 }

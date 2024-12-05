@@ -3,6 +3,7 @@ import path from "path";
 import { Config } from "../types/configuration";
 import { handleError } from "../errorHandler";
 import { Printer } from "../printer";
+import { AccountsManager } from "./accountsManager";
 
 export class ConfigManager {
   private static readonly configPath = path.resolve(
@@ -153,10 +154,31 @@ export class ConfigManager {
   }
 
   /**
- * Gets the path for the mockup directory.
- * Ensures the directory exists.
- * @returns The path to the mockup directory.
- */
+   * Sets the default account in the configuration.
+   * Updates the configuration to make the specified account the default account.
+   * Throws an error if the account does not exist.
+   * @param alias The name of the account to set as the default.
+   */
+  public static setDefaultAccount(alias: string): void {
+    const config = this.loadConfig();
+
+    // Check if the account exists
+    const targetAccount = AccountsManager.getAccountByName(alias);
+
+    if (!targetAccount) {
+      throw new Error(`Account '${alias}' does not exist.`);
+    }
+
+    // Update the default account
+    config.account = targetAccount.name;
+    this.saveConfig(config);
+  }
+
+  /**
+   * Gets the path for the mockup directory.
+   * Ensures the directory exists.
+   * @returns The path to the mockup directory.
+   */
   public static getMockupDir(): string {
     const homeDir = process.env.HOME || ".";
     const mockupDir = path.join(homeDir, ".completium", "mockup");
@@ -297,7 +319,7 @@ export class ConfigManager {
    * Displays the current mode for the specified binary.
    * @param bin The binary for which to display the mode ('archetype' or 'tezos-client').
    */
-  public static showMode(bin : keyof Config['bin']): void {
+  public static showMode(bin: keyof Config['bin']): void {
     const config = this.loadConfig();
 
     Printer.print(`Current mode for '${bin}' binary: '${config.mode[bin]}'.`);

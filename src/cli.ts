@@ -10,10 +10,10 @@ import { ArchetypeManager } from "./utils/managers/archetypeManager";
 import { TezosClientManager } from "./utils/managers/tezosClientManager";
 import { mockupInitCommand, mockupSetNowCommand } from "./commands/mockup";
 import { handleError } from "./utils/errorHandler";
-import { switchEndpoint, switchMode } from "./commands/switchCommand";
+import { switchAccount, switchEndpoint, switchMode } from "./commands/switchCommand";
 import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
-import { generateAccount, importPrivatekey, showAccount, showAccounts, showKeysFrom } from "./commands/account";
+import { generateAccount, importPrivatekey, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 
 interface ParsedCommand {
   command?: string;
@@ -139,7 +139,7 @@ function parseCommand(args: string[]): ParsedCommand {
     nargs = args.slice(6);
     // set account <ACCOUNT_ALIAS>
   } else if (length > 4 && args[2] === "set" && args[3] === "account") {
-    res = { command: "set_account", account: args[4] };
+    res = { command: "set_account", value: args[4] };
     nargs = args.slice(5);
     // switch account
   } else if (length > 3 && args[2] === "switch" && args[3] === "account") {
@@ -624,9 +624,15 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "set_account":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        setAccount(parsedCommand.value)
         break;
 
       case "switch_account":
+        await switchAccount();
         break;
 
       case "rename_account":
