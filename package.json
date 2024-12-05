@@ -1,6 +1,6 @@
 {
   "name": "completium-cli",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "index.js",
   "dependencies": {
     "@completium/archetype": "^1.0.5",
@@ -16,7 +16,6 @@
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.0",
-    "eslint": "^9.15.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
@@ -33,5 +32,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "resolutions": {
+    "whatwg-url": "14.0.0",
+    "node-fetch": "3.3.2"
+  }
 }

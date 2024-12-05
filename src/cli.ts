@@ -13,7 +13,7 @@ import { handleError } from "./utils/errorHandler";
 import { switchEndpoint, switchMode } from "./commands/switchCommand";
 import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
-import { generateAccount, importPrivatekey } from "./commands/account";
+import { generateAccount, importPrivatekey, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 
 interface ParsedCommand {
   command?: string;
@@ -125,10 +125,6 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 6 && args[2] === "import" && args[3] === "privatekey" && args[5] === "as") {
     res = { command: "import_privatekey", value: args[4], account: args[6] };
     nargs = args.slice(7);
-    // show keys from
-  } else if (length > 5 && args[2] === "show" && args[3] === "keys" && args[4] === "from") {
-    res = { command: "show_keys_from", value: args[5] };
-    nargs = args.slice(6);
     // show accounts
   } else if (length > 3 && args[2] === "show" && args[3] === "accounts") {
     res = { command: "show_accounts" };
@@ -137,6 +133,10 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 3 && args[2] === "show" && args[3] === "account") {
     res = { command: "show_account" };
     nargs = args.slice(4);
+    // show keys from
+  } else if (length > 5 && args[2] === "show" && args[3] === "keys" && args[4] === "from") {
+    res = { command: "show_keys_from", value: args[5] };
+    nargs = args.slice(6);
     // set account <ACCOUNT_ALIAS>
   } else if (length > 4 && args[2] === "set" && args[3] === "account") {
     res = { command: "set_account", account: args[4] };
@@ -153,6 +153,14 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
     res = { command: "remove_account", account: args[4] };
     nargs = args.slice(5);
+    // show contracts
+  } else if (length > 3 && args[2] === "show" && args[3] === "contracts") {
+    res = { command: "show_contracts" };
+    nargs = args.slice(4);
+    // show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
+  } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
+    res = { command: "show_contract", contract: args[4] };
+    nargs = args.slice(5);
     // set contract address <CONTRACT_NAME> <ADDRESS>
   } else if (length > 6 && args[2] === "set" && args[3] === "contract" && args[4] === "address") {
     res = { command: "set_contract_address", name: args[5], value: args[6] };
@@ -160,6 +168,18 @@ function parseCommand(args: string[]): ParsedCommand {
     // print contract <CONTRACT_NAME>
   } else if (length > 4 && args[2] === "print" && args[3] === "contract") {
     res = { command: "print_contract", name: args[4] };
+    nargs = args.slice(5);
+    // import contract <ADDRESS> as <ACCOUNT_ALIAS> [--force]
+  } else if (length > 5 && args[2] === "import" && args[3] === "contract" && args[5] === "as") {
+    res = { command: "import_contract", value: args[4], name: args[6] };
+    nargs = args.slice(7);
+    // rename contract <CONTRACT_ALIAS> to <CONTRACT_ALIAS>
+  } else if (length > 4 && args[2] === "rename" && args[3] === "contract" && args[5] === "by") {
+    res = { command: "rename_contract", from: args[4], to: args[6] };
+    nargs = args.slice(7);
+    // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
+  } else if (length > 4 && args[2] === "remove" && args[3] === "contract") {
+    res = { command: "remove_contract", contract: args[4] };
     nargs = args.slice(5);
     // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
@@ -236,22 +256,6 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
     res = { command: "show_entries", contract: args[4] };
     nargs = args.slice(5);
-    // show contracts
-  } else if (length > 3 && args[2] === "show" && args[3] === "contracts") {
-    res = { command: "show_contracts" };
-    nargs = args.slice(4);
-    // show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
-  } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
-    res = { command: "show_contract", contract: args[4] };
-    nargs = args.slice(5);
-    // rename contract <CONTRACT_ALIAS> to <CONTRACT_ALIAS>
-  } else if (length > 4 && args[2] === "rename" && args[3] === "contract" && args[5] === "by") {
-    res = { command: "rename_contract", from: args[4], to: args[6] };
-    nargs = args.slice(7);
-    // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
-  } else if (length > 4 && args[2] === "remove" && args[3] === "contract") {
-    res = { command: "remove_contract", contract: args[4] };
-    nargs = args.slice(5);
     // show url <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "url") {
     res = { command: "show_url", contract: args[4] };
@@ -298,18 +302,15 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 4 && args[2] === "register" && args[3] === "global" && args[4] === "constant") {
     res = { command: "register_global_constant", value: args[5] };
     nargs = args.slice(6);
-  } else if (length > 5 && args[2] === "import" && args[3] === "contract" && args[5] === "as") {
-    res = { command: "import_contract", value: args[4], name: args[6] };
-    nargs = args.slice(7);
-  } else if (length > 5 && args[2] === "remove" && args[3] === "contracts" && args[4] === "from") {
-    res = { command: "remove_contracts", value: args[5] };
-    nargs = args.slice(6);
     // decompile <CONTRACT_ADDRESS|FILE.[tz|json]>
   } else if (length > 2 && args[2] === "decompile") {
     res = { command: "decompile", value: args[3] };
     nargs = args.slice(3);
   } else if (length > 2 && args[2] === "completion") {
     res = { command: "completion" };
+    nargs = args.slice(2);
+  } else if (length > 2 && args[2] === "nop") {
+    res = { command: "nop" };
     nargs = args.slice(2);
   } else {
     res = { command: undefined }
@@ -606,32 +607,54 @@ async function execCommand(parsedCommand: ParsedCommand) {
         await importPrivatekey(parsedCommand.value, parsedCommand.account, parsedCommand.options)
         break;
 
-      case "show_keys_from":
-        throw new Error("TODO: show_keys_from");
-
       case "show_accounts":
-        throw new Error("TODO: show_accounts");
+        await showAccounts();
+        break;
 
       case "show_account":
-        throw new Error("TODO: show_account");
+        await showAccount(parsedCommand.options);
+        break;
+
+      case "show_keys_from":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        await showKeysFrom(parsedCommand.value);
+        break;
 
       case "set_account":
-        throw new Error("TODO: set_account");
+        break;
 
       case "switch_account":
-        throw new Error("TODO: switch_account");
+        break;
 
       case "rename_account":
-        throw new Error("TODO: rename_account");
+        break;
 
       case "remove_account":
-        throw new Error("TODO: remove_account");
+        break;
+
+      case "show_contracts":
+        break;
+
+      case "show_contract":
+        break;
 
       case "set_contract_address":
-        throw new Error("TODO: set_contract_address");
+        break;
 
       case "print_contract":
-        throw new Error("TODO: print_contract");
+        break;
+
+      case "import_contract":
+        break;
+
+      case "rename_contract":
+        break;
+
+      case "remove_contract":
+        break;
 
       case "transfer":
         throw new Error("TODO: transfer");
@@ -687,18 +710,6 @@ async function execCommand(parsedCommand: ParsedCommand) {
       case "show_entries":
         throw new Error("TODO: show_entries");
 
-      case "show_contracts":
-        throw new Error("TODO: show_contracts");
-
-      case "show_contract":
-        throw new Error("TODO: show_contract");
-
-      case "rename_contract":
-        throw new Error("TODO: rename_contract");
-
-      case "remove_contract":
-        throw new Error("TODO: remove_contract");
-
       case "show_url":
         throw new Error("TODO: show_url");
 
@@ -742,14 +753,11 @@ async function execCommand(parsedCommand: ParsedCommand) {
       case "register_global_constant":
         throw new Error("TODO: register_global_constant");
 
-      case "import_contract":
-        throw new Error("TODO: import_contract");
-
-      case "remove_contracts":
-        throw new Error("TODO: remove_contracts");
-
       case "decompile":
         throw new Error("TODO: decompile");
+
+      case "nop":
+        break;
 
       default:
         console.error(`[Error]: Command ${parsedCommand.command} not implemented yet.`);
@@ -802,16 +810,21 @@ command:
 
   generate account as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
   import privatekey <PRIVATE_KEY> as <ACCOUNT_ALIAS> [--with-tezos-client] [--force]
-  import contract <CONTRACT_ADDRESS> as <CONTRACT_ALIAS> [--network <NETWORK>]
-
+  show accounts
+  show account [--with-private-key] [--alias <ALIAS>]
   show keys from <PRIVATE_KEY>
   set account <ACCOUNT_ALIAS>
   switch account
   rename account <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> by <ACCOUNT_ALIAS> [--force]
   remove account <ACCOUNT_ALIAS>
 
+  show contracts
+  show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   set contract address <CONTRACT_NAME> <ADDRESS>
   print contract <CONTRACT_NAME>
+  import contract <CONTRACT_ADDRESS> as <CONTRACT_ALIAS> [--network <NETWORK>]
+  rename contract <CONTRACT_ALIAS|CONTRACT_ADDRESS> by <CONTRACT_ALIAS> [--force]
+  remove contract <CONTRACT_ALIAS>
 
   transfer <AMOUNT>(tz|utz) from <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> to <ACCOUNT_ALIAS|ACCOUNT_ADDRESS> [--force]
   deploy <FILE.arl> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--init <MICHELSON_DATA> | --parameters <PARAMETERS> | --parameters-micheline <PARAMETERS>] [--metadata-storage <PATH_TO_JSON> | --metadata-uri <VALUE_URI>] [--force] [--show-tezos-client-command]
@@ -822,6 +835,7 @@ command:
   run view <VIEW_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg-michelson <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]
   interp <FILE.[arl|tz]> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--force]
   register global constant <MICHELSON_DATA> [--as <CALLER_ADDRESS>] [--force]
+
   generate michelson <FILE.arl|CONTRACT_ALIAS>
   generate javascript <FILE.arl|CONTRACT_ALIAS>
   generate whyml <FILE.arl|CONTRACT_ALIAS>
@@ -831,13 +845,7 @@ command:
   generate binding-dapp-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>] [--with-dapp-originate]
   generate contract interface <FILE.arl|FILE.tz|CONTRACT_ALIAS>
 
-  show accounts
-  show account [--with-private-key] [--alias <ALIAS>]
-  show contracts
-  show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   show entries <CONTRACT_ADDRESS>
-  rename contract <CONTRACT_ALIAS|CONTRACT_ADDRESS> by <CONTRACT_ALIAS> [--force]
-  remove contract <CONTRACT_ALIAS>
   show url <CONTRACT_ALIAS>
   show source <CONTRACT_ALIAS>
   show address <CONTRACT_ALIAS|ACCOUNT_ALIAS>

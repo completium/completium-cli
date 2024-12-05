@@ -15,6 +15,13 @@ export interface ExecResult {
 // }
 
 export async function exec(bin: string, args: string[]): Promise<ExecResult> {
+  const removeFirstLastChars = (input : string) => {
+    if (input.length > 1) {
+      return input.substring(1, input.length - 2);
+    } else {
+      return input;
+    }
+  }
   return new Promise((resolve, reject) => {
     const child = spawn(bin, args, { shell: true });
 
@@ -31,8 +38,8 @@ export async function exec(bin: string, args: string[]): Promise<ExecResult> {
 
     child.on("close", (exitCode) => {
       resolve({
-        stdout,
-        stderr,
+        stdout : removeFirstLastChars(stdout),
+        stderr: removeFirstLastChars(stderr),
         failed: exitCode !== 0,
         exitCode,
       });

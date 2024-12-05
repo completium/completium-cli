@@ -10,6 +10,7 @@ import { Account } from "../utils/types/configuration";
 import { ConfigManager } from "../utils/managers/configManager";
 import { RPC_URL } from "../utils/constants";
 import { TezosClientManager } from "../utils/managers/tezosClientManager";
+import { getBalanceFor } from "../utils/tezos";
 
 /**
  * Generates a new account with a mnemonic, public/private key pair, and saves it.
@@ -89,13 +90,10 @@ export async function importPrivatekey(privateSk: string, alias: string, options
     return;
   }
 
-  const tezos = new TezosToolkit(RPC_URL);
-  tezos.setProvider({
-    signer: new InMemorySigner(privateSk),
-  });
-  const pubk = await tezos.signer.publicKey();
-  const pkh = await tezos.signer.publicKeyHash();
-  let sk = await tezos.signer.secretKey();
+  const signer = new InMemorySigner(privateSk);
+  const pubk = await signer.publicKey();
+  const pkh = await signer.publicKeyHash();
+  let sk = await signer.secretKey();
   if (!sk) {
     sk = privateSk;
   }
@@ -107,4 +105,50 @@ export async function importPrivatekey(privateSk: string, alias: string, options
       await TezosClientManager.callTezosClient(["transfer", "10000", "from", "bootstrap1", "to", pkh, "--burn-cap", "0.06425"]);
     }
   }
+}
+
+export async function showAccounts() {
+  const accounts = AccountsManager.getAccounts();
+
+  accounts.forEach(x => {
+    Printer.print(`${x.name.padEnd(30)}\t\t${x.pkh}`);
+  });
+}
+
+export async function showKeyInfo(pubk : string, pkh : string, prik : string | null) {
+  Printer.print(`Public  key hash:\t${pkh}`);
+  Printer.print(`Public  key:\t\t${pubk}`);
+  if (prik) {
+    Printer.print(`Private key:\t\t${prik}`);
+  }
+}
+
+export async function showAccount(options : Options) {
+  const alias = options.alias ?? ConfigManager.getDefaultAccount();
+  const withPrivateKey = options.withPrivateKey;
+
+  let account = AccountsManager.getAccountByName(alias);
+  if (!account) {
+    account = AccountsManager.getAccountByPkh(alias);
+  }
+
+  if (!account) {
+    Printer.print(`'${alias}' is not found.`);
+  } else {
+    Printer.print(`Current account:\t${account.name}`);
+    showKeyInfo(account.pubk, account.pkh, withPrivateKey ? account.key.value : null);
+    var balance = await getBalanceFor(account.pkh);
+    Printer.print(`Balance on ${ConfigManager.getNetwork()}:\t${balance.toNumber() / 1000000} ꜩ`);
+  }
+}
+
+export async function showKeysFrom(value : string) {
+  const signer = new InMemorySigner(value);
+  const pubk = await signer.publicKey();
+  const pkh = await signer.publicKeyHash();
+  let sk = await signer.secretKey();
+  if (!sk) {
+    sk = value;
+  }
+  showKeyInfo(pubk, pkh, sk);
 }
