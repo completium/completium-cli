@@ -218,7 +218,10 @@ export async function renameAccount(from: string, to: string, options: Options):
     const force = options.force ?? false;
 
     // Retrieve the account to rename
-    const accountFrom = AccountsManager.getAccountByName(from);
+    let accountFrom = AccountsManager.getAccountByName(from);
+    if (!accountFrom) {
+      accountFrom = AccountsManager.getAccountByPkh(from);
+    }
     if (!accountFrom) {
       handleError(`'${from}' is not found.`);
       return;
@@ -244,11 +247,11 @@ export async function renameAccount(from: string, to: string, options: Options):
     }
 
     // Remove the old account and add it back with the new name
-    AccountsManager.removeAccountByName(from);
+    AccountsManager.removeAccountByName(accountFrom.name);
     const renamedAccount = { ...accountFrom, name: to };
     AccountsManager.addAccount(renamedAccount);
 
-    Printer.print(`Account '${accountFrom.pkh}' has been renamed from '${from}' to '${to}'.`);
+    Printer.print(`Account '${accountFrom.pkh}' has been renamed from '${accountFrom.name}' to '${to}'.`);
   } catch (error) {
     const err = error as Error;
     Printer.error(`Failed to rename account: ${err.message}`);
