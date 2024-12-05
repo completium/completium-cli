@@ -350,4 +350,7 @@ export class ConfigManager {
     Printer.print(`Binary path for '${bin}': '${path}'.`);
   }
 
+  public static getNetworkByName(network: string): Config['tezos']['list'][number] | undefined {
+    return this.loadConfig().tezos.list.find(x => x.network == network);
+  }
 }

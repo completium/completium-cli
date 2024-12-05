@@ -44,11 +44,11 @@ export interface Contract {
   name: string;
   address: string;
   network: string;
-  language: string;
-  compiler_version: string;
-  path: string;
-  initial_storage: string;
-  source: string;
+  language: string | null;
+  compiler_version: string | null;
+  path: string | null;
+  initial_storage: string | null;
+  source: string | null;
 }
 
 export interface ContractsFile {
