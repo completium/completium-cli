@@ -14,6 +14,7 @@ import { switchAccount, switchEndpoint, switchMode } from "./commands/switchComm
 import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
 import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
+import { importContract, printContract, removeContract, renameContract, showContract, showContracts } from "./commands/contract";
 
 interface ParsedCommand {
   command?: string;
@@ -159,15 +160,11 @@ function parseCommand(args: string[]): ParsedCommand {
     nargs = args.slice(4);
     // show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "contract") {
-    res = { command: "show_contract", contract: args[4] };
+    res = { command: "show_contract", value: args[4] };
     nargs = args.slice(5);
-    // set contract address <CONTRACT_NAME> <ADDRESS>
-  } else if (length > 6 && args[2] === "set" && args[3] === "contract" && args[4] === "address") {
-    res = { command: "set_contract_address", name: args[5], value: args[6] };
-    nargs = args.slice(7);
     // print contract <CONTRACT_NAME>
   } else if (length > 4 && args[2] === "print" && args[3] === "contract") {
-    res = { command: "print_contract", name: args[4] };
+    res = { command: "print_contract", value: args[4] };
     nargs = args.slice(5);
     // import contract <ADDRESS> as <ACCOUNT_ALIAS> [--force]
   } else if (length > 5 && args[2] === "import" && args[3] === "contract" && args[5] === "as") {
@@ -179,7 +176,7 @@ function parseCommand(args: string[]): ParsedCommand {
     nargs = args.slice(7);
     // remove contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "contract") {
-    res = { command: "remove_contract", contract: args[4] };
+    res = { command: "remove_contract", value: args[4] };
     nargs = args.slice(5);
     // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
@@ -644,7 +641,7 @@ async function execCommand(parsedCommand: ParsedCommand) {
           Printer.error(`[Error]: to unset.`);
           process.exit(1);
         }
-        renameAccount(parsedCommand.from, parsedCommand.to, parsedCommand.options);
+        await renameAccount(parsedCommand.from, parsedCommand.to, parsedCommand.options);
         break;
 
       case "remove_account":
@@ -652,28 +649,59 @@ async function execCommand(parsedCommand: ParsedCommand) {
           Printer.error(`[Error]: value unset.`);
           process.exit(1);
         }
-        removeAccount(parsedCommand.value, parsedCommand.options);
+        await removeAccount(parsedCommand.value, parsedCommand.options);
         break;
 
       case "show_contracts":
+        showContracts();
         break;
 
       case "show_contract":
-        break;
-
-      case "set_contract_address":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        showContract(parsedCommand.value);
         break;
 
       case "print_contract":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        printContract(parsedCommand.value)
         break;
 
       case "import_contract":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.name) {
+          Printer.error(`[Error]: value name.`);
+          process.exit(1);
+        }
+        importContract(parsedCommand.value, parsedCommand.name)
         break;
 
       case "rename_contract":
+        if (!parsedCommand.from) {
+          Printer.error(`[Error]: from unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.to) {
+          Printer.error(`[Error]: to unset.`);
+          process.exit(1);
+        }
+        await renameContract(parsedCommand.from, parsedCommand.to, parsedCommand.options);
         break;
 
       case "remove_contract":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        await removeContract(parsedCommand.value, parsedCommand.options);
         break;
 
       case "transfer":
@@ -840,7 +868,6 @@ command:
 
   show contracts
   show contract <CONTRACT_ALIAS|CONTRACT_ADDRESS>
-  set contract address <CONTRACT_NAME> <ADDRESS>
   print contract <CONTRACT_NAME>
   import contract <CONTRACT_ADDRESS> as <CONTRACT_ALIAS> [--network <NETWORK>]
   rename contract <CONTRACT_ALIAS|CONTRACT_ADDRESS> by <CONTRACT_ALIAS> [--force]
