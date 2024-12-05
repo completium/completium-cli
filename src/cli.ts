@@ -13,7 +13,7 @@ import { handleError } from "./utils/errorHandler";
 import { switchAccount, switchEndpoint, switchMode } from "./commands/switchCommand";
 import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
-import { generateAccount, importPrivatekey, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
+import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 
 interface ParsedCommand {
   command?: string;
@@ -151,7 +151,7 @@ function parseCommand(args: string[]): ParsedCommand {
     nargs = args.slice(7);
     // remove account <ACCOUNT_ALIAS>
   } else if (length > 4 && args[2] === "remove" && args[3] === "account") {
-    res = { command: "remove_account", account: args[4] };
+    res = { command: "remove_account", value: args[4] };
     nargs = args.slice(5);
     // show contracts
   } else if (length > 3 && args[2] === "show" && args[3] === "contracts") {
@@ -636,9 +636,23 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "rename_account":
+        if (!parsedCommand.from) {
+          Printer.error(`[Error]: from unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.to) {
+          Printer.error(`[Error]: to unset.`);
+          process.exit(1);
+        }
+        renameAccount(parsedCommand.from, parsedCommand.to, parsedCommand.options);
         break;
 
       case "remove_account":
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        removeAccount(parsedCommand.value, parsedCommand.options);
         break;
 
       case "show_contracts":

@@ -2,7 +2,7 @@ import * as bip39 from "bip39";
 import { TezosToolkit } from "@taquito/taquito"
 import { InMemorySigner } from "@taquito/signer";
 import { b58cencode, prefix } from "@taquito/utils";
-import { confirmAccount } from "../utils/interaction";
+import { confirmAccount, confirmRemoveAccount } from "../utils/interaction";
 import { Printer } from "../utils/printer";
 import { Options } from "../utils/options";
 import { AccountsManager } from "../utils/managers/accountsManager";
@@ -158,11 +158,99 @@ export async function showKeysFrom(value: string) {
   showKeyInfo(pubk, pkh, sk);
 }
 
-export async function setAccount(alias: string) {
+export function setAccount(alias: string) {
   const account = AccountsManager.getAccountByName(alias);
   if (!account) {
     handleError(`'${alias}' is not found.`);
   }
   ConfigManager.setDefaultAccount(alias);
   Printer.print(`Default account set to '${alias}'.`);
+}
+
+/**
+ * Removes an account.
+ * Ensures the account exists and is not the default account before removal.
+ * @param value The name of the account to remove.
+ * @param options Options for the operation.
+ */
+export async function removeAccount(value: string, options: Options): Promise<void> {
+  try {
+    const force = options.force ?? false;
+
+    // Retrieve the account to remove
+    const account = AccountsManager.getAccountByName(value);
+    if (!account) {
+      return Printer.error(`'${value}' is not found.`);
+    }
+
+    // Ensure the account to remove is not the default account
+    if (ConfigManager.getDefaultAccount() === value) {
+      return Printer.error(`Cannot remove account '${value}' because it is currently set as the default account. Switch to another account before removing.`);
+    }
+
+    const confirm = await confirmRemoveAccount(force, value);
+    if (!confirm) {
+      Printer.print("Account removal cancelled.");
+      return;
+    }
+
+    // Remove the account
+    AccountsManager.removeAccountByName(value);
+
+    Printer.print(`Account '${value}' has been removed.`);
+  } catch (error) {
+    const err = error as Error;
+    Printer.error(`Failed to remove account: ${err.message}`);
+  }
+}
+
+
+/**
+ * Renames an account.
+ * Ensures the account exists and is not the default account before renaming.
+ * If the target name already exists, it removes the target before renaming.
+ * @param from The current name of the account.
+ * @param to The new name for the account.
+ * @param options Options containing the force overwrite flag.
+ */
+export async function renameAccount(from: string, to: string, options: Options): Promise<void> {
+  try {
+    const force = options.force ?? false;
+
+    // Retrieve the account to rename
+    const accountFrom = AccountsManager.getAccountByName(from);
+    if (!accountFrom) {
+      handleError(`'${from}' is not found.`);
+      return;
+    }
+
+    // Ensure the account to rename is not the default account
+    if (ConfigManager.getDefaultAccount() === from) {
+      handleError(`Cannot rename account '${from}' because it is currently set as the default account. Switch to another account before renaming.`);
+    }
+
+    // Confirm overwriting if necessary
+    const confirm = await confirmAccount(force, to);
+    if (!confirm) {
+      handleError("Account renaming cancelled.");
+      return;
+    }
+
+    // Check if the target name already exists and remove it if necessary
+    const accountTo = AccountsManager.getAccountByName(to);
+    if (accountTo) {
+      AccountsManager.removeAccountByName(to);
+      Printer.print(`Account '${to}' was removed to allow renaming.`);
+    }
+
+    // Remove the old account and add it back with the new name
+    AccountsManager.removeAccountByName(from);
+    const renamedAccount = { ...accountFrom, name: to };
+    AccountsManager.addAccount(renamedAccount);
+
+    Printer.print(`Account '${accountFrom.pkh}' has been renamed from '${from}' to '${to}'.`);
+  } catch (error) {
+    const err = error as Error;
+    Printer.error(`Failed to rename account: ${err.message}`);
+  }
 }

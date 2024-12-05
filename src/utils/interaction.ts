@@ -67,3 +67,29 @@ export async function confirmAccount(
     askQuestionBool(confirmationMessage, (answer) => resolve(answer), false);
   });
 }
+
+
+/**
+ * Asks the user for confirmation to remove an existing account.
+ * If `force` is true or the account does not exist, it automatically confirms.
+ * @param force A boolean indicating whether to skip confirmation and force removal.
+ * @param account The account name to check for confirmation.
+ * @returns A promise that resolves to `true` if the user confirms, otherwise `false`.
+ */
+export async function confirmRemoveAccount(
+  force: boolean,
+  account: string
+): Promise<boolean> {
+  // Automatically confirm if force is true or the account does not exist
+  if (force || !AccountsManager.accountExists(account)) {
+    return true;
+  }
+
+  // Construct the confirmation message
+  const confirmationMessage = `Are you sure you want to remove the account '${account}'? This action cannot be undone.`;
+
+  // Use askQuestionBool to get confirmation from the user
+  return new Promise((resolve) => {
+    askQuestionBool(confirmationMessage, (answer) => resolve(answer), true);
+  });
+}

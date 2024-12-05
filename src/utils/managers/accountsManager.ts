@@ -83,6 +83,27 @@ export class AccountsManager {
   }
 
   /**
+   * Removes an account by its name.
+   * If the account is not found, an error is thrown.
+   * @param name The name of the account to remove.
+   */
+  public static removeAccountByName(name: string): void {
+    const accountsData = this.loadAccounts();
+
+    const initialLength = accountsData.accounts.length;
+
+    accountsData.accounts = accountsData.accounts.filter(
+      (account) => account.name !== name
+    );
+
+    if (accountsData.accounts.length === initialLength) {
+      throw new Error(`Account '${name}' not found.`);
+    }
+
+    this.saveAccounts(accountsData);
+  }
+
+  /**
    * Adds a new account or updates an existing account.
    * If an account with the same name exists, it is updated.
    * @param account The account to add or update.
