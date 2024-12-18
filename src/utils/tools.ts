@@ -38,8 +38,8 @@ export async function exec(bin: string, args: string[]): Promise<ExecResult> {
 
     child.on("close", (exitCode) => {
       resolve({
-        stdout : removeFirstLastChars(stdout),
-        stderr: removeFirstLastChars(stderr),
+        stdout : stdout,//removeFirstLastChars(stdout),
+        stderr: stderr,//removeFirstLastChars(stderr),
         failed: exitCode !== 0,
         exitCode,
       });

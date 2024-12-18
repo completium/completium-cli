@@ -15,6 +15,7 @@ import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
 import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 import { importContract, printContract, removeContract, renameContract, showContract, showContracts } from "./commands/contract";
+import { generateMichelson } from "./commands/archetypeCommand";
 
 interface ParsedCommand {
   command?: string;
@@ -714,7 +715,12 @@ async function execCommand(parsedCommand: ParsedCommand) {
         throw new Error("TODO: call_contract");
 
       case "generate_michelson":
-        throw new Error("TODO: generate_michelson");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await generateMichelson(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "generate_javascript":
         throw new Error("TODO: generate_javascript");

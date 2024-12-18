@@ -4,6 +4,7 @@ import { Config } from "../types/configuration";
 import { handleError } from "../errorHandler";
 import { Printer } from "../printer";
 import { AccountsManager } from "./accountsManager";
+import { MockupConfigManager } from "./mockupConfigManager";
 
 export class ConfigManager {
   private static readonly configPath = path.resolve(
@@ -352,5 +353,24 @@ export class ConfigManager {
 
   public static getNetworkByName(network: string): Config['tezos']['list'][number] | undefined {
     return this.loadConfig().tezos.list.find(x => x.network == network);
+  }
+
+  public static is_sandbox_exec(path: string) {
+    if (fs.existsSync(path) && path.endsWith(".arl")) {
+      const content = fs.readFileSync(path).toString();
+      return content && content.indexOf("sandbox_exec") >= 0
+    }
+    return false
+  }
+
+  public static getSandboxExecAddress(network: string): string {
+    if (network == 'mockup') {
+      return MockupConfigManager.getSandboxExec();
+    }
+    const net = this.getNetworkByName(network);
+    if (!net || !net.sandbox_exec_address) {
+      throw new Error('not found');
+    }
+    return net.sandbox_exec_address;
   }
 }
