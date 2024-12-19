@@ -16,11 +16,7 @@ export function showContracts() {
 }
 
 export function showContract(value: string) {
-  var contract = ContractManager.getContractByName(value);
-  if (!contract) {
-    contract = ContractManager.getContractByAddress(value);
-  }
-
+  var contract = ContractManager.getContractByNameOrAddress(value);
   if (!contract) {
     return handleError(`Contract '${value}' is not found.`)
   }
@@ -104,11 +100,7 @@ export async function renameContract(from: string, to: string, options: Options)
   try {
     const force = options.force ?? false;
 
-    let contract = ContractManager.getContractByName(from);
-    if (!contract) {
-      contract = ContractManager.getContractByAddress(from);
-    }
-
+    let contract = ContractManager.getContractByNameOrAddress(from);
     if (!contract) {
       handleError(`'${from}' is not found.`);
       return;
@@ -164,11 +156,7 @@ export async function removeContract(value: string, options: Options) {
   try {
     const force = options.force ?? false;
 
-    let contract = ContractManager.getContractByName(value);
-    if (!contract) {
-      contract = ContractManager.getContractByAddress(value);
-    }
-
+    let contract = ContractManager.getContractByNameOrAddress(value);
     if (!contract) {
       handleError(`Contract '${value}' is not found.`);
       return;

@@ -15,7 +15,7 @@ import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
 import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 import { importContract, printContract, removeContract, renameContract, showContract, showContracts } from "./commands/contract";
-import { generateMichelson } from "./commands/archetypeCommand";
+import { generateJavascript, generateMichelson, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml } from "./commands/archetypeCommand";
 
 interface ParsedCommand {
   command?: string;
@@ -723,25 +723,60 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "generate_javascript":
-        throw new Error("TODO: generate_javascript");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await generateJavascript(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "generate_whyml":
-        throw new Error("TODO: generate_whyml");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await printGenerateWhyml(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "generate_event_binding_js":
-        throw new Error("TODO: generate_event_binding_js");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await printGenerateEventBindingJs(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "generate_event_binding_ts":
-        throw new Error("TODO: generate_event_binding_ts");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await printGenerateEventBindingTs(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "generate_binding_ts":
-        throw new Error("TODO: generate_binding_ts");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await printGenerateBindingTs(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "generate_binding_dapp_ts":
-        throw new Error("TODO: generate_binding_dapp_ts");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await printGenerateBindingDappTs(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "generate_contract_interface":
-        throw new Error("TODO: generate_contract_interface");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await printGenerateContractInterface(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "check_michelson":
         throw new Error("TODO: check_michelson");

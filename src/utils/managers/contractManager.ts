@@ -58,7 +58,19 @@ export class ContractManager {
     const contracts = this.getAllContracts();
     return contracts.find((contract) => contract.address === address) || null;
   }
-  
+
+  /**
+   * Gets a contract by its name or address.
+   */
+  public static getContractByNameOrAddress(identifier: string): Contract | null {
+    const contracts = this.getAllContracts();
+    return (
+      contracts.find(
+        (contract) => contract.name === identifier || contract.address === identifier
+      ) || null
+    );
+  }
+
   /**
    * Adds a new contract to the list.
    */
@@ -79,11 +91,11 @@ export class ContractManager {
   public static removeContractByName(name: string): void {
     const contractsData = this.loadContracts();
     const filteredContracts = contractsData.contracts.filter((contract) => contract.name !== name);
-  
+
     if (filteredContracts.length === contractsData.contracts.length) {
       throw new Error(`Contract with name '${name}' does not exist.`);
     }
-  
+
     contractsData.contracts = filteredContracts;
     this.saveContracts(contractsData);
   }
