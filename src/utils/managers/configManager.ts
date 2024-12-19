@@ -373,4 +373,17 @@ export class ConfigManager {
     }
     return net.sandbox_exec_address;
   }
+
+  public static isLogMode(): boolean {
+    const config = this.loadConfig();
+
+    return config.log_mode ?? false;
+  }
+
+  public static setLogMode(value : boolean) {
+    const config = this.loadConfig();
+
+    config.log_mode = value;
+    this.saveConfig(config);
+  }
 }

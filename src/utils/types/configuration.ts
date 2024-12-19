@@ -1,5 +1,5 @@
 
- export interface Config {
+export interface Config {
   account: string;
   mode: {
     archetype: "js" | "docker" | "binary";
@@ -21,6 +21,7 @@
       sandbox_exec_address?: string;
     }[];
   };
+  log_mode?: boolean;
 };
 
 

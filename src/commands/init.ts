@@ -4,6 +4,7 @@ import { ConfigManager } from "../utils/managers/configManager";
 import { ContractManager } from "../utils/managers/contractManager";
 import { Printer } from "../utils/printer";
 import { Account, Config, ContractsFile } from "../utils/types/configuration";
+import { LogManager } from "../utils/managers/logManager";
 
 const defaultConfig: Config = {
   account: "alice",
@@ -180,4 +181,7 @@ export async function initCompletium(): Promise<void> {
   } else {
     Printer.print("Mockup directory already exists. Skipping creation.");
   }
+
+  // Loging initialization
+  LogManager.logInit();
 }

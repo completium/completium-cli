@@ -16,6 +16,7 @@ import { Config } from "./utils/types/configuration";
 import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 import { importContract, printContract, removeContract, renameContract, showAddress, showContract, showContracts, showEntries, showScript, showSource, showStorage, showUrl } from "./commands/contract";
 import { generateJavascript, generateMichelson, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml } from "./commands/archetypeCommand";
+import { LogManager } from "./utils/managers/logManager";
 
 interface ParsedCommand {
   command?: string;
@@ -287,6 +288,9 @@ function parseCommand(args: string[]): ParsedCommand {
     nargs = args.slice(4);
   } else if (length > 3 && args[2] === "log" && args[3] === "disable") {
     res = { command: "log_disable" };
+    nargs = args.slice(4);
+  } else if (length > 3 && args[2] === "log" && args[3] === "status") {
+    res = { command: "log_status" };
     nargs = args.slice(4);
   } else if (length > 3 && args[2] === "log" && args[3] === "clear") {
     res = { command: "log_clear" };
@@ -849,16 +853,24 @@ async function execCommand(parsedCommand: ParsedCommand) {
         throw new Error("TODO: get_completium_property");
 
       case "log_enable":
-        throw new Error("TODO: log_enable");
+        LogManager.logEnable();
+        break;
 
       case "log_disable":
-        throw new Error("TODO: log_disable");
+        LogManager.logDisable();
+        break;
+
+      case "log_status":
+        LogManager.logStatus();
+        break;
 
       case "log_clear":
-        throw new Error("TODO: log_clear");
+        await LogManager.logClear(parsedCommand.options)
+        break;
 
       case "log_dump":
-        throw new Error("TODO: log_dump");
+        LogManager.logDump();
+        break;
 
       case "create_project":
         throw new Error("TODO: create_project");
@@ -967,6 +979,7 @@ command:
 
   log enable
   log disable
+  log status
   log clear [--force]
   log dump
 
