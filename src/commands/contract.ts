@@ -1,11 +1,16 @@
+import fs from "fs";
 import { handleError } from "../utils/errorHandler";
 import { askQuestionBool } from "../utils/interaction";
 import { ConfigManager } from "../utils/managers/configManager";
 import { ContractManager } from "../utils/managers/contractManager";
 import { Options } from "../utils/options";
 import { Printer } from "../utils/printer";
-import { get_sandbox_exec_script } from "../utils/tezos";
+import { get_sandbox_exec_script, getRawScript, getRawStorage } from "../utils/tezos";
 import { Contract } from "../utils/types/configuration";
+import { exec } from "../utils/tools";
+import * as codec from '@taquito/michel-codec';
+import { ArchetypeManager } from "../utils/managers/archetypeManager";
+import { AccountsManager } from "../utils/managers/accountsManager";
 
 export function showContracts() {
   const contracts = ContractManager.getAllContracts();
@@ -176,5 +181,122 @@ export async function removeContract(value: string, options: Options) {
   } catch (error) {
     const err = error as Error;
     Printer.error(`Failed to remove contract: ${err.message}`);
+  }
+}
+
+async function getEntries(input: string, rjson: boolean) {
+  const contract = ContractManager.getContractByNameOrAddress(input);
+
+  var contract_address = input;
+  if (!!contract) {
+    if (contract.network !== ConfigManager.getNetwork()) {
+      throw new Error(`Expecting network ${contract.network}. Switch endpoint and retry.`);
+    }
+    contract_address = contract.address;
+  } else {
+    if (!contract_address.startsWith('KT1')) {
+      throw new Error(`'${contract_address}' bad contract address.`);
+    }
+  }
+
+  const script = await getRawScript(contract_address);
+  const i = JSON.stringify(script);
+  const res = await ArchetypeManager.showEntries(i, rjson);
+  return res;
+}
+
+export async function showEntries(input: string, options: Options) {
+  const res = await getEntries(input, false);
+  Printer.print(res);
+}
+
+export async function showUrl(name: string, options: Options) {
+  const c = ContractManager.getContractByName(name);
+  if (!c) {
+    handleError(`Contract '${name}' is not found.`);
+    return;
+  }
+  const network = ConfigManager.getNetworkByName(ConfigManager.getNetwork());
+  if (!network) {
+    handleError(`Network '${ConfigManager.getNetwork()}' is not found.`);
+    return;
+  }
+  const url = network.bcd_url.replace('${address}', c.address);
+  Printer.print(url);
+}
+
+export async function showSource(name: string, options: Options) {
+  const c = ContractManager.getContractByName(name);
+  if (!c) {
+    handleError(`Contract '${name}' is not found.`);
+    return;
+  }
+  if (c.source) {
+    try {
+      const data = fs.readFileSync(c.source, 'utf8');
+      Printer.print(data);
+    } catch (err) {
+      throw err;
+    }
+  } else {
+    Printer.print(`source not found`)
+  }
+}
+
+export async function showAddress(value: string, options: Options) {
+  const contract = ContractManager.getContractByNameOrAddress(value);
+  if (contract != null) {
+    Printer.print(contract.address);
+    return
+  }
+  const account = AccountsManager.getAccountByName(value);
+  if (account) {
+    Printer.print(account.pkh);
+    return
+  }
+  Printer.print(`Alias '${value}' is not found.`);
+}
+
+function getContractAddress(input: string) {
+  const contract = ContractManager.getContractByAddress(input);
+  var contract_address = input;
+  if (!!contract) {
+    const network = ConfigManager.getNetwork();
+    if (contract.network !== network) {
+      handleError(`Expecting network ${contract.network}. Switch endpoint and retry.`);
+    }
+    contract_address = contract.address;
+  } else {
+    if (!contract_address.startsWith('KT1')) {
+      handleError(`'${contract_address}' bad contract address.`);
+    }
+  }
+  return contract_address;
+}
+
+export async function showStorage(input: string, options: Options) {
+  const json = options.json || false;
+
+  const contract_address = getContractAddress(input);
+
+  const storage = await getRawStorage(contract_address);
+  if (json) {
+    Printer.print(JSON.stringify(storage, null, 2));
+  } else {
+    Printer.print(codec.emitMicheline(storage))
+  }
+  return;
+}
+
+export async function showScript(input: string, options: Options) {
+  const json = options.json || false;
+
+  const contract_address = getContractAddress(input);
+
+  const script = await getRawScript(contract_address);
+  if (json) {
+    Printer.print(JSON.stringify(script.code, null, 2));
+  } else {
+    Printer.print(codec.emitMicheline(script.code))
   }
 }

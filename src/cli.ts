@@ -14,7 +14,7 @@ import { switchAccount, switchEndpoint, switchMode } from "./commands/switchComm
 import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
 import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
-import { importContract, printContract, removeContract, renameContract, showContract, showContracts } from "./commands/contract";
+import { importContract, printContract, removeContract, renameContract, showAddress, showContract, showContracts, showEntries, showScript, showSource, showStorage, showUrl } from "./commands/contract";
 import { generateJavascript, generateMichelson, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml } from "./commands/archetypeCommand";
 
 interface ParsedCommand {
@@ -252,15 +252,15 @@ function parseCommand(args: string[]): ParsedCommand {
     nargs = args.slice(4);
     // show entries of <CONTRACT_ADDRESS>
   } else if (length > 4 && args[2] === "show" && args[3] === "entries") {
-    res = { command: "show_entries", contract: args[4] };
+    res = { command: "show_entries", value: args[4] };
     nargs = args.slice(5);
     // show url <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "url") {
-    res = { command: "show_url", contract: args[4] };
+    res = { command: "show_url", value: args[4] };
     nargs = args.slice(5);
     // show source <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "source") {
-    res = { command: "show_source", contract: args[4] };
+    res = { command: "show_source", value: args[4] };
     nargs = args.slice(5);
     // show address <CONTRACT_ALIAS>
   } else if (length > 4 && args[2] === "show" && args[3] === "address") {
@@ -797,22 +797,46 @@ async function execCommand(parsedCommand: ParsedCommand) {
         throw new Error("TODO: interp");
 
       case "show_entries":
-        throw new Error("TODO: show_entries");
+        if (!parsedCommand.value) {
+          throw new Error("[Error]: value unset.");
+        }
+        await showEntries(parsedCommand.value, parsedCommand.options)
+        break;
 
       case "show_url":
-        throw new Error("TODO: show_url");
+        if (!parsedCommand.value) {
+          throw new Error("[Error]: value unset.");
+        }
+        await showUrl(parsedCommand.value, parsedCommand.options)
+        break;
 
       case "show_source":
-        throw new Error("TODO: show_source");
+        if (!parsedCommand.value) {
+          throw new Error("[Error]: value unset.");
+        }
+        await showSource(parsedCommand.value, parsedCommand.options)
+        break;
 
       case "show_address":
-        throw new Error("TODO: show_address");
+        if (!parsedCommand.value) {
+          throw new Error("[Error]: value unset.");
+        }
+        await showAddress(parsedCommand.value, parsedCommand.options)
+        break;
 
       case "show_storage":
-        throw new Error("TODO: show_storage");
+        if (!parsedCommand.value) {
+          throw new Error("[Error]: value unset.");
+        }
+        await showStorage(parsedCommand.value, parsedCommand.options)
+        break;
 
       case "show_script":
-        throw new Error("TODO: show_script");
+        if (!parsedCommand.value) {
+          throw new Error("[Error]: value unset.");
+        }
+        await showScript(parsedCommand.value, parsedCommand.options)
+        break;
 
       case "get_balance_for":
         if (!parsedCommand.value) {

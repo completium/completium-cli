@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { Printer } from "../printer";
 import { exec } from "../tools";
 import { Options } from "../options";
@@ -6,6 +7,7 @@ import { ConfigManager } from "./configManager";
 
 export type Settings = {
   compiler_json?: boolean,
+  compiler_raw_json?: boolean,
   contract_interface_michelson?: boolean,
   contract_interface?: boolean,
   get_storage_values?: boolean,
@@ -18,6 +20,7 @@ export type Settings = {
   test_mode?: boolean,
   version?: boolean,
   with_parameters?: boolean,
+  entries?: boolean
 }
 
 /**
@@ -25,7 +28,7 @@ export type Settings = {
  */
 export class ArchetypeManager {
 
-  private static archetype : any = null;
+  private static archetype: any = null;
 
   private static computeSettings(options: Options, settings: Settings) {
 
@@ -91,12 +94,18 @@ export class ArchetypeManager {
         // if (options.no_js_header) {
         //   args.push('--no-js-header');
         // }
-        // if (settings.compiler_json) {
-        //   args.push('--json');
-        // }
         if (settings.sandbox_exec_address) {
           args.push('--sandbox-exec-address');
           args.push(settings.sandbox_exec_address);
+        }
+        if (settings.entries) {
+          args.push('--show-entries');
+        }
+        if (settings.compiler_raw_json) {
+          args.push('--raw-json');
+        }
+        if (settings.compiler_json) {
+          args.push('--json');
         }
       }
       args.push(path);
@@ -141,6 +150,11 @@ export class ArchetypeManager {
           const archetype = this.archetype;
           if (s.version) {
             return archetype.version()
+          } else if (s.entries) {
+            return archetype.show_entries(path, {
+              json: s.compiler_json ?? false,
+              rjson: s.compiler_raw_json ?? false,
+            });
           } else {
             try {
               const settings = this.computeSettings(options, s);
@@ -199,6 +213,26 @@ export class ArchetypeManager {
   public static async getVersion(): Promise<string> {
     const v = await this.callArchetype({}, '', { version: true });
     return v;
+  }
+
+  public static async showEntries(i: string, rjson: boolean) {
+    const archetypeMode = ConfigManager.getModeArchetype();
+    let path = i;
+    switch (archetypeMode) {
+      case "binary":
+      case "docker":
+        const tmp = require('tmp');
+        const tmpobj = tmp.fileSync({ postfix: '.json' });
+
+        path = tmpobj.name;
+        fs.writeFileSync(path, i);
+        break;
+      case "js":
+        path = i;
+        break;
+    }
+    const res = await this.callArchetype({}, path, { entries: true, compiler_json: true, compiler_raw_json: rjson });
+    return res;
   }
 
 }
