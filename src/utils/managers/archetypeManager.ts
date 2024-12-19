@@ -3,6 +3,7 @@ import { Printer } from "../printer";
 import { exec } from "../tools";
 import { Options } from "../options";
 import { ConfigManager } from "./configManager";
+import { getRawScript } from '../tezos';
 // import * as archetype from "@completium/archetype"
 
 export type Settings = {
@@ -20,8 +21,57 @@ export type Settings = {
   test_mode?: boolean,
   version?: boolean,
   with_parameters?: boolean,
-  entries?: boolean
+  entries?: boolean,
+  decompile?: boolean,
+  ijson?: boolean,
 }
+
+export type ArchetypeSettingsTS = {
+  target?: string;
+  with_init_caller?: boolean;
+  json?: boolean;
+  ijson?: boolean;
+  rjson?: boolean;
+  pt?: boolean;
+  extpt?: boolean;
+  ext?: boolean;
+  ast?: boolean;
+  mdl?: boolean;
+  omdl?: boolean;
+  typed?: boolean;
+  ir?: boolean;
+  dir?: boolean;
+  mic?: boolean;
+  mici?: boolean;
+  all_parenthesis?: boolean;
+  m?: boolean;
+  raw?: boolean;
+  raw_ir?: boolean;
+  raw_michelson?: boolean;
+  caller?: string;
+  decomp?: boolean;
+  trace?: boolean;
+  metadata_uri?: string;
+  metadata_storage?: string;
+  with_metadata?: boolean;
+  expr?: string;
+  entrypoint?: string;
+  type?: string;
+  with_contract?: boolean;
+  code_only?: boolean;
+  expr_only?: boolean;
+  init?: string;
+  no_js_header?: boolean;
+  sdir?: boolean;
+  test_mode?: boolean;
+  property_focused?: string;
+  get_storage_values?: boolean;
+  with_parameters?: boolean;
+  contract_interface?: boolean;
+  contract_interface_michelson?: boolean;
+  sandbox_exec_address?: string;
+  g?: boolean;
+};
 
 /**
  * Manages interactions with the Archetype binary.
@@ -107,6 +157,12 @@ export class ArchetypeManager {
         if (settings.compiler_json) {
           args.push('--json');
         }
+        if (settings.decompile) {
+          args.push('--decompile');
+        }
+        if (settings.ijson) {
+          args.push('--input-json')
+        }
       }
       args.push(path);
     }
@@ -155,6 +211,8 @@ export class ArchetypeManager {
               json: s.compiler_json ?? false,
               rjson: s.compiler_raw_json ?? false,
             });
+          } else if (s.decompile) {
+            return archetype.decompile(path, s);
           } else {
             try {
               const settings = this.computeSettings(options, s);
@@ -235,4 +293,27 @@ export class ArchetypeManager {
     return res;
   }
 
+  public static async decompile(value: string): Promise<string> {
+    let path = value;
+    let ijson = false;
+    if (value.endsWith(".tz") || value.endsWith(".json")) {
+      if (value.endsWith(".json")) {
+        ijson = true;
+      }
+    } else if (value.startsWith("KT1")) {
+      const content = await getRawScript(value)
+
+      const tmp = require('tmp');
+      const tmpobj = tmp.fileSync({ prefix: value, postfix: '.json' });
+
+      path = tmpobj.name;
+      fs.writeFileSync(path, content);
+      ijson = true;
+    } else {
+      const msg = `Invalid value: ${value}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+    const res = await this.callArchetype({}, path, { decompile: true, ijson });
+    return res;
+  }
 }

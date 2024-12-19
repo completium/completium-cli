@@ -53,6 +53,14 @@ export class AccountsManager {
   }
 
   /**
+   * Finds an account by its name or its pkh.
+   * @param value The value of the account to find.
+   */
+  public static getAccountByNameOrPkh(value: string): Account | undefined {
+    return this.loadAccounts().accounts.find((account) => account.name === value || account.pkh === value);
+  }
+
+  /**
    * Checks if an account exists by its name.
    * @param name The name of the account to check.
    * @returns True if the account exists, otherwise false.

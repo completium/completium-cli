@@ -232,3 +232,8 @@ export async function printGenerateContractInterface(path: string, options: Opti
   const res = await generateContractInterface(path, options, is_michelson);
   Printer.print(res)
 }
+
+export async function printDecompile(value : string, options : Options) {
+  const output = await ArchetypeManager.decompile(value);
+  Printer.print(output)
+}

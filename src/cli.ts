@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { getBalanceCommand } from "./commands/tezosCommand";
+import { getBalanceCommand, registerGlobalConstant } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -15,7 +15,7 @@ import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
 import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 import { importContract, printContract, removeContract, renameContract, showAddress, showContract, showContracts, showEntries, showScript, showSource, showStorage, showUrl } from "./commands/contract";
-import { generateJavascript, generateMichelson, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml } from "./commands/archetypeCommand";
+import { generateJavascript, generateMichelson, printDecompile, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml } from "./commands/archetypeCommand";
 import { LogManager } from "./utils/managers/logManager";
 
 interface ParsedCommand {
@@ -876,10 +876,18 @@ async function execCommand(parsedCommand: ParsedCommand) {
         throw new Error("TODO: create_project");
 
       case "register_global_constant":
-        throw new Error("TODO: register_global_constant");
+        if (!parsedCommand.value) {
+          throw new Error("No value provided for 'register global constant'.");
+        }
+        await registerGlobalConstant(parsedCommand.value, parsedCommand.options);
+        break;
 
       case "decompile":
-        throw new Error("TODO: decompile");
+        if (!parsedCommand.value) {
+          throw new Error("No value provided for 'decompile'.");
+        }
+        await printDecompile(parsedCommand.value, parsedCommand.options);
+        break;
 
       case "nop":
         break;
