@@ -17,6 +17,7 @@ import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAcc
 import { importContract, printContract, removeContract, renameContract, showAddress, showContract, showContracts, showEntries, showScript, showSource, showStorage, showUrl } from "./commands/contract";
 import { generateJavascript, generateMichelson, printDecompile, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml } from "./commands/archetypeCommand";
 import { LogManager } from "./utils/managers/logManager";
+import { createProject, printCompletiumProperty } from "./commands/projectCommand";
 
 interface ParsedCommand {
   command?: string;
@@ -850,7 +851,11 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "get_completium_property":
-        throw new Error("TODO: get_completium_property");
+        if (!parsedCommand.value) {
+          throw new Error("No address provided for 'get completium property'.");
+        }
+        await printCompletiumProperty(parsedCommand.value, parsedCommand.options);
+        break;
 
       case "log_enable":
         LogManager.logEnable();
@@ -873,7 +878,11 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "create_project":
-        throw new Error("TODO: create_project");
+        if (!parsedCommand.value) {
+          throw new Error("No value provided for 'create project'.");
+        }
+        await createProject(parsedCommand.value, parsedCommand.options);
+        break;
 
       case "register_global_constant":
         if (!parsedCommand.value) {
