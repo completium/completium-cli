@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { getBalanceCommand, registerGlobalConstant } from "./commands/tezosCommand";
+import { getBalanceCommand, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -790,7 +790,14 @@ async function execCommand(parsedCommand: ParsedCommand) {
         throw new Error("TODO: run_getter");
 
       case "run_view":
-        throw new Error("TODO: run_view");
+        if (!parsedCommand.viewid) {
+          throw new Error("[Error]: viewid unset.");
+        }
+        if (!parsedCommand.contract) {
+          throw new Error("[Error]: contract unset.");
+        }
+        await printRunView(parsedCommand.viewid, parsedCommand.contract, parsedCommand.options);
+        break;
 
       case "run_binder_ts":
         throw new Error("TODO: run_binder_ts");
