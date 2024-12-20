@@ -37,7 +37,7 @@ const defaultConfig: Config = {
       {
         network: "ghost",
         bcd_url: "https://better-call.dev/ghostnet/${address}",
-        tzstat_url: "https://tzstats.com",
+        tzstat_url: "https://ghost.tzstats.com",
         endpoints: [
           "https://ghostnet.ecadinfra.com",
           "https://ghostnet.smartpy.io",

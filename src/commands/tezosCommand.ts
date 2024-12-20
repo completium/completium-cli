@@ -10,9 +10,12 @@ import { extract_trace_interp, extractGlobalAddress, handle_fail } from "../util
 import { ContractManager } from "../utils/managers/contractManager";
 import { expr_micheline_to_json, json_micheline_to_expr } from "../utils/michelson";
 import { Expr } from '@taquito/michel-codec'
-import { taquitoExecuteSchema } from "../utils/taquito";
+import { getTezos, taquitoExecuteSchema } from "../utils/taquito";
 import { ArchetypeManager } from "../utils/managers/archetypeManager";
 import { getAmount } from '../utils/archetype';
+import { Account } from '../utils/types/configuration';
+import { askQuestionBool } from '../utils/interaction';
+import { TransactionOperation } from '@taquito/taquito';
 
 function buildJArg(options: Options) {
   let jarg;
@@ -350,4 +353,76 @@ export async function interp(path : string, options : Options) {
 export async function printInterp(path : string, options : Options) {
   const json = await interp(path, options)
   Printer.print(JSON.stringify(json))
+}
+
+async function confirmTransfer(force : boolean, amount : number, from : Account, to : string) {
+  if (force) { return true }
+
+  const str = `Confirm transfer ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${ConfigManager.getNetwork()}?`;
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
+}
+
+export async function transfer(amount_raw : string, from_raw : string, to_raw : string, options : Options) {
+  const force = options.force ?? false;
+
+  const amount = getAmount(amount_raw);
+  if (!amount) {
+    Printer.print(`'${amount_raw}' is not valid.`);
+    return;
+  }
+
+  const accountFrom = AccountsManager.getAccountByNameOrPkh(from_raw);
+  if (!accountFrom) {
+    Printer.print(`'${from_raw}' is not found.`);
+    return;
+  }
+  var accountTo = AccountsManager.getAccountByNameOrPkh(to_raw);
+  const to = accountTo ? accountTo.pkh : to_raw;
+  if (!isValidPkh(to)) {
+    Printer.error(`'${to_raw}' bad account or address.`);
+    return;
+  }
+
+  var confirm = await confirmTransfer(force, amount, accountFrom, to);
+  if (!confirm) {
+    return;
+  }
+
+  const to_addr = accountTo ? accountTo.pkh : to;
+
+  const network = ConfigManager.getNetworkByName(ConfigManager.getNetwork());
+
+  Printer.print(`Transfering ${amount / 1000000} ꜩ from ${accountFrom.pkh} to ${to_addr}...`);
+  if (ConfigManager.isMockupMode()) {
+    const a = (amount / 1000000).toString();
+    const args = ["transfer", a, "from", accountFrom.pkh, "to", to_addr, "--burn-cap", "0.06425"];
+    const { stdout, stderr, failed } = await TezosClientManager.callTezosClient(args);
+    if (failed) {
+      return new Promise((resolve, reject) => { reject(stderr) });
+    } else {
+      Printer.print(stdout);
+    }
+    return new Promise(resolve => { resolve(null) });
+  } else {
+    const tezos = getTezos(accountFrom.name);
+    return new Promise((resolve, reject) => {
+      tezos.contract
+        .transfer({ to: to_addr, amount: amount, mutez: true })
+        .then((op : TransactionOperation) => {
+          Printer.print(`Waiting for ${op.hash} to be confirmed...`);
+          op.confirmation(1)
+            .then((_ : number) => {
+              const op_inj = network && network.tzstat_url === undefined ? `${op.hash}` : `${network ? network.tzstat_url : ''}/${op.hash}`
+              Printer.print(`Operation injected: ${op_inj}`);
+              resolve(op.hash);
+            })
+            .catch((error : Error) => {
+              reject(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
+            });
+        })
+        .catch((error : Error) => {
+          reject(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
+        });
+    });
+  }
 }

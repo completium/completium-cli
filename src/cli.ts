@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { checkMichelson, getBalanceCommand, printInterp, printRun, printRunGetter, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
+import { checkMichelson, getBalanceCommand, printInterp, printRun, printRunGetter, printRunView, registerGlobalConstant, transfer } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -68,10 +68,6 @@ function parseCommand(args: string[]): ParsedCommand {
     // octez-client version
   } else if (length > 3 && args[2] === "octez-client" && args[3] === "version") {
     res = { command: "show_octez_client_version" };
-    nargs = args.slice(4);
-    // install
-  } else if (length > 2 && args[2] === "install") {
-    res = { command: "install", bin: args[3] };
     nargs = args.slice(4);
     // mockup init
   } else if (length > 3 && args[2] === "mockup" && args[3] === "init") {
@@ -183,7 +179,7 @@ function parseCommand(args: string[]): ParsedCommand {
     nargs = args.slice(5);
     // transfer <AMOUNT>(tz|utz) from <ACCOUNT_NAME> to <ACCOUNT_NAME|CONTRACT_ALIAS>
   } else if (length > 7 && args[2] === "transfer" && args[4] === "from" && args[6] === "to") {
-    res = { command: "transfer", vamount: args[3], from: args[5], to: args[7] };
+    res = { command: "transfer", value: args[3], from: args[5], to: args[7] };
     nargs = args.slice(8);
     // deploy <FILE.arl> [--as <ACCOUNT_NAME>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--init <PARAMETERS>] [--force]
   } else if (length > 3 && args[2] === "deploy") {
@@ -462,9 +458,6 @@ async function execCommand(parsedCommand: ParsedCommand) {
         Printer.print(tezosVersion);
         break;
 
-      case "install":
-        throw new Error("TODO: install");
-
       case "mockup_init":
         await mockupInitCommand(parsedCommand.options);
         break;
@@ -713,7 +706,20 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "transfer":
-        throw new Error("TODO: transfer");
+        if (!parsedCommand.value) {
+          Printer.error(`[Error]: value unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.from) {
+          Printer.error(`[Error]: from unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.to) {
+          Printer.error(`[Error]: to unset.`);
+          process.exit(1);
+        }
+        await transfer(parsedCommand.value, parsedCommand.from, parsedCommand.to, parsedCommand.options);
+        break;
 
       case "deploy":
         throw new Error("TODO: deploy");
@@ -965,7 +971,6 @@ command:
   version
   archetype version
   octez-client version
-  install archetype
 
   mockup init [--protocol <VALUE>]
   mockup set now <value>
@@ -1045,7 +1050,7 @@ _completium_cli_completions() {
   local cur prev words cword
   _init_completion || return
 
-  local commands="init help version archetype install mockup show switch add set remove generate import rename transfer deploy originate call run interp register log create get"
+  local commands="init help version archetype mockup show switch add set remove generate import rename transfer deploy originate call run interp register log create get"
 
   local subcommands_mockup="init set"
   local subcommands_show="endpoint accounts account contracts contract entries url source address storage script"
