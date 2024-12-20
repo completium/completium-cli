@@ -189,9 +189,9 @@ export class ArchetypeManager {
               const { stdout, stderr, failed } = await exec(bin, args);
               if (failed) {
                 const msg = "Archetype compiler: " + stderr;
-                reject(msg);
+                reject(msg ? msg.trim() : msg);
               } else {
-                resolve(stdout);
+                resolve(stdout ? stdout.trim() : stdout);
               }
             } catch (e) {
               reject(e);

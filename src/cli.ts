@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { checkMichelson, getBalanceCommand, printRun, printRunGetter, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
+import { checkMichelson, getBalanceCommand, printInterp, printRun, printRunGetter, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -826,7 +826,12 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "interp":
-        throw new Error("TODO: interp");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await printInterp(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "show_entries":
         if (!parsedCommand.value) {

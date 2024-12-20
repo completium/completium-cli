@@ -6,7 +6,7 @@ import { Printer } from "../utils/printer";
 import { AccountsManager } from "../utils/managers/accountsManager";
 import { ConfigManager } from "../utils/managers/configManager";
 import { TezosClientManager } from "../utils/managers/tezosClientManager";
-import { extractGlobalAddress } from "../utils/regExp";
+import { extract_trace_interp, extractGlobalAddress, handle_fail } from "../utils/regExp";
 import { ContractManager } from "../utils/managers/contractManager";
 import { expr_micheline_to_json, json_micheline_to_expr } from "../utils/michelson";
 import { Expr } from '@taquito/michel-codec'
@@ -331,8 +331,23 @@ async function run_internal(path : string, options : Options) : Promise<string> 
 export async function printRun(path : string, options : Options) {
   try {
     const stdout = await run_internal(path, options);
-    Printer.print(stdout.trim())
+    Printer.print(stdout)
   } catch (error) {
     Printer.error((error as Error).toString().trim())
   }
+}
+
+export async function interp(path : string, options : Options) {
+  let stdout;
+  try {
+    stdout = await run_internal(path, options);
+  } catch (e) {
+    return handle_fail((e as Error).toString())
+  }
+  return extract_trace_interp(stdout)
+}
+
+export async function printInterp(path : string, options : Options) {
+  const json = await interp(path, options)
+  Printer.print(JSON.stringify(json))
 }
