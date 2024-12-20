@@ -43,6 +43,10 @@ export class TezosClientManager {
     return await this.callTezosClientInteral(args, "none");
   }
 
+  public static async callMockupTezosClient(args: string[]) : Promise<ExecResult> {
+    return await this.callTezosClientInteral(args, "mockup");
+  }
+
   /**
    * Checks if the `tezos-client` binary is accessible.
    * @returns `true` if the binary is accessible, `false` otherwise.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { getBalanceCommand, printRunGetter, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
+import { checkMichelson, getBalanceCommand, printRunGetter, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -786,7 +786,12 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "check_michelson":
-        throw new Error("TODO: check_michelson");
+        if (!parsedCommand.path) {
+          Printer.error(`[Error]: path unset.`);
+          process.exit(1);
+        }
+        await checkMichelson(parsedCommand.path, parsedCommand.options);
+        break;
 
       case "run_getter":
         if (!parsedCommand.getterid) {

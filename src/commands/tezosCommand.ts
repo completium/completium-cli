@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { getViewReturnType, getBalanceFor, getChainId, isValidPkh, postRunView, postRunGetter } from "../utils/tezos";
 import { handleError } from "../utils/errorHandler";
 import { Options } from "../utils/options";
@@ -10,6 +11,7 @@ import { ContractManager } from "../utils/managers/contractManager";
 import { expr_micheline_to_json, json_micheline_to_expr } from "../utils/michelson";
 import { Expr } from '@taquito/michel-codec'
 import { taquitoExecuteSchema } from "../utils/taquito";
+import { ArchetypeManager } from "../utils/managers/archetypeManager";
 
 function buildJArg(options: Options) {
   let jarg;
@@ -150,6 +152,36 @@ export async function printRunView(viewId: string, contract: string, options: Op
     Printer.print(res);
   } catch (error) {
     Printer.error(error)
+  }
+}
+
+export async function checkMichelson(path : string, options: Options) {
+  if (!fs.existsSync(path)) {
+    Printer.error(`File not found.`);
+    return new Promise(resolve => { resolve(null) });
+  }
+
+  let michelson_path = null
+  if (path.endsWith('tz')) {
+    michelson_path = path
+  } else {
+    const res = await ArchetypeManager.callArchetype(options, path, {
+      target: 'michelson'
+    });
+
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync();
+
+    michelson_path = tmpobj.name;
+    fs.writeFileSync(michelson_path, res);
+  }
+
+  const args = ["typecheck", "script", michelson_path];
+  const { stdout, stderr, failed } = await TezosClientManager.callMockupTezosClient(args);
+  if (failed) {
+    Printer.error(stderr.trim());
+  } else {
+    Printer.print(stdout.trim());
   }
 }
 
