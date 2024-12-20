@@ -84,6 +84,12 @@ export async function postRunView(payload : any): Promise<any> {
   return res;
 }
 
+export async function postRunGetter(payload : any): Promise<any> {
+  const uri = `/chains/main/blocks/head/helpers/scripts/run_view`;
+  const res = await octezClientPOST<any>(uri, payload);
+  return res;
+}
+
 async function getMainBlocksHeadHeader<T>(): Promise<T> {
   const uri = `/chains/main/blocks/head/header`;
   const res = await octezClientGET(uri);

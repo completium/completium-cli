@@ -9,8 +9,10 @@ export type Options = {
   alias?: string;
   named?: string;
   entry?: string;
+  arg?: string;
   iargs?: string;
   argMichelson?: string;
+  argJsonMichelson?: string;
   force?: boolean;
   verbose?: boolean;
   init?: string;

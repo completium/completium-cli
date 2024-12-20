@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { getBalanceCommand, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
+import { getBalanceCommand, printRunGetter, printRunView, registerGlobalConstant } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -333,6 +333,7 @@ function parseCommand(args: string[]): ParsedCommand {
       '--entry': String,
       '--arg': String,
       '--arg-michelson': String,
+      '--arg-json-michelson': String,
       '--force': Boolean,
       '--verbose': Boolean,
       '--init': String,
@@ -387,6 +388,7 @@ function parseCommand(args: string[]): ParsedCommand {
       entry: options['--entry'],
       iargs: options['--arg'],
       argMichelson: options['--arg-michelson'],
+      argJsonMichelson: options['--arg-json-michelson'],
       force: options['--force'] || false,
       verbose: options['--verbose'] || false,
       init: options['--init'],
@@ -787,7 +789,14 @@ async function execCommand(parsedCommand: ParsedCommand) {
         throw new Error("TODO: check_michelson");
 
       case "run_getter":
-        throw new Error("TODO: run_getter");
+        if (!parsedCommand.getterid) {
+          throw new Error("[Error]: getterid unset.");
+        }
+        if (!parsedCommand.contract) {
+          throw new Error("[Error]: contract unset.");
+        }
+        await printRunGetter(parsedCommand.getterid, parsedCommand.contract, parsedCommand.options);
+        break;
 
       case "run_view":
         if (!parsedCommand.viewid) {
@@ -979,8 +988,8 @@ command:
   originate <FILE.tz> [--as <ACCOUNT_ALIAS>] [--named <CONTRACT_ALIAS>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)]  [--force-tezos-client] [--force] [--show-tezos-client-command]
   call <CONTRACT_ALIAS> [--as <ACCOUNT_ALIAS>] [--entry <ENTRYPOINT>] [--arg <ARGS> | --arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--fee <FEE>(tz|utz)] [--force] [--show-tezos-client-command]
   run <FILE.arl> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--trace] [--force]
-  run getter <GETTER_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]
-  run view <VIEW_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg-michelson <MICHELSON_DATA>] [--as <CALLER_ADDRESS>]
+  run getter <GETTER_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg-michelson <MICHELSON_DATA>] [--arg-json-michelson <MICHELSON_JSON>] [--as <CALLER_ADDRESS>]
+  run view <VIEW_ID> on <CONTRACT_ALIAS|CONTRACT_ADDRESS> [--arg-michelson <MICHELSON_DATA>] [--arg-json-michelson <MICHELSON_JSON>] [--as <CALLER_ADDRESS>]
   interp <FILE.[arl|tz]> [--entry <ENTRYPOINT>] [--arg-michelson <MICHELSON_DATA>] [--amount <AMOUNT>(tz|utz)] [--force]
   register global constant <MICHELSON_DATA> [--as <CALLER_ADDRESS>] [--force]
 
