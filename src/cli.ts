@@ -15,7 +15,7 @@ import { ConfigManager } from "./utils/managers/configManager";
 import { Config } from "./utils/types/configuration";
 import { generateAccount, importPrivatekey, removeAccount, renameAccount, setAccount, showAccount, showAccounts, showKeysFrom } from "./commands/account";
 import { importContract, printContract, removeContract, renameContract, showAddress, showContract, showContracts, showEntries, showScript, showSource, showStorage, showUrl } from "./commands/contract";
-import { generateJavascript, generateMichelson, printDecompile, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml } from "./commands/archetypeCommand";
+import { generateJavascript, generateMichelson, printDecompile, printGenerateBindingDappTs, printGenerateBindingTs, printGenerateContractInterface, printGenerateEventBindingJs, printGenerateEventBindingTs, printGenerateWhyml, runBinderTs } from "./commands/archetypeCommand";
 import { LogManager } from "./utils/managers/logManager";
 import { createProject, printCompletiumProperty } from "./commands/projectCommand";
 
@@ -228,6 +228,10 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 5 && args[2] === "generate" && args[3] === "contract" && args[4] === "interface") {
     res = { command: "generate_contract_interface", path: args[5] };
     nargs = args.slice(6);
+    // run binder-ts
+  } else if (length > 3 && args[2] === "run" && args[3] === "binder-ts") {
+    res = { command: "run_binder_ts" };
+    nargs = args.slice(4);
     // check michelson <FILE.arl>
   } else if (length > 4 && args[2] === "check" && args[3] === "michelson") {
     res = { command: "check_michelson", path: args[4] };
@@ -240,10 +244,6 @@ function parseCommand(args: string[]): ParsedCommand {
   } else if (length > 6 && args[2] === "run" && args[3] === "view" && args[5] === "on") {
     res = { command: "run_view", viewid: args[4], contract: args[6] };
     nargs = args.slice(7);
-    // run binder-ts
-  } else if (length > 3 && args[2] === "run" && args[3] === "binder-ts") {
-    res = { command: "run_binder_ts" };
-    nargs = args.slice(4);
     // run <FILE.arl>
   } else if (length > 3 && args[2] === "run") {
     res = { command: "run", path: args[3] };
@@ -785,6 +785,10 @@ async function execCommand(parsedCommand: ParsedCommand) {
         await printGenerateContractInterface(parsedCommand.path, parsedCommand.options);
         break;
 
+      case "run_binder_ts":
+        await runBinderTs(parsedCommand.options);
+        break;
+
       case "check_michelson":
         if (!parsedCommand.path) {
           Printer.error(`[Error]: path unset.`);
@@ -812,9 +816,6 @@ async function execCommand(parsedCommand: ParsedCommand) {
         }
         await printRunView(parsedCommand.viewid, parsedCommand.contract, parsedCommand.options);
         break;
-
-      case "run_binder_ts":
-        throw new Error("TODO: run_binder_ts");
 
       case "run":
         throw new Error("TODO: run");
@@ -1006,6 +1007,7 @@ command:
   generate binding-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH>  --output-path <PATH>]
   generate binding-dapp-ts <FILE.arl|CONTRACT_ALIAS> [--input-path <PATH> --output-path <PATH>] [--with-dapp-originate]
   generate contract interface <FILE.arl|FILE.tz|CONTRACT_ALIAS>
+  run binder-ts
 
   show entries <CONTRACT_ADDRESS>
   show url <CONTRACT_ALIAS>

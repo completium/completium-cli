@@ -170,7 +170,7 @@ async function printGenerateBindingTsGen(ipath: string, options: Options, target
 
       const output_dir = path.dirname(output);
 
-      if (!fs.existsSync(ipath)) {
+      if (!fs.existsSync(output_dir)) {
         fs.mkdirSync(output_dir, { recursive: true });
       }
 
@@ -236,4 +236,33 @@ export async function printGenerateContractInterface(path: string, options: Opti
 export async function printDecompile(value : string, options : Options) {
   const output = await ArchetypeManager.decompile(value);
   Printer.print(output)
+}
+
+export async function runBinderTs(options : Options) {
+  const package_json_path = './package.json';
+  if (!fs.existsSync(package_json_path)) {
+    const msg = `'./package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const json = JSON.parse(fs.readFileSync(package_json_path, 'utf8'));
+  if (!json.completium) {
+    const msg = `completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (!json.completium.contracts_path) {
+    const msg = `contracts_path in completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (!json.completium.binding_path) {
+    const msg = `binding_path in completium section in './package.json' not found`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const contracts_path = json.completium.contracts_path;
+  const binding_path = json.completium.binding_path;
+
+  await printGenerateBindingTs('', { ...options, input_path: contracts_path, output_path: binding_path })
 }
