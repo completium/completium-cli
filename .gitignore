@@ -2,3 +2,4 @@ legacy
 node_modules
 dist
 dump
+.vscode

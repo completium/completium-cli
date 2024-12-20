@@ -12,6 +12,7 @@ import { expr_micheline_to_json, json_micheline_to_expr } from "../utils/michels
 import { Expr } from '@taquito/michel-codec'
 import { taquitoExecuteSchema } from "../utils/taquito";
 import { ArchetypeManager } from "../utils/managers/archetypeManager";
+import { getAmount } from '../utils/archetype';
 
 function buildJArg(options: Options) {
   let jarg;
@@ -243,5 +244,95 @@ export async function printRunGetter(getterId: string, contract: string, options
     Printer.print(res);
   } catch (error) {
     Printer.error(error)
+  }
+}
+
+async function run_internal(path : string, options : Options) : Promise<string> {
+  const arg = options.argMichelson !== undefined ? options.argMichelson : "Unit";
+  const entry = options.entry !== undefined ? options.entry : "default";
+  const trace = options.trace === undefined ? false : options.trace;
+  const verbose = options.verbose === undefined ? false : options.verbose;
+
+  let amount = 0;
+  if (options.amount) {
+    amount = getAmount(options.amount);
+    if (!amount) {
+      const msg = `Invalid amount`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+  }
+
+  let michelson_path = null;
+  let d_storage = options.storage;
+  if (path.endsWith('tz')) {
+    michelson_path = path
+    if (d_storage === undefined) {
+      d_storage = 'Unit'
+    }
+  } else {
+    const tmp = require('tmp');
+    const tmpobj = tmp.fileSync();
+
+    const script_raw = await ArchetypeManager.callArchetype(options, path, { target: "michelson" }); // TODO: handle parameters
+    const d_path_script = tmpobj.name;
+    fs.writeFileSync(d_path_script, script_raw);
+
+    if (d_storage === undefined) {
+      d_storage = await ArchetypeManager.callArchetype(options, path, { target: "michelson-storage" });
+    }
+    michelson_path = tmpobj.name;
+  }
+
+  const d_amount = (amount / 1000000).toString();
+
+  const args : string[] = [
+    "run", "script", michelson_path, "on", "storage", d_storage, "and", "input", arg, "--entrypoint", entry, "--amount", d_amount
+  ];
+  if (options.opt_balance) {
+    args.push("--balance")
+    args.push(options.opt_balance)
+  }
+  if (options.opt_source) {
+    args.push("--source")
+    args.push(options.opt_source)
+  }
+  if (options.opt_payer) {
+    args.push("--payer")
+    args.push(options.opt_payer)
+  }
+  if (options.opt_self_address) {
+    args.push("--self-address")
+    args.push(options.opt_self_address)
+  }
+  if (options.opt_now) {
+    args.push("--now")
+    args.push(options.opt_now)
+  }
+  if (options.opt_level) {
+    args.push("--level")
+    args.push(options.opt_level)
+  }
+
+  if (trace) {
+    args.push("--trace-stack");
+  }
+
+  if (verbose) {
+    Printer.print(args);
+  }
+  const { stdout, stderr, failed } = await TezosClientManager.callTezosClient(args);
+  if (failed) {
+    return new Promise((resolve, reject) => { reject(stderr) });
+  } else {
+    return new Promise((resolve, reject) => { resolve(stdout) });
+  }
+}
+
+export async function printRun(path : string, options : Options) {
+  try {
+    const stdout = await run_internal(path, options);
+    Printer.print(stdout.trim())
+  } catch (error) {
+    Printer.error((error as Error).toString().trim())
   }
 }
