@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { checkMichelson, getBalanceCommand, printInterp, printRun, printRunGetter, printRunView, registerGlobalConstant, transfer } from "./commands/tezosCommand";
+import { checkMichelson, deploy, getBalanceCommand, printInterp, printRun, printRunGetter, printRunView, registerGlobalConstant, transfer } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -722,7 +722,16 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "deploy":
-        throw new Error("TODO: deploy");
+        if (!parsedCommand.file) {
+          Printer.error(`[Error]: file unset.`);
+          process.exit(1);
+        }
+        if (!parsedCommand.originate) {
+          Printer.error(`[Error]: originate unset.`);
+          process.exit(1);
+        }
+        await deploy(parsedCommand.file, parsedCommand.originate, parsedCommand.options)
+        break;
 
       case "call_contract":
         throw new Error("TODO: call_contract");

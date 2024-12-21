@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { getViewReturnType, getBalanceFor, getChainId, isValidPkh, postRunView, postRunGetter } from "../utils/tezos";
 import { handleError } from "../utils/errorHandler";
 import { Options } from "../utils/options";
@@ -15,7 +16,9 @@ import { ArchetypeManager } from "../utils/managers/archetypeManager";
 import { getAmount } from '../utils/archetype';
 import { Account } from '../utils/types/configuration';
 import { askQuestionBool } from '../utils/interaction';
-import { TransactionOperation } from '@taquito/taquito';
+import { ContractStorageType, DefaultContractType, OriginateParams, OriginationOperation, TransactionOperation } from '@taquito/taquito';
+import * as codec from '@taquito/michel-codec';
+import { LogManager } from '../utils/managers/logManager';
 
 function buildJArg(options: Options) {
   let jarg;
@@ -159,7 +162,7 @@ export async function printRunView(viewId: string, contract: string, options: Op
   }
 }
 
-export async function checkMichelson(path : string, options: Options) {
+export async function checkMichelson(path: string, options: Options) {
   if (!fs.existsSync(path)) {
     Printer.error(`File not found.`);
     return new Promise(resolve => { resolve(null) });
@@ -250,7 +253,7 @@ export async function printRunGetter(getterId: string, contract: string, options
   }
 }
 
-async function run_internal(path : string, options : Options) : Promise<string> {
+async function run_internal(path: string, options: Options): Promise<string> {
   const arg = options.argMichelson !== undefined ? options.argMichelson : "Unit";
   const entry = options.entry !== undefined ? options.entry : "default";
   const trace = options.trace === undefined ? false : options.trace;
@@ -288,7 +291,7 @@ async function run_internal(path : string, options : Options) : Promise<string> 
 
   const d_amount = (amount / 1000000).toString();
 
-  const args : string[] = [
+  const args: string[] = [
     "run", "script", michelson_path, "on", "storage", d_storage, "and", "input", arg, "--entrypoint", entry, "--amount", d_amount
   ];
   if (options.opt_balance) {
@@ -331,7 +334,7 @@ async function run_internal(path : string, options : Options) : Promise<string> 
   }
 }
 
-export async function printRun(path : string, options : Options) {
+export async function printRun(path: string, options: Options) {
   try {
     const stdout = await run_internal(path, options);
     Printer.print(stdout)
@@ -340,7 +343,7 @@ export async function printRun(path : string, options : Options) {
   }
 }
 
-export async function interp(path : string, options : Options) {
+export async function interp(path: string, options: Options) {
   let stdout;
   try {
     stdout = await run_internal(path, options);
@@ -350,19 +353,19 @@ export async function interp(path : string, options : Options) {
   return extract_trace_interp(stdout)
 }
 
-export async function printInterp(path : string, options : Options) {
+export async function printInterp(path: string, options: Options) {
   const json = await interp(path, options)
   Printer.print(JSON.stringify(json))
 }
 
-async function confirmTransfer(force : boolean, amount : number, from : Account, to : string) {
+async function confirmTransfer(force: boolean, amount: number, from: Account, to: string) {
   if (force) { return true }
 
   const str = `Confirm transfer ${amount / 1000000} ꜩ from ${from.name} to ${to} on ${ConfigManager.getNetwork()}?`;
   return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
 }
 
-export async function transfer(amount_raw : string, from_raw : string, to_raw : string, options : Options) {
+export async function transfer(amount_raw: string, from_raw: string, to_raw: string, options: Options) {
   const force = options.force ?? false;
 
   const amount = getAmount(amount_raw);
@@ -408,21 +411,331 @@ export async function transfer(amount_raw : string, from_raw : string, to_raw : 
     return new Promise((resolve, reject) => {
       tezos.contract
         .transfer({ to: to_addr, amount: amount, mutez: true })
-        .then((op : TransactionOperation) => {
+        .then((op: TransactionOperation) => {
           Printer.print(`Waiting for ${op.hash} to be confirmed...`);
           op.confirmation(1)
-            .then((_ : number) => {
+            .then((_: number) => {
               const op_inj = network && network.tzstat_url === undefined ? `${op.hash}` : `${network ? network.tzstat_url : ''}/${op.hash}`
               Printer.print(`Operation injected: ${op_inj}`);
               resolve(op.hash);
             })
-            .catch((error : Error) => {
+            .catch((error: Error) => {
               reject(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
             });
         })
-        .catch((error : Error) => {
+        .catch((error: Error) => {
           reject(`Error: ${error} ${JSON.stringify(error, null, 2)}`);
         });
     });
   }
+}
+
+function print_deploy_settings(with_color: boolean, account: Account, contract_id: string, amount: number, storage: string, estimated_total_cost: number | null, network: string) {
+  const cyan = '36';
+  const start = with_color ? `\x1b[${cyan}m` : '';
+  const end = with_color ? `\x1b[0m` : '';
+  Printer.print(`Originate settings:`);
+  Printer.print(`  ${start}network${end}\t: ${network}`);
+  Printer.print(`  ${start}contract${end}\t: ${contract_id}`);
+  Printer.print(`  ${start}as${end}\t\t: ${account.name}`);
+  Printer.print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
+  Printer.print(`  ${start}storage${end}\t: ${storage}`);
+  if (estimated_total_cost != null) {
+    Printer.print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+  }
+}
+
+async function confirmDeploy(force: boolean, account: Account, contract_id: string, amount: number, storage: string, estimated_total_cost: number, network: string) {
+  if (force) { return true }
+
+  print_deploy_settings(true, account, contract_id, amount, storage, estimated_total_cost, network);
+  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); }) });
+}
+
+async function confirmContract(force: boolean, id: string) {
+  if (force || (ContractManager.getContractByName(id) == null)) { return true }
+
+  const str = `${id} already exists, overwrite it?`;
+  return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
+}
+
+export async function deploy(file: string, originate: boolean, options: Options) : Promise<[string, OriginationOperation<DefaultContractType>] | null> {
+  const as = options.as;
+  const force = options.force ?? false;
+  const named = options.named;
+  const networkName = ConfigManager.getNetwork();
+  const network = ConfigManager.getNetworkByName(networkName);
+  const dry = options.dry;
+  const oinit = options.init;
+  const contract_json = options.contract_json;
+  const storage_json = options.storage_json;
+  const parameters = options.iparameters !== undefined ? JSON.parse(options.iparameters) : options.parameters;
+  const parametersMicheline = options.iparametersMicheline !== undefined ? JSON.parse(options.iparametersMicheline) : options.parametersMicheline;
+  const otest = options.test;
+  const mockup_mode = ConfigManager.isMockupMode();
+  const force_tezos_client = options.force_tezos_client ?? ConfigManager.isForceOctezClient();
+  const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
+  const init_obj_mich = options.init_obj_mich;
+  const is_sandbox_exec_here = is_sandbox_exec(file);
+  let sandbox_exec_address = options.sandbox_exec_address;
+
+  if (!network) {
+    const msg = `Network not found.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (!sandbox_exec_address && is_sandbox_exec_here) {
+    sandbox_exec_address = ConfigManager.getSandboxExecAddress(network.network);
+    if (!sandbox_exec_address) {
+      const msg = `Cannot fetch sandbox_exec address for network: ${network.network}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+  }
+
+  if (otest && originate) {
+    const msg = `Cannot originate a contract in test mode.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (otest && mockup_mode) {
+    const msg = `Cannot deploy a contract in test mode on mockup mode.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (otest && network.network === "main") {
+    const msg = `Cannot deploy a contract in test mode on mainnet.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const alias = as ?? ConfigManager.getDefaultAccount();
+  const account = AccountsManager.getAccountByNameOrPkh(alias);
+  if (!account) {
+    const msg = `Invalid account ${alias}.`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const amount = options.amount ? getAmount(options.amount) : 0;
+  if (!amount) {
+    const msg = `Invalid amount`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const fee = options.fee ? getAmount(options.fee) : 0;
+  if (!fee) {
+    const msg = `Invalid fee`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  if (!!(contract_json) && !named) {
+    const msg = `\`named\` field missing`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const contract_name = named === undefined ? path.basename(file).split('.').slice(0, -1).join('.') : named;
+  var confirm = await confirmContract(force || show_tezos_client_command, contract_name);
+  if (!confirm) {
+    const msg = `Not confirmed`
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  let code;
+  if (!!contract_json) {
+    code = json_micheline_to_expr(contract_json);
+  } else {
+    if (!fs.existsSync(file)) {
+      const msg = `File not found.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+    if (originate) {
+      const input = fs.readFileSync(file).toString();
+      if (file.endsWith(".json")) {
+        const jinput = JSON.parse(input);
+        code = json_micheline_to_expr(jinput);
+      } else {
+        code = input;
+      }
+    } else {
+      try {
+        code = await ArchetypeManager.callArchetype(options, file, {
+          target: "michelson",
+          sci: account.pkh,
+          sandbox_exec_address: sandbox_exec_address
+        });
+      } catch (e) {
+        return new Promise((resolve, reject) => { reject(e) });
+      }
+    }
+  }
+
+  let contract_parameter = null;
+  if (!originate) {
+    const with_parameters = await ArchetypeManager.callArchetype(options, file, {
+      with_parameters: true
+    });
+    if (with_parameters !== "") {
+      if (!parameters && !parametersMicheline) {
+        const msg = `The contract has the following parameter:\n${with_parameters}\nPlease use '--parameters' to initialize.`;
+        return new Promise((resolve, reject) => { reject(msg) });
+      } else {
+        contract_parameter = JSON.parse(with_parameters);
+      }
+    }
+  }
+
+  if (contract_parameter != null) {
+    code = process_code_const(code, parameters, parametersMicheline, contract_parameter);
+  }
+
+  let m_storage;
+  if (!!storage_json) {
+    m_storage = storage_json;
+  } else if (!!oinit) {
+    m_storage = expr_micheline_to_json(oinit);
+  } else if (!!init_obj_mich) {
+    const m_code = (new codec.Parser()).parseScript(code.toString());
+    const obj_storage = m_code.find(x => x.prim === "storage");
+    const storageType = obj_storage.args[0];
+
+    m_storage = build_storage(storageType, init_obj_mich);
+  } else if (!originate) {
+    if (!parameters && !parametersMicheline) {
+      try {
+        const storage = await ArchetypeManager.callArchetype(options, file, {
+          target: "michelson-storage",
+          sci: account.pkh,
+          sandbox_exec_address: sandbox_exec_address
+        });
+        m_storage = expr_micheline_to_json(storage);
+      } catch (e) {
+        return new Promise((resolve, reject) => { reject(e) });
+      }
+    } else {
+      try {
+        const m_code = expr_micheline_to_json(code);
+        const obj_storage = m_code.find(x => x.prim === "storage");
+        const storageType = obj_storage.args[0];
+        m_storage = await compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, computeSettings(options), sandbox_exec_address);
+      } catch (e) {
+        return new Promise((resolve, reject) => { reject(e) });
+      }
+    }
+  } else {
+    m_storage = expr_micheline_to_json("Unit");
+  }
+
+  const ext = originate ? 'tz' : 'arl';
+  let source = null;
+  if (!!file) {
+    source = ContractManager.writeSource(file, ext, contract_name);
+  }
+  const contract_path = ContractManager.writeContract(code, contract_name);
+  const version = await ArchetypeManager.getVersion();
+
+  const tezos = getTezos(account.name);
+
+  const deployInternal = async (): Promise<{ contract_address: string, storage: string, originationOp: OriginationOperation<DefaultContractType> } | null> => {
+    if (dry) {
+      // taquito.RpcPacker.preapplyOperations();
+      Printer.print("TODO")
+      return null;
+    } else if (mockup_mode || force_tezos_client || show_tezos_client_command) {
+      const a = (amount / 1000000).toString();
+      const storage = codec.emitMicheline(m_storage);
+      const args = [
+        "originate", "contract", contract_name,
+        "transferring", a, "from", account.pkh,
+        "running", contract_path, "--init", storage,
+        "--burn-cap", "20", "--force", "--no-print-source"
+      ];
+      if (show_tezos_client_command) {
+        const cmd = TezosClientManager.getTezosClientArgs(args);
+        Printer.print(cmd);
+        return new Promise((resolve) => { resolve(null) })
+      } else {
+        print_deploy_settings(false, account, contract_name, amount, storage, null, networkName);
+        const { stdout, stderr, failed } = await TezosClientManager.callTezosClient(args);
+        if (ConfigManager.isLogMode() && mockup_mode) {
+          LogManager.addLogOrigination({
+            args_command: args,
+            stdout: stdout,
+            stderr: stderr,
+            failed: failed,
+            source: account.pkh,
+            storage: storage,
+            amount: a,
+            name: contract_name
+          })
+        }
+        if (failed) {
+          return new Promise((resolve, reject) => { reject(stderr) });
+        } else {
+          Printer.print(stdout);
+        }
+        const path_contracts = (mockup_mode ? mockup_path : tezos_client_dir) + "/contracts";
+        const inputContracts = fs.readFileSync(path_contracts, 'utf8');
+        const cobj = JSON.parse(inputContracts);
+        const o = cobj.find(x => { return (x.name === contract_name) });
+        const contract_address = o.value ?? null;
+        return { contract_address, storage, originationOp }
+      }
+    } else {
+
+      let m_code = expr_micheline_to_json(code);
+
+      const originateParam: OriginateParams<ContractStorageType<DefaultContractType>> = {
+        balance: amount,
+        fee: fee > 0 ? fee : undefined,
+        code: m_code,
+        init: m_storage,
+        mutez: true
+      };
+
+      const storage = codec.emitMicheline(m_storage);
+
+      let cont;
+      try {
+        const res_estimate = await tezos.estimate.originate(originateParam);
+        const estimated_total_cost = res_estimate.totalCost + 100;
+        cont = await confirmDeploy(force, account, contract_name, amount, storage, estimated_total_cost, networkName);
+        if (!cont) {
+          return null;
+        }
+        if (force) {
+          print_deploy_settings(false, account, contract_name, amount, storage, estimated_total_cost, ConfigManager.getNetwork());
+        } else {
+          Printer.print(`Forging operation...`);
+        }
+
+      } catch (e) {
+        return new Promise((resolve, reject) => { reject(e) });
+      }
+
+      const originationOp = await tezos.contract.originate(originateParam);
+      const contract = await originationOp.contract();
+      const contract_address = contract.address;
+      return { contract_address, storage, originationOp}
+    }
+  }
+  const resDeployInternal = await deployInternal();
+  if (!resDeployInternal) {
+    return null;
+  }
+  const { contract_address, storage, originationOp } = resDeployInternal;
+
+  ContractManager.addContract({
+    name: contract_name,
+    address: contract_address,
+    network: network.network,
+    language: originate ? 'michelson' : 'archetype',
+    compiler_version: originate ? '0' : version,
+    path: contract_path,
+    initial_storage: storage,
+    source: source
+  });
+  Printer.print(`Origination completed for ${contract_address} named ${contract_name}.`);
+  if (!mockup_mode) {
+    const url = network.bcd_url.replace('${address}', contract_address);
+    Printer.print(url);
+  }
+  return [contract_name, originationOp]
 }

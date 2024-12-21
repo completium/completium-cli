@@ -10,7 +10,7 @@ import { exec, ExecResult } from "../tools";
  */
 export class TezosClientManager {
 
-  private static async callTezosClientInteral(args: string[], mode: 'mockup' | 'rpc' | 'none'): Promise<ExecResult> {
+  private static getExecArgs(args: string[], mode: 'mockup' | 'rpc' | 'none'): string[] {
     let execArgs: string[] = [];
     switch (mode) {
       case "mockup":
@@ -24,6 +24,11 @@ export class TezosClientManager {
       case "none":
         break;
     }
+    return execArgs;
+  }
+
+  private static async callTezosClientInteral(args: string[], mode: 'mockup' | 'rpc' | 'none'): Promise<ExecResult> {
+    let execArgs: string[] = this.getExecArgs(args, mode);
     try {
       const binaryPath = ConfigManager.getBinOctezClient();
       const execResult = await exec(binaryPath, execArgs);
@@ -34,17 +39,22 @@ export class TezosClientManager {
     }
   }
 
-  public static async callTezosClient(args: string[]) : Promise<ExecResult> {
+  public static async callTezosClient(args: string[]): Promise<ExecResult> {
     const mode = ConfigManager.isMockupMode() ? 'mockup' : 'rpc';
     return await this.callTezosClientInteral(args, mode);
   }
 
-  public static async callDryTezosClient(args: string[]) : Promise<ExecResult> {
+  public static async callDryTezosClient(args: string[]): Promise<ExecResult> {
     return await this.callTezosClientInteral(args, "none");
   }
 
-  public static async callMockupTezosClient(args: string[]) : Promise<ExecResult> {
+  public static async callMockupTezosClient(args: string[]): Promise<ExecResult> {
     return await this.callTezosClientInteral(args, "mockup");
+  }
+
+  public static getTezosClientArgs(args: string[]): string[] {
+    const mode = ConfigManager.isMockupMode() ? 'mockup' : 'rpc';
+    return this.getExecArgs(args, mode);
   }
 
   /**

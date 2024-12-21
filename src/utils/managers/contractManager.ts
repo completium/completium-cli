@@ -99,4 +99,43 @@ export class ContractManager {
     contractsData.contracts = filteredContracts;
     this.saveContracts(contractsData);
   }
+
+  /**
+   * Writes the source code file synchronously.
+   * @param arl - Path to the source file.
+   * @param ext - Extension for the output file.
+   * @param contractName - Name of the contract.
+   * @returns The path to the written file.
+   */
+  public static writeSource(arl: string, ext: string, contract_name: string): string {
+    const sources_dir = path.join(process.env.HOME || "", ".completium", "sources");
+    if (!fs.existsSync(sources_dir)) {
+      fs.mkdirSync(sources_dir, { recursive: true });
+    }
+  
+    const data = fs.readFileSync(arl, "utf8");
+    const source_path = path.join(sources_dir, `${contract_name}.${ext}`);
+    fs.writeFileSync(source_path, data, "utf8");
+  
+    return source_path;
+  }
+  
+  /**
+   * Writes the contract file synchronously.
+   * @param data - Contract data to write.
+   * @param contractName - Name of the contract.
+   * @returns The path to the written file.
+   */
+  public static writeContract(data: string | NodeJS.ArrayBufferView, contract_name: string): string {
+    const contracts_dir = path.join(process.env.HOME || "", ".completium", "contracts");
+    if (!fs.existsSync(contracts_dir)) {
+      fs.mkdirSync(contracts_dir, { recursive: true });
+    }
+  
+    const contract_path = path.join(contracts_dir, `${contract_name}.tz`);
+    fs.writeFileSync(contract_path, data);
+  
+    return contract_path;
+  }
+  
 }
