@@ -1,4 +1,4 @@
-import { emitMicheline, Expr, Parser, Prim } from '@taquito/michel-codec';
+import { emitMicheline, Expr, MichelsonType, Parser, Prim } from '@taquito/michel-codec';
 import { Schema } from '@taquito/michelson-encoder';
 import { handleError } from './errorHandler';
 import { ArchetypeContractParameters, CompletiumParameter, getAmount } from './archetype';
@@ -248,9 +248,9 @@ export function buildStorage(storageType: Micheline, initObjMich: InitObject): u
 
 
 
-var objValues = {};
+var objValues: any = {};
 
-function build_data_michelson(type, storage_values, parameters: CompletiumParameter, parametersMicheline: any) {
+function build_data_michelson(type: any, storage_values: any, parameters: CompletiumParameter, parametersMicheline: any) {
   const is_micheline = !!parametersMicheline;
   const p = is_micheline ? parametersMicheline : parameters;
   if (type.annots !== undefined && type.annots.length > 0) {
@@ -282,7 +282,7 @@ function build_data_michelson(type, storage_values, parameters: CompletiumParame
 
     let args;
     if (Object.keys(storage_values).length == 0 && Object.keys(parameters).length == 1) {
-      const ds = Object.values(p)[0];
+      const ds: any = Object.values(p)[0];
       args = [];
       for (let i = 0; i < type.args.length; ++i) {
         let a = null
@@ -296,7 +296,7 @@ function build_data_michelson(type, storage_values, parameters: CompletiumParame
         args.push(a);
       }
     } else {
-      args = type.args.map((t) => {
+      args = type.args.map((t: any) => {
         return build_data_michelson(t, storage_values, parameters, parametersMicheline);
       });
     }
@@ -312,40 +312,39 @@ function build_data_michelson(type, storage_values, parameters: CompletiumParame
   }
 }
 
-function replaceAll(data, objValues) {
+function replaceAll(data: any, objValues: any): any {
   if (data.prim !== undefined) {
     if (objValues[data.prim] !== undefined) {
       return objValues[data.prim];
     } else if (data.args !== undefined) {
-      const nargs = data.args.map(x => replaceAll(x, objValues));
+      const nargs = data.args.map((x: any) => replaceAll(x, objValues));
       return { ...data, args: nargs }
     } else {
       return data;
     }
-  } else if (data.length !== undefined) {
-    return data.map(x => replaceAll(x, objValues))
+  } else if (Array.isArray(data)) {
+    return data.map((x: any) => replaceAll(x, objValues))
   } else {
     return data;
   }
 }
 
-
-function replace_json(obj: any, id: string, data: any) {
-  if (obj instanceof Array) {
-    return (obj.map(x => replace_json(x, id, data)))
+function replace_json(obj: any, id: string, data: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map((x: any) => replace_json(x, id, data));
   } else if (obj.prim) {
     const prim = obj.prim;
-    if (prim == id) {
+    if (prim === id) {
       return data;
     }
     if (obj.args) {
-      return { ...obj, args: obj.args.map(x => replace_json(x, id, data)) }
+      return { ...obj, args: obj.args.map((x: any) => replace_json(x, id, data)) };
     }
   }
   return obj;
 }
 
-function process_const(obj, parameters: CompletiumParameter, parametersMicheline: any, contract_parameter: ArchetypeContractParameters) {
+function process_const(obj: any, parameters: CompletiumParameter, parametersMicheline: any, contract_parameter: ArchetypeContractParameters) {
   const is_micheline = !!parametersMicheline;
   for (let i = 0; i < contract_parameter.length; ++i) {
     const cp = contract_parameter[i];
@@ -368,7 +367,7 @@ function process_const(obj, parameters: CompletiumParameter, parametersMicheline
   return obj;
 }
 
-export async function compute_tzstorage(file: string, storageType: string, parameters: CompletiumParameter, parametersMicheline: any, contract_parameter: ArchetypeContractParameters, options: Options, s: Settings, sandbox_exec_address: string) {
+export async function compute_tzstorage(file: string, storageType: string, parameters: CompletiumParameter, parametersMicheline: any, contract_parameter: ArchetypeContractParameters, options: Options, s: Settings, sandbox_exec_address: string | undefined) {
   const is_micheline = !!(parametersMicheline);
   const parameters_var = []
   const parameters_const = []
@@ -393,13 +392,13 @@ export async function compute_tzstorage(file: string, storageType: string, param
     const storage_values = await ArchetypeManager.callArchetype({}, file, {
       ...s,
       get_storage_values: true,
-      sandbox_exec_address: sandbox_exec_address
+      sandbox_exec_address: sandbox_exec_address ?? ''
     });
-    const jsv = JSON.parse(storage_values);
-    const sv = jsv.map(x => x);
-    var obj = {};
-    sv.forEach(x => {
-      obj[x.id] = x.value
+    const jsv: unknown[] = JSON.parse(storage_values);
+    const sv = jsv.map((x) => x);
+    const obj: Record<string, unknown> = {};
+    sv.forEach((x: any) => {
+      obj[x.id] = x.value;
     });
 
     objValues = {};
@@ -408,7 +407,7 @@ export async function compute_tzstorage(file: string, storageType: string, param
   } else {
     const storage_values = await ArchetypeManager.callArchetype(options, file, {
       target: "michelson-storage",
-      sandbox_exec_address: sandbox_exec_address
+      sandbox_exec_address: sandbox_exec_address ?? ''
     });
     michelsonData = expr_micheline_to_json(storage_values);
   }

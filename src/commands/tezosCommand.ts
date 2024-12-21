@@ -459,7 +459,7 @@ async function confirmContract(force: boolean, id: string) {
   return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
 }
 
-export async function deploy(file: string, originate: boolean, options: Options): Promise<[string, OriginationOperation<DefaultContractType>] | null> {
+export async function deploy(file: string, originate: boolean, options: Options): Promise<[string, (OriginationOperation<DefaultContractType> | null)] | null> {
   const as = options.as;
   const force = options.force ?? false;
   const named = options.named;
@@ -486,10 +486,10 @@ export async function deploy(file: string, originate: boolean, options: Options)
 
   if (!sandbox_exec_address && is_sandbox_exec_here) {
     sandbox_exec_address = ConfigManager.getSandboxExecAddress(network.network);
-  }
-  if (!sandbox_exec_address) {
-    const msg = `Cannot fetch sandbox_exec address for network: ${network.network}.`;
-    return new Promise((resolve, reject) => { reject(msg) });
+    if (!sandbox_exec_address) {
+      const msg = `Cannot fetch sandbox_exec address for network: ${network.network}.`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
   }
 
   if (otest && originate) {
@@ -514,16 +514,22 @@ export async function deploy(file: string, originate: boolean, options: Options)
     return new Promise((resolve, reject) => { reject(msg) });
   }
 
-  const amount = options.amount ? getAmount(options.amount) : 0;
-  if (!amount) {
-    const msg = `Invalid amount`;
-    return new Promise((resolve, reject) => { reject(msg) });
+  let amount = 0;
+  if (options.amount) {
+    amount = getAmount(options.amount);
+    if (!amount) {
+      const msg = `Invalid amount`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
   }
 
-  const fee = options.fee ? getAmount(options.fee) : 0;
-  if (!fee) {
-    const msg = `Invalid fee`;
-    return new Promise((resolve, reject) => { reject(msg) });
+  let fee = 0;
+  if (options.fee) {
+    fee = getAmount(options.fee);
+    if (!fee) {
+      const msg = `Invalid fee`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
   }
 
   if (!!(contract_json) && !named) {
@@ -649,7 +655,7 @@ export async function deploy(file: string, originate: boolean, options: Options)
 
   const tezos = getTezos(account.name);
 
-  const deployInternal = async (): Promise<{ contract_address: string, storage: string, originationOp: OriginationOperation<DefaultContractType> } | null> => {
+  const deployInternal = async (): Promise<{ contract_address: string, storage: string, originationOp: (OriginationOperation<DefaultContractType> | null) } | null> => {
     if (dry) {
       // taquito.RpcPacker.preapplyOperations();
       Printer.print("TODO")
@@ -694,13 +700,13 @@ export async function deploy(file: string, originate: boolean, options: Options)
         const path_contracts = (mockup_mode ? mockup_path : tezos_client_dir) + "/contracts";
         const inputContracts = fs.readFileSync(path_contracts, 'utf8');
         const cobj = JSON.parse(inputContracts);
-        const o = cobj.find((x : any) => { return (x.name === contract_name) });
+        const o = cobj.find((x: any) => { return (x.name === contract_name) });
         const contract_address = o.value ?? null;
-        return { contract_address, storage, originationOp }
+        return { contract_address, storage, originationOp: null }
       }
     } else {
 
-      let m_code : any = expr_micheline_to_json(code);
+      let m_code: any = expr_micheline_to_json(code);
 
       const originateParam: OriginateParams<ContractStorageType<DefaultContractType>> = {
         balance: amount,
@@ -712,11 +718,10 @@ export async function deploy(file: string, originate: boolean, options: Options)
 
       const storage = codec.emitMicheline(m_storage);
 
-      let cont;
       try {
         const res_estimate = await tezos.estimate.originate(originateParam);
         const estimated_total_cost = res_estimate.totalCost + 100;
-        cont = await confirmDeploy(force, account, contract_name, amount, storage, estimated_total_cost, networkName);
+        const cont = await confirmDeploy(force, account, contract_name, amount, storage, estimated_total_cost, networkName);
         if (!cont) {
           return null;
         }

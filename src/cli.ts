@@ -726,7 +726,7 @@ async function execCommand(parsedCommand: ParsedCommand) {
           Printer.error(`[Error]: file unset.`);
           process.exit(1);
         }
-        if (!parsedCommand.originate) {
+        if (parsedCommand.originate === undefined) {
           Printer.error(`[Error]: originate unset.`);
           process.exit(1);
         }
