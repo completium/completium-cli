@@ -9,10 +9,10 @@ import { ConfigManager } from "../utils/managers/configManager";
 import { TezosClientManager } from "../utils/managers/tezosClientManager";
 import { extract_trace_interp, extractGlobalAddress, handle_fail } from "../utils/regExp";
 import { ContractManager } from "../utils/managers/contractManager";
-import { expr_micheline_to_json, json_micheline_to_expr } from "../utils/michelson";
+import { build_from_js, buildStorage, compute_tzstorage, expr_micheline_to_json, json_micheline_to_expr, process_code_const } from "../utils/michelson";
 import { Expr } from '@taquito/michel-codec'
 import { getTezos, taquitoExecuteSchema } from "../utils/taquito";
-import { ArchetypeManager } from "../utils/managers/archetypeManager";
+import { ArchetypeManager, Settings } from "../utils/managers/archetypeManager";
 import { getAmount } from '../utils/archetype';
 import { Account } from '../utils/types/configuration';
 import { askQuestionBool } from '../utils/interaction';
@@ -459,7 +459,7 @@ async function confirmContract(force: boolean, id: string) {
   return new Promise(resolve => { askQuestionBool(str, answer => { resolve(answer); }) });
 }
 
-export async function deploy(file: string, originate: boolean, options: Options) : Promise<[string, OriginationOperation<DefaultContractType>] | null> {
+export async function deploy(file: string, originate: boolean, options: Options): Promise<[string, OriginationOperation<DefaultContractType>] | null> {
   const as = options.as;
   const force = options.force ?? false;
   const named = options.named;
@@ -476,7 +476,7 @@ export async function deploy(file: string, originate: boolean, options: Options)
   const force_tezos_client = options.force_tezos_client ?? ConfigManager.isForceOctezClient();
   const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
   const init_obj_mich = options.init_obj_mich;
-  const is_sandbox_exec_here = is_sandbox_exec(file);
+  const is_sandbox_exec_here = ConfigManager.is_sandbox_exec(file);
   let sandbox_exec_address = options.sandbox_exec_address;
 
   if (!network) {
@@ -486,10 +486,10 @@ export async function deploy(file: string, originate: boolean, options: Options)
 
   if (!sandbox_exec_address && is_sandbox_exec_here) {
     sandbox_exec_address = ConfigManager.getSandboxExecAddress(network.network);
-    if (!sandbox_exec_address) {
-      const msg = `Cannot fetch sandbox_exec address for network: ${network.network}.`;
-      return new Promise((resolve, reject) => { reject(msg) });
-    }
+  }
+  if (!sandbox_exec_address) {
+    const msg = `Cannot fetch sandbox_exec address for network: ${network.network}.`;
+    return new Promise((resolve, reject) => { reject(msg) });
   }
 
   if (otest && originate) {
@@ -593,10 +593,22 @@ export async function deploy(file: string, originate: boolean, options: Options)
     m_storage = expr_micheline_to_json(oinit);
   } else if (!!init_obj_mich) {
     const m_code = (new codec.Parser()).parseScript(code.toString());
-    const obj_storage = m_code.find(x => x.prim === "storage");
+    if (!m_code) {
+      const msg = `m_code null`
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+    const obj_storage: any = m_code.find((x: any) => x?.prim === "storage");
+    if (!obj_storage) {
+      const msg = `obj_storage null`
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
     const storageType = obj_storage.args[0];
+    if (!storageType) {
+      const msg = `storageType null`
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
 
-    m_storage = build_storage(storageType, init_obj_mich);
+    m_storage = buildStorage(storageType, init_obj_mich);
   } else if (!originate) {
     if (!parameters && !parametersMicheline) {
       try {
@@ -611,10 +623,14 @@ export async function deploy(file: string, originate: boolean, options: Options)
       }
     } else {
       try {
-        const m_code = expr_micheline_to_json(code);
-        const obj_storage = m_code.find(x => x.prim === "storage");
+        const m_code: any = expr_micheline_to_json(code);
+        const obj_storage: any = m_code.find((x: any) => x?.prim === "storage");
+        if (!obj_storage) {
+          const msg = `obj_storage null`
+          return new Promise((resolve, reject) => { reject(msg) });
+        }
         const storageType = obj_storage.args[0];
-        m_storage = await compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, computeSettings(options), sandbox_exec_address);
+        m_storage = await compute_tzstorage(file, storageType, parameters, parametersMicheline, contract_parameter, options, ArchetypeManager.computeSettings(options), sandbox_exec_address);
       } catch (e) {
         return new Promise((resolve, reject) => { reject(e) });
       }
@@ -671,16 +687,20 @@ export async function deploy(file: string, originate: boolean, options: Options)
         } else {
           Printer.print(stdout);
         }
+        const homedir = require('os').homedir();
+        const completium_dir = homedir + '/.completium'
+        const mockup_path = completium_dir + "/mockup";
+        const tezos_client_dir = homedir + '/.tezos-client'
         const path_contracts = (mockup_mode ? mockup_path : tezos_client_dir) + "/contracts";
         const inputContracts = fs.readFileSync(path_contracts, 'utf8');
         const cobj = JSON.parse(inputContracts);
-        const o = cobj.find(x => { return (x.name === contract_name) });
+        const o = cobj.find((x : any) => { return (x.name === contract_name) });
         const contract_address = o.value ?? null;
         return { contract_address, storage, originationOp }
       }
     } else {
 
-      let m_code = expr_micheline_to_json(code);
+      let m_code : any = expr_micheline_to_json(code);
 
       const originateParam: OriginateParams<ContractStorageType<DefaultContractType>> = {
         balance: amount,
@@ -713,7 +733,7 @@ export async function deploy(file: string, originate: boolean, options: Options)
       const originationOp = await tezos.contract.originate(originateParam);
       const contract = await originationOp.contract();
       const contract_address = contract.address;
-      return { contract_address, storage, originationOp}
+      return { contract_address, storage, originationOp }
     }
   }
   const resDeployInternal = await deployInternal();

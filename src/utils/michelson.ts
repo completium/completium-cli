@@ -3,6 +3,8 @@ import { Schema } from '@taquito/michelson-encoder';
 import { handleError } from './errorHandler';
 import { ArchetypeContractParameters, CompletiumParameter, getAmount } from './archetype';
 import BigNumber from 'bignumber.js';
+import { ArchetypeManager, Settings } from './managers/archetypeManager';
+import { Options } from './options';
 
 export function expr_micheline_to_json(input: string): Expr {
   const parser = new Parser();
@@ -208,4 +210,212 @@ export function process_code_const(str: string, parameters: CompletiumParameter,
     }
   }
   return str;
+}
+
+function removePrefix(str: string): string {
+  return str.startsWith("%") ? str.substring(1) : str;
+}
+
+type Micheline = {
+  annots?: string[];
+  prim?: string;
+  args?: Micheline[];
+};
+
+type InitObject = {
+  [key: string]: string;
+};
+
+function visitMicheline(obj: Micheline, init: InitObject): unknown {
+  if (obj.annots && obj.annots.length > 0) {
+    const annot = removePrefix(obj.annots[0]);
+    const objAnnot = init[annot];
+    if (objAnnot) {
+      return expr_micheline_to_json(objAnnot);
+    }
+  }
+  if (obj.prim && obj.prim === "pair") {
+    const args = obj.args ? obj.args.map((x) => visitMicheline(x, init)) : undefined;
+    return { ...obj, prim: "Pair", args: args };
+  }
+  throw new Error(`Error in visitMicheline: ${JSON.stringify(obj)}`);
+}
+
+export function buildStorage(storageType: Micheline, initObjMich: InitObject): unknown {
+  return visitMicheline(storageType, initObjMich);
+}
+
+
+
+
+var objValues = {};
+
+function build_data_michelson(type, storage_values, parameters: CompletiumParameter, parametersMicheline: any) {
+  const is_micheline = !!parametersMicheline;
+  const p = is_micheline ? parametersMicheline : parameters;
+  if (type.annots !== undefined && type.annots.length > 0) {
+    const annot1 = type.annots[0];
+    const annot = annot1.startsWith("%") ? annot1.substring(1) : annot1;
+
+    if (p[annot] !== undefined) {
+      const t = type;
+      let data = null;
+      if (is_micheline) {
+        data = p[annot]
+      } else {
+        const d = p[annot];
+        data = build_from_js(t, d);
+      }
+      objValues[annot] = data;
+      return data;
+    } else if (storage_values[annot] !== undefined) {
+      const data = expr_micheline_to_json(storage_values[annot]);
+      return data;
+    } else {
+      throw new Error(annot + " is not found.");
+    }
+
+  } else if (type.prim !== undefined && type.prim === "pair" && type.annots === undefined
+    // && (type.args.length > 2 && type.args[0].prim === "int" && type.args[1].prim === "nat"
+    //   && type.args[0].annots.length == 0 && type.args[1].annots.length == 0)
+  ) {
+
+    let args;
+    if (Object.keys(storage_values).length == 0 && Object.keys(parameters).length == 1) {
+      const ds = Object.values(p)[0];
+      args = [];
+      for (let i = 0; i < type.args.length; ++i) {
+        let a = null
+        if (is_micheline) {
+          a = ds[i]
+        } else {
+          const d = ds[i];
+          const t = type.args[i];
+          a = build_from_js(t, d);
+        }
+        args.push(a);
+      }
+    } else {
+      args = type.args.map((t) => {
+        return build_data_michelson(t, storage_values, parameters, parametersMicheline);
+      });
+    }
+
+    return { "prim": "Pair", args: args };
+  } else {
+    if (is_micheline) {
+      return Object.values(p)[0]
+    } else {
+      const d = Object.values(p)[0];
+      return build_from_js(type, d);
+    }
+  }
+}
+
+function replaceAll(data, objValues) {
+  if (data.prim !== undefined) {
+    if (objValues[data.prim] !== undefined) {
+      return objValues[data.prim];
+    } else if (data.args !== undefined) {
+      const nargs = data.args.map(x => replaceAll(x, objValues));
+      return { ...data, args: nargs }
+    } else {
+      return data;
+    }
+  } else if (data.length !== undefined) {
+    return data.map(x => replaceAll(x, objValues))
+  } else {
+    return data;
+  }
+}
+
+
+function replace_json(obj: any, id: string, data: any) {
+  if (obj instanceof Array) {
+    return (obj.map(x => replace_json(x, id, data)))
+  } else if (obj.prim) {
+    const prim = obj.prim;
+    if (prim == id) {
+      return data;
+    }
+    if (obj.args) {
+      return { ...obj, args: obj.args.map(x => replace_json(x, id, data)) }
+    }
+  }
+  return obj;
+}
+
+function process_const(obj, parameters: CompletiumParameter, parametersMicheline: any, contract_parameter: ArchetypeContractParameters) {
+  const is_micheline = !!parametersMicheline;
+  for (let i = 0; i < contract_parameter.length; ++i) {
+    const cp = contract_parameter[i];
+    if (cp.const) {
+      const name = cp.name;
+      const value = is_micheline ? parametersMicheline[name] : parameters[name];
+      if (!value) {
+        throw new Error(`Error: parameter "${name}" not found.`)
+      }
+      let data = null;
+      if (is_micheline) {
+        data = value;
+      } else {
+        const ty = expr_micheline_to_json(cp.type_);
+        data = build_from_js(ty, value);
+      }
+      obj = replace_json(obj, name, data)
+    }
+  }
+  return obj;
+}
+
+export async function compute_tzstorage(file: string, storageType: string, parameters: CompletiumParameter, parametersMicheline: any, contract_parameter: ArchetypeContractParameters, options: Options, s: Settings, sandbox_exec_address: string) {
+  const is_micheline = !!(parametersMicheline);
+  const parameters_var = []
+  const parameters_const = []
+  if (!!(contract_parameter)) {
+    for (let i = 0; i < contract_parameter.length; ++i) {
+      const cp = contract_parameter[i];
+      const name = cp.name;
+      const p = is_micheline ? parametersMicheline[name] : parameters[name];
+      if (p !== undefined) {
+        if (cp.const) {
+          parameters_const.push(p)
+        } else {
+          parameters_var.push(p)
+        }
+      } else {
+        throw new Error(`Error: parameter "${name}" not found.`)
+      }
+    }
+  }
+  let michelsonData;
+  if (parameters_var.length > 0) {
+    const storage_values = await ArchetypeManager.callArchetype({}, file, {
+      ...s,
+      get_storage_values: true,
+      sandbox_exec_address: sandbox_exec_address
+    });
+    const jsv = JSON.parse(storage_values);
+    const sv = jsv.map(x => x);
+    var obj = {};
+    sv.forEach(x => {
+      obj[x.id] = x.value
+    });
+
+    objValues = {};
+    const data = build_data_michelson(storageType, obj, parameters, parametersMicheline);
+    michelsonData = replaceAll(data, objValues);
+  } else {
+    const storage_values = await ArchetypeManager.callArchetype(options, file, {
+      target: "michelson-storage",
+      sandbox_exec_address: sandbox_exec_address
+    });
+    michelsonData = expr_micheline_to_json(storage_values);
+  }
+
+  if (parameters_const.length > 0) {
+    michelsonData = process_const(michelsonData, parameters, parametersMicheline, contract_parameter);
+  }
+
+  return michelsonData;
 }

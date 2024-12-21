@@ -40,6 +40,11 @@ export type Options = {
   opt_self_address?: string;
   opt_now?: string;
   opt_level?: string;
+  contract_json?: any;
+  storage_json?: string;
+  init_obj_mich?: any;
+  parameters?: string;
+  parametersMicheline?: string;
 }
 
 export const emptyOptions : Options = {

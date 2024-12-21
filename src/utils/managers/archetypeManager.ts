@@ -80,7 +80,7 @@ export class ArchetypeManager {
 
   private static archetype: any = null;
 
-  private static computeSettings(options: Options, settings: Settings) {
+  public static computeSettings(options: Options, settings?: Settings) {
 
     const metadata_storage = options.metadata_storage ? options.metadata_storage : (settings ? settings.metadata_storage : undefined);
     const metadata_uri = options.metadata_uri ? options.metadata_uri : (settings ? settings.metadata_uri : undefined);
