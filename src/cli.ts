@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { checkMichelson, deploy, getBalanceCommand, printInterp, printRun, printRunGetter, printRunView, registerGlobalConstant, transfer } from "./commands/tezosCommand";
+import { callContract, checkMichelson, deploy, getBalanceCommand, printInterp, printRun, printRunGetter, printRunView, registerGlobalConstant, transfer } from "./commands/tezosCommand";
 import arg from 'arg';
 import { Options } from "./utils/options";
 import { Printer } from "./utils/printer";
@@ -734,7 +734,12 @@ async function execCommand(parsedCommand: ParsedCommand) {
         break;
 
       case "call_contract":
-        throw new Error("TODO: call_contract");
+        if (!parsedCommand.contract) {
+          Printer.error(`[Error]: contract unset.`);
+          process.exit(1);
+        }
+        await callContract(parsedCommand.contract, parsedCommand.options)
+        break;
 
       case "generate_michelson":
         if (!parsedCommand.path) {

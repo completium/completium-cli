@@ -7,6 +7,7 @@ import { Options } from "../options";
 import { Printer } from "../printer";
 import { AccountsManager } from "./accountsManager";
 import { MockupManager } from "./mockupManager";
+import { extract_regexp, extractFailWith, process_event } from "../regExp";
 
 export interface LogObject {
   args_command: string[],
@@ -104,15 +105,6 @@ export class LogManager {
     }
 
     return data;
-  }
-
-  private static extract_regexp(rx: RegExp, input: string): string | null {
-    const arr = rx.exec(input);
-    if (arr && arr.length && arr.length > 0) {
-      return arr[1]
-    } else {
-      return null
-    }
   }
 
   private static extractUpdatedStorage(input: string) {
@@ -303,12 +295,12 @@ export class LogManager {
     for (let b of a) {
       const c = b.trim() + '\n';
       if (c.length > 2 && c.indexOf("Internal Event:") == -1) {
-        const from = this.extract_regexp(/From: ((.)+)\n/g, c)
-        const to = this.extract_regexp(/To: ((.)+)\n/g, c)
-        const amount = this.extract_regexp(/Amount: ((.)+)\n/g, c)
-        const entrypoint = c.indexOf("Entrypoint:") != -1 ? this.extract_regexp(/Entrypoint: ((.)+)\n/g, c) : undefined;
-        const parameter = c.indexOf("Parameter:") != -1 ? this.extract_regexp(/Parameter: ((.)+)\n/g, c) : undefined;
-        const consumed_gas = c.indexOf("Consumed gas:") != -1 ? this.extract_regexp(/Consumed gas: ((.)+)\n/g, c) : undefined;
+        const from = extract_regexp(/From: ((.)+)\n/g, c)
+        const to = extract_regexp(/To: ((.)+)\n/g, c)
+        const amount = extract_regexp(/Amount: ((.)+)\n/g, c)
+        const entrypoint = c.indexOf("Entrypoint:") != -1 ? extract_regexp(/Entrypoint: ((.)+)\n/g, c) : undefined;
+        const parameter = c.indexOf("Parameter:") != -1 ? extract_regexp(/Parameter: ((.)+)\n/g, c) : undefined;
+        const consumed_gas = c.indexOf("Consumed gas:") != -1 ? extract_regexp(/Consumed gas: ((.)+)\n/g, c) : undefined;
         const updated_storage = c.indexOf("Entrypoint:") != -1 ? this.extractUpdatedStorage(c) : undefined;
         const storage_size = c.indexOf("Storage size:") != -1 ? this.extractStorageSize(c) : undefined;
         const balance_updates = c.indexOf("Balance updates:") != -1 ? this.extractBalanceUpdates(c) : undefined;
@@ -335,7 +327,7 @@ export class LogManager {
   }
 
   private static buildLogTransaction(input: LogTransation) {
-    let data : any = this.initLogData('transaction', input);
+    let data: any = this.initLogData('transaction', input);
 
     const now = MockupManager.getMockupNow();
     const level = MockupManager.getMockupLevel();
@@ -391,6 +383,28 @@ export class LogManager {
     }
 
     return data
+  }
+
+  static aaa(stdout: string, stderr: string, failed: boolean) {
+    let events = null
+    if (failed) {
+      const err = extractFailWith(stderr);
+      return new Promise((resolve, reject) => { reject(err) });
+    } else {
+      Printer.print(stdout);
+      events = process_event(stdout)
+    }
+    const operation_hash = this.extractOperationHash(stdout)
+    const storage_size = this.extractStorageSize(stdout)
+    const consumed_gas = this.extractConsumedGas(stdout)
+    const paid_storage_size_diff = this.extractPaidStorageSizeDiff(stdout)
+    const resItem = {
+      operation_hash: operation_hash,
+      storage_size: storage_size,
+      consumed_gas: consumed_gas,
+      paid_storage_size_diff: paid_storage_size_diff,
+      events: events
+    };
   }
 
   public static addLogTransaction(input: LogTransation) {

@@ -1,15 +1,15 @@
 import fs from 'fs';
 import path from 'path';
-import { getViewReturnType, getBalanceFor, getChainId, isValidPkh, postRunView, postRunGetter } from "../utils/tezos";
+import { getViewReturnType, getBalanceFor, getChainId, isValidPkh, postRunView, postRunGetter, getEntrypoints, getContractScript, EntrypointsTezos, getContract } from "../utils/tezos";
 import { handleError } from "../utils/errorHandler";
 import { Options } from "../utils/options";
 import { Printer } from "../utils/printer";
 import { AccountsManager } from "../utils/managers/accountsManager";
 import { ConfigManager } from "../utils/managers/configManager";
 import { TezosClientManager } from "../utils/managers/tezosClientManager";
-import { extract_trace_interp, extractGlobalAddress, handle_fail } from "../utils/regExp";
+import { extract_trace_interp, extractFailWith, extractGlobalAddress, handle_fail } from "../utils/regExp";
 import { ContractManager } from "../utils/managers/contractManager";
-import { build_from_js, buildStorage, compute_tzstorage, expr_micheline_to_json, json_micheline_to_expr, process_code_const } from "../utils/michelson";
+import { build_data_michelson, build_from_js, buildStorage, compute_tzstorage, expr_micheline_to_json, json_micheline_to_expr, process_code_const } from "../utils/michelson";
 import { Expr } from '@taquito/michel-codec'
 import { getTezos, taquitoExecuteSchema } from "../utils/taquito";
 import { ArchetypeManager, Settings } from "../utils/managers/archetypeManager";
@@ -18,7 +18,7 @@ import { Account } from '../utils/types/configuration';
 import { askQuestionBool } from '../utils/interaction';
 import { ContractStorageType, DefaultContractType, OriginateParams, OriginationOperation, TransactionOperation } from '@taquito/taquito';
 import * as codec from '@taquito/michel-codec';
-import { LogManager } from '../utils/managers/logManager';
+import { LogManager, LogTransation } from '../utils/managers/logManager';
 
 function buildJArg(options: Options) {
   let jarg;
@@ -763,4 +763,296 @@ export async function deploy(file: string, originate: boolean, options: Options)
     Printer.print(url);
   }
   return [contract_name, originationOp]
+}
+
+function print_settings(with_color: boolean, account: Account, contract_id: string, amount: number, entry: string, arg: string, network: string, estimated_total_cost?: number) {
+  const cyan = '36';
+  const start = with_color ? `\x1b[${cyan}m` : '';
+  const end = with_color ? `\x1b[0m` : '';
+  Printer.print(`Call settings:`);
+  Printer.print(`  ${start}network${end}\t: ${network}`);
+  Printer.print(`  ${start}contract${end}\t: ${contract_id}`);
+  Printer.print(`  ${start}as${end}\t\t: ${account.name}`);
+  Printer.print(`  ${start}send${end}\t\t: ${amount / 1000000} ꜩ`);
+  Printer.print(`  ${start}entrypoint${end}\t: ${entry}`);
+  Printer.print(`  ${start}argument${end}\t: ${arg}`);
+  if (estimated_total_cost !== undefined) {
+    Printer.print(`  ${start}total cost${end}\t: ${estimated_total_cost / 1000000} ꜩ`);
+  }
+}
+
+async function confirmCall(force: boolean, account: Account, contract_id: string, amount: number, entry: string, arg: string, network: string, estimated_total_cost?: number) {
+  if (force) { return true }
+  print_settings(true, account, contract_id, amount, entry, arg, network, estimated_total_cost);
+  return new Promise(resolve => { askQuestionBool("Confirm settings", answer => { resolve(answer); }) });
+}
+
+async function callTransfer(options: Options, contract_id: string, arg: Expr): Promise<any> {
+  const force = options.force ?? false;
+  const entry = options.entry === undefined ? 'default' : options.entry;
+  const quiet = options.quiet === undefined ? false : options.quiet;
+  const dry = options.dry === undefined ? false : options.dry;
+  const mockup_mode = ConfigManager.isMockupMode();
+  const force_tezos_client = options.force_tezos_client === undefined ? false : options.force_tezos_client;
+  const verbose = options.verbose === undefined ? false : options.verbose;
+  const show_tezos_client_command = options.show_tezos_client_command === undefined ? false : options.show_tezos_client_command;
+  const only_param = options.only_param === undefined ? false : options.only_param;
+  const networkName = ConfigManager.getNetwork();
+
+  const as = options.as ?? ConfigManager.getDefaultAccount();
+  const account = AccountsManager.getAccountByNameOrPkh(as);
+  if (!account) {
+    const msg = `Invalid account: ${as}`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  const contract = ContractManager.getContractByNameOrAddress(contract_id);
+  let contract_address = contract_id;
+  if (contract) {
+    contract_address = contract.address;
+  }
+  if (!contract_address || !contract_address.startsWith('KT')) {
+    const msg = `Invalid contract: ${as}`;
+    return new Promise((resolve, reject) => { reject(msg) });
+  }
+
+  let amount = 0;
+  if (options.amount) {
+    amount = getAmount(options.amount);
+    if (!amount) {
+      const msg = `Invalid amount`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+  }
+
+  let fee = 0;
+  if (options.fee) {
+    fee = getAmount(options.fee);
+    if (!fee) {
+      const msg = `Invalid fee`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+  }
+
+  const transferParam = { to: contract_address, amount: amount, fee: fee > 0 ? fee : undefined, mutez: true, parameter: { entrypoint: entry, value: arg } };
+
+  if (only_param) {
+    const res = { kind: 'transaction', ...transferParam, cost: undefined }
+    return res;
+  }
+
+  if (force_tezos_client || dry || mockup_mode || show_tezos_client_command) {
+    const a = (amount / 1000000).toString();
+    const b = codec.emitMicheline(arg);
+    const args = [
+      "transfer", a, "from", account.pkh, "to", contract_address,
+      "--entrypoint", entry, "--arg", b,
+      "--burn-cap", "20", "--no-print-source"];
+    if (dry) {
+      args.push('-D')
+    }
+    if (show_tezos_client_command) {
+      const cmd = TezosClientManager.getTezosClientArgs(args);
+      Printer.print(cmd);
+      return new Promise((resolve) => { resolve(null) })
+    } else {
+      print_settings(false, account, contract_id, amount, entry, b, networkName);
+      const { stdout, stderr, failed } = await TezosClientManager.callTezosClient(args);
+      if (ConfigManager.isLogMode() && ConfigManager.isMockupMode()) {
+        const logItem: LogTransation = {
+          contract_address,
+          args_command: args,
+          stdout: stdout,
+          stderr: stderr,
+          failed: failed,
+          entrypoint: entry,
+          amount: a,
+          arg: b,
+          destination: contract_address,
+          source: account.pkh,
+          arg_completium: options.arg
+        };
+        LogManager.addLogTransaction(logItem)
+      }
+      const resItem = LogManager.aaa(stdout, stderr, failed);
+      return resItem;
+    }
+  } else {
+    const tezos = getTezos(account.name);
+
+    const network = ConfigManager.getNetworkByName(networkName);
+    if (!network) {
+      const msg = `Invalid network: ${networkName}`;
+      return new Promise((resolve, reject) => { reject(msg) });
+    }
+
+    try {
+      const res = await tezos.estimate.transfer(transferParam);
+      const estimated_total_cost = res.totalCost + 100;
+      const arg_michelson = codec.emitMicheline(arg);
+      var confirm = await confirmCall(force, account, contract_id, amount, entry, arg_michelson, networkName, estimated_total_cost);
+      if (!confirm) {
+        return;
+      }
+
+      if (force) {
+        print_settings(false, account, contract_id, amount, entry, arg_michelson, networkName, estimated_total_cost);
+      } else {
+        Printer.print(`Forging operation...`);
+      }
+    } catch (er) {
+      const e: { errors: Array<any> } = er as { errors: Array<any> };
+      if (!!e) {
+        let msgs: string[] = [];
+        let contract;
+        const errors = e.errors.map(x => x);
+        let res: any | null = null;
+
+        errors.forEach(x => {
+          if (x.kind === "temporary" &&
+            x.id !== undefined &&
+            x.id.endsWith(".script_rejected") &&
+            x.with !== undefined) {
+            const d = codec.emitMicheline(x.with);
+            res = { value: d };
+          }
+          if (x.contract_handle !== undefined || x.contract !== undefined) {
+            contract = x.contract_handle !== undefined ? x.contract_handle : x.contract;
+            const cid = ContractManager.getContractByNameOrAddress(contract);
+            let msg = `Error from contract ${contract}`;
+            if (!!cid) {
+              msg += ` (${cid.name})`
+            }
+            msg += ":";
+            msgs.push(msg);
+          } else if (x.kind === "temporary" &&
+            x.location !== undefined &&
+            x.with !== undefined) {
+            const d = codec.emitMicheline(x.with);
+            const msg = `failed at ${x.location} with ${d}`;
+            msgs.push(msg);
+          }
+          if (x.expected_type !== undefined && x.wrong_expression !== undefined) {
+            const etyp = codec.emitMicheline(x.expected_type);
+            const wexp = codec.emitMicheline(x.wrong_expression);
+            let msg = `Invalid argument value '${wexp}'; excepting value of type '${etyp}'`;
+            msgs.push(msg);
+          }
+        })
+        if (!!res) {
+          return new Promise((resolve, reject) => { reject({ ...res, msgs: msgs }) });
+        } else {
+          throw new Error(msgs.join("\n"));
+        }
+      } else {
+        throw e
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      tezos.contract
+        .transfer(transferParam)
+        .then((op) => {
+          Printer.print(`Waiting for ${op.hash} to be confirmed...`);
+          return op.confirmation(1).then(() => op);
+        })
+        .then((op) => {
+          const a = network.tzstat_url !== undefined ? `${network.tzstat_url}/${op.hash}` : `${op.hash}`;
+          Printer.print(`Operation injected: ${a}`);
+          return resolve(op)
+        })
+        .catch(
+          error => {
+            if (!quiet)
+              Printer.print({ ...error, errors: '...' });
+            reject(error);
+          }
+        );
+    });
+  }
+}
+
+async function getParamTypeEntrypoint(entry: string, contract_address: string): Promise<codec.MichelsonType> {
+  const res: EntrypointsTezos = await getEntrypoints(contract_address);
+  if (res) {
+    return res.entrypoints[entry];
+  } else if (entry === "default") {
+    const s = await getContractScript(contract_address);
+    const p = s.code.find(x => x.prim === "parameter");
+    if (!p) {
+      throw new Error("error");
+    }
+    const t = p.args[0];
+    return t;
+  } else {
+    throw new Error("error");
+  }
+}
+
+function isEmptyObject(obj: any) {
+  if (typeof obj === 'object' && obj != null && Object.keys(obj).length !== 0) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+async function isContractExists(contract_address: string) {
+  const res = await getContract(contract_address);
+  return res !== null;
+}
+
+async function computeArg(args: any, paramType: any) {
+  const michelsonData = build_data_michelson(paramType, args, {}, {});
+  return michelsonData;
+}
+
+export async function callContract(input: string, options: Options): Promise<any> {
+  const args = options.arg !== undefined && !isEmptyObject(options.arg) ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
+  var argJsonMichelson = options.argJsonMichelson;
+  var argMichelson = options.argMichelson;
+  var entry = options.entry === undefined ? 'default' : options.entry;
+  const networkName = ConfigManager.getNetwork();
+  var contract_address = input;
+
+  const contract = ContractManager.getContractByNameOrAddress(input);
+  if (!!contract) {
+    if (contract.network !== networkName) {
+      const msg = `Expecting network ${contract.network}. Switch endpoint and retry.`;
+      throw new Error(msg);
+    }
+    contract_address = contract.address;
+  } else {
+    if (!contract_address.startsWith('KT1')) {
+      const msg = `'${contract_address}' unknown contract alias or bad contract address.`;
+      throw new Error(msg);
+    }
+  }
+
+  const e = await isContractExists(contract_address);
+  if (!e) {
+    const msg = `'${contract_address}' not found on ${networkName}.`;
+    throw new Error(msg);
+  }
+
+  let paramType = await getParamTypeEntrypoint(entry, contract_address);
+  if (entry == "default") {
+    paramType = { ...paramType, annots: undefined }
+  }
+  if (!paramType) {
+    const msg = `'${entry}' entrypoint not found.`;
+    throw new Error(msg);
+  }
+
+  let arg;
+  if (argJsonMichelson !== undefined) {
+    arg = expr_micheline_to_json(json_micheline_to_expr(JSON.parse(argJsonMichelson)));
+  } else if (argMichelson !== undefined) {
+    arg = expr_micheline_to_json(argMichelson);
+  } else {
+    arg = await computeArg(args, paramType);
+  }
+
+  const res = await callTransfer(options, contract_address, arg);
+  return res;
 }

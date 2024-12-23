@@ -250,7 +250,7 @@ export function buildStorage(storageType: Micheline, initObjMich: InitObject): u
 
 var objValues: any = {};
 
-function build_data_michelson(type: any, storage_values: any, parameters: CompletiumParameter, parametersMicheline: any) {
+export function build_data_michelson(type: any, storage_values: any, parameters: CompletiumParameter, parametersMicheline: any) {
   const is_micheline = !!parametersMicheline;
   const p = is_micheline ? parametersMicheline : parameters;
   if (type.annots !== undefined && type.annots.length > 0) {

@@ -23,6 +23,8 @@ export type Options = {
   test?: boolean;
   json?: boolean;
   trace?: boolean;
+  quiet?: boolean;
+  only_param?: boolean;
   force_tezos_client?: boolean;
   with_tezos_client?: boolean;
   protocol?: string;

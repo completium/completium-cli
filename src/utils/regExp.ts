@@ -1,5 +1,14 @@
 import { expr_micheline_to_json, json_micheline_to_expr } from "./michelson";
 
+export function extract_regexp(rx: RegExp, input: string): string | null {
+  const arr = rx.exec(input);
+  if (arr && arr.length && arr.length > 0) {
+    return arr[1]
+  } else {
+    return null
+  }
+}
+
 export function extractGlobalAddress(input: string) {
   var rx = /.*Global address: (.)+\n/g;
   var arr = rx.exec(input);
@@ -147,10 +156,54 @@ function extract_fail_interp(input: string) {
   return { failwith: res }
 }
 
-export function handle_fail(e : string) {
+export function handle_fail(e: string) {
   if (e.indexOf("script reached FAILWITH instruction") >= 0) {
     return extract_fail_interp(e)
   } else {
     return { error: e }
   }
+}
+
+export function extractFailWith(stderr: string) {
+  var rx = /FAILWITH instruction\nwith(\n)?(\s)+((.|\n)*)\nFatal .*/g;
+  var arr = rx.exec(stderr);
+  let err;
+  if (!!(arr)) {
+    const unescape_str = unescape(arr[3]);
+    err = { value: unescape_str }
+  } else {
+    err = stderr
+  }
+  return err
+}
+
+export function process_event(input: string) {
+  let events = [];
+
+  const rx = /Internal Event:(\n)?(\s)+((.|\n)*)Consumed gas: ([0-9]+)/g;
+  const arr = rx.exec(input);
+
+  if (arr && arr.length && arr.length > 0) {
+    const a = arr[0].split('Internal Event:')
+    for (let b of a) {
+      const c = b.trim();
+      if (c.length > 1) {
+        const from = extract_regexp(/From: ((.)+)\n/g, c)
+        let type = extract_regexp(/Type: ((.|\n)+)Tag:/g, c)
+        if (type) {
+          type = type.trim();
+        }
+        const tag = extract_regexp(/Tag: ((.)+)\n/g, c)
+        let payload = extract_regexp(/Payload: ((.|\n)+)This event was successfully applied\n/g, c);
+        if (payload) {
+          payload = payload.trim();
+        }
+        const consumed_gas = extract_regexp(/Consumed gas: ((.)+)/g, c)
+        if (from && type && tag && payload && consumed_gas) {
+          events.push({ from: from, type: type, tag, payload: payload, consumed_gas: consumed_gas })
+        }
+      }
+    }
+  }
+  return events
 }

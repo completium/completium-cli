@@ -4,8 +4,25 @@ import BigNumber from "bignumber.js";
 import { ConfigManager } from "./managers/configManager";
 import { TezosClientManager } from "./managers/tezosClientManager";
 import { rpcGet, rpcPost } from "./tools";
-import { Expr } from '@taquito/michel-codec'
+import { Expr, MichelsonContract, MichelsonType } from '@taquito/michel-codec'
 
+export type EntrypointTezos = {
+  [key: string]: MichelsonType,
+}
+
+export type EntrypointsTezos = {
+  entrypoints: EntrypointTezos,
+}
+
+export type ScriptTezos = {
+  code: MichelsonContract,
+  storage: Expr,
+}
+
+export type ContractTezos = {
+  balance: string,
+  script: ScriptTezos,
+}
 
 export function get_event_well_script(): string {
   return `{ storage unit; parameter (bytes %event); code { UNPAIR; DROP; NIL operation; PAIR } }`
@@ -30,7 +47,7 @@ async function octezClientGET(uri: string): Promise<any> {
       const res = await rpcGet<any>(rpcUrl, uri);
       return res;
     } catch (err: any) {
-      handleNetworkError(err); // Handle network-specific errors
+      // handleNetworkError(err); // Handle network-specific errors
       throw err; // Rethrow to stop further execution
     }
   }
@@ -78,13 +95,13 @@ export async function getRawScript(address: string): Promise<any> {
   return JSON.parse(script);
 }
 
-export async function postRunView(payload : any): Promise<any> {
+export async function postRunView(payload: any): Promise<any> {
   const uri = `/chains/main/blocks/head/helpers/scripts/run_script_view`;
   const res = await octezClientPOST<any>(uri, payload);
   return res;
 }
 
-export async function postRunGetter(payload : any): Promise<any> {
+export async function postRunGetter(payload: any): Promise<any> {
   const uri = `/chains/main/blocks/head/helpers/scripts/run_view`;
   const res = await octezClientPOST<any>(uri, payload);
   return res;
@@ -97,21 +114,21 @@ async function getMainBlocksHeadHeader<T>(): Promise<T> {
 }
 
 export async function getProtocol(): Promise<string> {
-  const res = await getMainBlocksHeadHeader<{protocol : string}>();
+  const res = await getMainBlocksHeadHeader<{ protocol: string }>();
   return res.protocol;
 }
 
 export async function getChainId(): Promise<string> {
-  const res = await getMainBlocksHeadHeader<{chain_id : string}>();
+  const res = await getMainBlocksHeadHeader<{ chain_id: string }>();
   return res.chain_id;
 }
 
 export async function getLevel(): Promise<number> {
-  const res = await getMainBlocksHeadHeader<{level : number}>();
+  const res = await getMainBlocksHeadHeader<{ level: number }>();
   return res.level;
 }
 
-export async function getViewReturnType(contract_address : string, viewid : string) {
+export async function getViewReturnType(contract_address: string, viewid: string) {
   const uri = `/chains/main/blocks/head/context/contracts/${contract_address}`;
   const c = await octezClientGET(uri);
   for (let i = 0; i < c.script.code.length; ++i) {
@@ -121,4 +138,27 @@ export async function getViewReturnType(contract_address : string, viewid : stri
     }
   }
   throw new Error(`Error: view "${viewid}" not found.`)
+}
+
+export async function getEntrypoints(contract_address: string): Promise<EntrypointsTezos> {
+  const uri = `/chains/main/blocks/head/context/contracts/${contract_address}/entrypoints`;
+  const res = await octezClientGET(uri);
+  return res;
+}
+
+
+export async function getContractScript(contract_address: string): Promise<ScriptTezos> {
+  const uri = `/chains/main/blocks/head/context/contracts/${contract_address}/script`;
+  const res = await octezClientGET(uri);
+  return res;
+}
+
+export async function getContract(contract_address: string): Promise<ContractTezos | null> {
+  try {
+    const uri = "/chains/main/blocks/head/context/contracts/" + contract_address;
+    const res = await octezClientGET(uri);
+    return res;
+  } catch (e) {
+    return null;
+  }
 }
