@@ -287,6 +287,12 @@ function parseCommand(args) {
   } else if (length > 2 && args[2] === "decompile") {
     res = { command: "decompile", value: args[3] };
     nargs = args.slice(3);
+  } else if (length > 2 && args[2] === "blake2b") {
+    res = { command: "blake2b", value: args[3] };
+    nargs = args.slice(3);
+  } else if (length > 2 && args[2] === "keccak") {
+    res = { command: "keccak", value: args[3] };
+    nargs = args.slice(3);
   }
 
   const options = arg(

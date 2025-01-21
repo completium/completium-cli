@@ -20,8 +20,14 @@ import * as signer from '@taquito/signer';
 import { BigNumber } from 'bignumber.js';
 import { Fraction } from 'fractional';
 import os from 'os';
-import fetch from 'node-fetch'; 
-let archetype = null;
+import fetch from 'node-fetch';
+import enquirer from 'enquirer';
+const { Select } = enquirer;
+import tmp from 'tmp'
+import readline from 'readline'
+import blakejs from 'blakejs'
+import keccakLib from 'keccak'
+import archetype from '@completium/archetype';
 
 const version = '1.0.27'
 
@@ -327,9 +333,6 @@ async function callArchetype(options, path, s) {
       };
     case 'js':
       {
-        if (archetype == null) {
-          archetype = require('@completium/archetype');
-        }
         if (s.version) {
           return archetype.version()
         } else {
@@ -421,7 +424,6 @@ async function show_entries_internal(i, rjson) {
   if (isFrombin) {
     const bin = config.bin.archetype;
 
-    const tmp = require('tmp');
     const tmpobj = tmp.fileSync({ postfix: '.json' });
 
     const path = tmpobj.name;
@@ -448,9 +450,6 @@ async function show_entries_internal(i, rjson) {
     });
 
   } else {
-    if (archetype == null) {
-      archetype = require('@completium/archetype');
-    }
     const res = archetype.show_entries(i, {
       json: true,
       rjson: rjson
@@ -1049,8 +1048,6 @@ async function switchEndpoint(options) {
     });
   });
 
-  const { Select } = require('enquirer');
-
   const prompt = new Select({
     name: 'color',
     message: 'Switch endpoint',
@@ -1174,8 +1171,6 @@ async function switchMode(options) {
   const config = getConfig();
   const mode = config.mode[bin];
   print(`Current ${bin} mode: ${mode}`);
-
-  const { Select } = require('enquirer');
 
   const prompt = new Select({
     name: 'color',
@@ -1390,8 +1385,6 @@ async function switchAccount(options) {
       indexes: [],
       values: []
     });
-
-  const { Select } = require('enquirer');
 
   const prompt = new Select({
     name: 'color',
@@ -2349,8 +2342,6 @@ function print_settings(with_color, account, contract_id, amount, entry, arg, es
 
 function askQuestionBool(msg, lambda, defaultV) {
 
-  var readline = require('readline');
-
   var rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -2857,7 +2848,6 @@ async function run_internal(options) {
       d_storage = 'Unit'
     }
   } else {
-    const tmp = require('tmp');
     const tmpobj = tmp.fileSync();
 
     const script_raw = await callArchetype(options, path, { target: "michelson" }); // TODO: handle parameters
@@ -3526,7 +3516,6 @@ async function checkMichelson(options) {
       target: 'michelson'
     });
 
-    const tmp = require('tmp');
     const tmpobj = tmp.fileSync();
 
     michelson_path = tmpobj.name;
@@ -3765,9 +3754,9 @@ async function showScript(options) {
         print(`Error: ${response.status}`);
         return;
       }
-  
+
       const data = await response.json();
-  
+
       if (json) {
         print(JSON.stringify(data.code, null, 2));
       } else {
@@ -3932,17 +3921,25 @@ export function pack(options) {
 }
 
 export function blake2b(options) {
-  const blake = require('blakejs');
   const value = options.value;
-  const blakeHash = blake.blake2b(taquitoUtils.hex2buf(value), null, 32);
+  const blakeHash = blakejs.blake2b(taquitoUtils.hex2buf(value), null, 32);
   return taquitoUtils.buf2hex(blakeHash);
 }
 
 export function keccak(options) {
-  const keccak = require('keccak');
   const value = options.value;
-  const hash = keccak('keccak256').update(value, "hex");
+  const hash = keccakLib('keccak256').update(value, "hex");
   return hash.digest('hex')
+}
+
+function printBlake2b(options) {
+  const res = blake2b(options);
+  print(res)
+}
+
+function printKeccak(options) {
+  const res = keccak(options);
+  print(res)
 }
 
 export async function sign(options) {
@@ -4836,7 +4833,6 @@ async function decompile_internal(options) {
   } else if (value.startsWith("KT1")) {
     const content = await getContractScript(value)
 
-    const tmp = require('tmp');
     const tmpobj = tmp.fileSync({ prefix: value, postfix: '.json' });
 
     const path = tmpobj.name;
@@ -5078,6 +5074,12 @@ export async function exec(options) {
         break;
       case "decompile":
         await decompile(options);
+        break;
+      case "blake2b":
+        printBlake2b(options);
+        break;
+      case "keccak":
+        printKeccak(options);
         break;
       default:
         commandNotFound(options);
