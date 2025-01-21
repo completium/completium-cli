@@ -35,7 +35,7 @@ function updateCost(op) {
   }
 }
 
-async function deploy(path, obj, originate = false) {
+export async function deploy(path, obj, originate = false) {
   const options = { ...obj, file: path, force: true, originate: originate };
   const x = await Main.deploy(options);
   if (x == null) {
@@ -50,32 +50,32 @@ async function deploy(path, obj, originate = false) {
   }
 }
 
-async function originate(path, obj) {
+export async function originate(path, obj) {
   return await deploy(path, obj, true);
 }
 
-async function call(input, obj) {
+export async function call(input, obj) {
   const options = { ...obj, contract: input, force: true, verbose: true };
   var op = await Main.callContract(options);
   op = updateCost(op);
   return op;
 }
 
-async function runGetter(getterid, contract, options) {
+export async function runGetter(getterid, contract, options) {
   const obj = options ? options : {};
   return Main.runGetter({...obj, getterid: getterid, contract: contract});
 }
 
-async function runView(viewid, contract, options) {
+export async function runView(viewid, contract, options) {
   const obj = options ? options : {};
   return Main.runView({...obj, viewid: viewid, contract: contract});
 }
 
-async function getStorage(contract_id) {
+export async function getStorage(contract_id) {
   return Main.getStorage(contract_id);
 }
 
-async function getContract(contract_id) {
+export async function getContract(contract_id) {
   return new Promise(async (resolve, reject) => {
     let contract = null;
     try {
@@ -111,101 +111,101 @@ async function getContract(contract_id) {
   });
 }
 
-async function getBalance(alias, obj) {
+export async function getBalance(alias, obj) {
   const options = alias === undefined ? {} : obj === undefined ? { alias: alias } : { ...obj, alias: alias };
   return Main.getBalance(options);
 }
 
-function setAccount(account, obj) {
+export function setAccount(account, obj) {
   const options = obj === undefined ? { account: account } : { ...obj, account: account };
   return Main.setAccount(options);
 }
 
-function setEndpoint(endpoint, obj) {
+export function setEndpoint(endpoint, obj) {
   const options = obj === undefined ? { endpoint: endpoint } : { ...obj, endpoint: endpoint };
   return Main.setEndpoint(options);
 }
 
-function getAddress(alias) {
+export function getAddress(alias) {
   const options = { alias: alias };
   return Main.getAddress(options);
 }
 
-function getAccount(alias) {
+export function getAccount(alias) {
   const options = { alias: alias };
   return Main.getAccountExt(options);
 }
 
-function pack(value) {
+export function pack(value) {
   const options = { value: value };
   return Main.pack(options);
 }
 
-function packTyped(data, typ) {
+export function packTyped(data, typ) {
   const options = { data: data, typ: typ };
   return Main.packTyped(options);
 }
 
-function blake2b(value) {
+export function blake2b(value) {
   const options = { value: value };
   return Main.blake2b(options);
 }
 
-function keccak(value) {
+export function keccak(value) {
   const options = { value: value };
   return Main.keccak(options);
 }
 
-async function sign(value, obj) {
+export async function sign(value, obj) {
   const options = {...obj, value: value };
   return await Main.sign(options);
 }
 
-async function signFromSk(value, obj) {
+export async function signFromSk(value, obj) {
   const options = {...obj, value: value };
   return await Main.signFromSk(options);
 }
 
-function setQuiet(value) {
+export function setQuiet(value) {
   Main.setQuiet(value);
 }
 
-async function setNow(contract_id, date) {
+export async function setNow(contract_id, date) {
   const options = { contract: contract_id, date: date, force: true, verbose: true };
   var op = await Main.setNow(options);
   op = updateCost(op);
   return op;
 }
 
-function setMockupNow(date) {
+export function setMockupNow(date) {
   const options = { date: date, force: true, verbose: true };
   Main.setMockupNow(options);
 }
 
-function getMockupNow() {
+export function getMockupNow() {
   return Main.getMockupNow()
 }
 
-function setMockupLevel(level) {
+export function setMockupLevel(level) {
   const options = { value: level, force: true, verbose: true };
   Main.setMockupLevel(options);
 }
 
-function getMockupLevel() {
+export function getMockupLevel() {
   return Main.getMockupLevel()
 }
 
-function setMockupChainId(chainid) {
+export function setMockupChainId(chainid) {
   const options = { value: chainid, force: true, verbose: true };
   Main.setMockupChainId(options);
 }
 
-async function mockupBake(obj) {
+export async function mockupBake(obj) {
   const options = {...obj, force: true, verbose: false };
   await await Main.mockupBake(options)
 }
 
-async function transfer(from, to, amount) {
+export async function transfer(from, to, amount) {
   const options = { from: from, to: to, vamount: amount, force: true, verbose: true };
   var op = await Main.transfer(options);
   return op;
@@ -219,7 +219,15 @@ function json_micheline_to_expr(v) {
   return Main.json_micheline_to_expr(v);
 }
 
-async function checkBalanceDelta(a, d, f) {
+export function exprMichelineToJson(v) {
+  return expr_micheline_to_json(v);
+}
+
+export function jsonMichelineToExpr(v) {
+  return json_micheline_to_expr(v);
+}
+
+export async function checkBalanceDelta(a, d, f) {
   const balance_before = (await (getBalance(a))).toNumber();
   try {
     await f ();
@@ -245,12 +253,12 @@ async function checkBalanceDelta(a, d, f) {
   }
 }
 
-async function getValueFromBigMap(id, data, type, type_value) {
+export async function getValueFromBigMap(id, data, type, type_value) {
   var v = await Main.getValueFromBigMap(id, data, type, type_value);
   return v;
 }
 
-async function expectToThrow(f, e) {
+export async function expectToThrow(f, e) {
   if (e === undefined) {
     throw new Error("expectToThrow: error must be defined")
   }
@@ -267,85 +275,92 @@ async function expectToThrow(f, e) {
   }
 }
 
-function getEndpoint() {
+export function getEndpoint() {
   const config = Main.getConfig();
   return config.tezos.endpoint;
 }
 
-function isMockup() {
+export function isMockup() {
   return getEndpoint() === "mockup";
 }
 
-async function exprMichelineFromArg(arg, type) {
+export async function exprMichelineFromArg(arg, type) {
   var v = await Main.exprMichelineFromArg(arg, type);
   return v;
 }
 
-function taquitoExecuteSchema(arg, type) {
+export function taquitoExecuteSchema(arg, type) {
   var v = Main.taquitoExecuteSchema(arg, type);
   return v;
 }
 
-async function generateContractInterface(path, options) {
+export async function generateContractInterface(path, options) {
   const obj = options ? options : {};
   const res = await Main.generate_contract_interface({...obj, path: path});
   return JSON.parse(res);
 }
 
-async function exec_batch(ts, options) {
+export async function exec_batch(ts, options) {
   const obj = options ? options : {};
   return await Main.exec_batch(ts, obj);
 }
 
-exports.deploy = deploy;
-exports.originate = originate;
-exports.call = call;
-exports.runGetter = runGetter;
-exports.runView = runView;
-exports.getStorage = getStorage;
-exports.getContract = getContract;
-exports.getBalance = getBalance;
-exports.retrieveBalanceFor = Main.retrieveBalanceFor;
-exports.setAccount = setAccount;
-exports.setEndpoint = setEndpoint;
-exports.getAddress = getAddress;
-exports.getAccount = getAccount;
-exports.pack = pack;
-exports.packTyped = packTyped;
-exports.blake2b = blake2b;
-exports.keccak = keccak;
-exports.setNow = setNow;
-exports.setMockupNow = setMockupNow;
-exports.getMockupNow = getMockupNow;
-exports.setMockupLevel = setMockupLevel;
-exports.getMockupLevel = getMockupLevel;
-exports.setMockupChainId = setMockupChainId;
-exports.getChainId = Main.getChainId;
-exports.mockupBake = mockupBake;
-exports.transfer = transfer;
-exports.sign = sign;
-exports.signFromSk = signFromSk;
-exports.exprMichelineToJson = expr_micheline_to_json;
-exports.jsonMichelineToExpr = json_micheline_to_expr;
-exports.setQuiet = setQuiet;
-exports.checkBalanceDelta = checkBalanceDelta;
-exports.getValueFromBigMap = getValueFromBigMap;
-exports.expectToThrow = expectToThrow;
-exports.getEndpoint = getEndpoint;
-exports.isMockup = isMockup;
-exports.exprMichelineFromArg = exprMichelineFromArg;
-exports.taquitoExecuteSchema = taquitoExecuteSchema;
-exports.generateContractInterface = generateContractInterface;
-exports.getRawStorage = Main.getRawStorage
-exports.exec_batch = exec_batch
-exports.getKeysFrom = Main.getKeysFrom
-exports.registerGlobalConstant = Main.registerGlobalConstant
-exports.mockupInit = Main.mockupInit
-exports.importContract = Main.importContract
-exports.rpcGet = Main.rpcGet
-exports.getContractScript = Main.getContractScript
-exports.getStorageType = Main.getStorageType
-exports.getParameterType = Main.getParameterType
-exports.build_json_type = Main.build_json_type
-exports.get_sandbox_exec_address = Main.get_sandbox_exec_address
-exports.interp = Main.interp
+export async function getRawStorage(contract_address) {
+  return Main.getRawStorage(contract_address);
+}
+
+export async function getRawStorage(contract_address) {
+  return Main.getRawStorage(contract_address);
+}
+
+export async function getKeysFrom(sk) {
+  return Main.getKeysFrom(sk)
+}
+
+export async function registerGlobalConstant(options) {
+  return Main.registerGlobalConstant(options)
+}
+
+export async function mockupInit(options) {
+  return Main.mockupInit(options)
+}
+
+export async function importContract(options) {
+  return Main.importContract(options)
+}
+
+export async function rpcGet(uri) {
+  return Main.rpcGet(uri)
+}
+
+export async function getContractScript(contract_address) {
+  return Main.getContractScript(contract_address)
+}
+
+export async function getStorageType(contract_address) {
+  return Main.getStorageType(contract_address)
+}
+
+export async function getParameterType(contract_address) {
+  return Main.getParameterType(contract_address)
+}
+
+export function build_json_type(obj) {
+  return Main.build_json_type(obj)
+}
+
+export function get_sandbox_exec_address() {
+  return Main.get_sandbox_exec_address()
+}
+
+export async function interp(options) {
+  return Main.interp(options)
+}
+
+export async function retrieveBalanceFor(addr) {
+  return Main.retrieveBalanceFor(addr)
+}
+
+export async function getChainId() {
+  return Main.getChainId()
+}

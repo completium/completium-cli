@@ -5,24 +5,27 @@
  * Released under the MIT License.
  */
 
-const fs = require('fs');
-const execa = require('execa');
-const path = require('path');
-const glob = require('glob');
-const taquito = require('@taquito/taquito');
-const taquitoUtils = require('@taquito/utils');
-const binderTs = require('@completium/archetype-binder-ts');
-const codec = require('@taquito/michel-codec');
-const encoder = require('@taquito/michelson-encoder');
-const bip39 = require('bip39');
-const signer = require('@taquito/signer');
-const { BigNumber } = require('bignumber.js');
-const { Fraction } = require('fractional');
+
+import fs from 'fs';
+import execa from 'execa';
+import path from 'path';
+import glob from 'glob';
+import * as taquito from '@taquito/taquito';
+import * as taquitoUtils from '@taquito/utils';
+import binderTs from '@completium/archetype-binder-ts';
+import * as codec from '@taquito/michel-codec';
+import * as encoder from '@taquito/michelson-encoder';
+import bip39 from 'bip39';
+import * as signer from '@taquito/signer';
+import { BigNumber } from 'bignumber.js';
+import { Fraction } from 'fractional';
+import os from 'os';
+import fetch from 'node-fetch'; 
 let archetype = null;
 
-const version = '1.0.26'
+const version = '1.0.27'
 
-const homedir = require('os').homedir();
+const homedir = os.homedir();
 const completium_dir = homedir + '/.completium'
 const config_path = completium_dir + '/config.json'
 const accounts_path = completium_dir + '/accounts.json'
@@ -68,7 +71,7 @@ function loadJS(path) {
   return JSON.parse(fs.readFileSync(path, 'utf8'));
 }
 
-function getConfig() {
+export function getConfig() {
   if (config == null)
     config = loadJS(config_path);
   return config;
@@ -378,11 +381,11 @@ async function callArchetype(options, path, s) {
   }
 }
 
-function expr_micheline_to_json(input) {
+export function expr_micheline_to_json(input) {
   return (new codec.Parser()).parseMichelineExpression(input.toString());
 }
 
-function json_micheline_to_expr(input) {
+export function json_micheline_to_expr(input) {
   return codec.emitMicheline(input);
 }
 
@@ -469,23 +472,23 @@ function isForceTezosClient() {
 }
 
 async function callTezosClient(args) {
-  let arguments;
+  let arguments_;
   if (isMockupMode()) {
-    arguments = ["--mode", "mockup", "--base-dir", mockup_path].concat(args);
+    arguments_ = ["--mode", "mockup", "--base-dir", mockup_path].concat(args);
   } else {
     const tezos_endpoint = config.tezos.endpoint;
-    arguments = ["--endpoint", tezos_endpoint].concat(args);
+    arguments_ = ["--endpoint", tezos_endpoint].concat(args);
   }
   try {
     const bin = config.bin['tezos-client'];
-    const x = await execa(bin, arguments, {});
+    const x = await execa(bin, arguments_, {});
     return x;
   } catch (e) {
     return e;
   }
 }
 
-async function retrieveBalanceFor(addr) {
+export async function retrieveBalanceFor(addr) {
   if (isMockupMode()) {
     const args = ["rpc", "get", "/chains/main/blocks/head/context/contracts/" + addr + "/balance"];
     const { stdout, stderr, failed } = await callTezosClient(args);
@@ -508,27 +511,24 @@ async function rpcGet(uri) {
   if (isMockupMode()) {
     const { stdout, stderr, failed } = await callTezosClient(["rpc", "get", uri]);
     if (failed) {
-      return new Promise((resolve, reject) => { reject(stderr) });
+      throw new Error(stderr);
     } else {
-      const res = JSON.parse(stdout);
-      return res;
+      return JSON.parse(stdout);
     }
   } else {
     const config = getConfig();
     const tezos_endpoint = config.tezos.endpoint;
-    const request = require('request');
     const url = tezos_endpoint + uri;
-    return new Promise((resolve, reject) => {
-      request(url, function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-          const res = JSON.parse(body);
-          resolve(res);
-        } else {
-          const msg = (`Error get status code : ${response.statusCode}`);
-          reject(msg);
-        }
-      })
-    });
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Error get status code: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
   }
 }
 
@@ -536,33 +536,32 @@ async function rpcPost(uri, payload) {
   if (isMockupMode()) {
     const { stdout, stderr, failed } = await callTezosClient(["rpc", "post", uri, "with", JSON.stringify(payload)]);
     if (failed) {
-      return new Promise((resolve, reject) => { reject(stderr) });
+      throw new Error(stderr);
     } else {
-      const res = JSON.parse(stdout);
-      return res;
+      return JSON.parse(stdout);
     }
   } else {
     const config = getConfig();
     const tezos_endpoint = config.tezos.endpoint;
-    const request = require('request');
     const url = tezos_endpoint + uri;
 
-
-    return new Promise((resolve, reject) => {
-      request.post(url, { json: payload }, function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-          const res = body;
-          resolve(res);
-        } else {
-          const msg = (`Error get status code : ${response.statusCode}`);
-          reject(msg);
-        }
-      })
-    });
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        throw new Error(`Error get status code: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      throw error;
+    }
   }
 }
 
-async function getChainId() {
+export async function getChainId() {
   if (isMockupMode()) {
     const input = loadJS(context_mockup_path);
     return input.chain_id;
@@ -938,7 +937,7 @@ function get_sandbox_exec_script() {
   return `{ storage unit; parameter (pair (list (ticket (pair nat (option bytes)))) (lambda (list (ticket (pair nat (option bytes)))) (list operation))); code { UNPAIR; UNPAIR; EXEC; PAIR} }`
 }
 
-function get_sandbox_exec_address() {
+export function get_sandbox_exec_address() {
   const config = getConfig()
   const network = config.tezos.list.find(x => x.network === config.tezos.network)
 
@@ -959,7 +958,7 @@ async function deploy_contract(contract_name, script) {
   return contract_address
 }
 
-async function mockupInit(options) {
+export async function mockupInit(options) {
   setEndpoint({ endpoint: "mockup" })
 
   const protocol = options.protocol ? options.protocol : default_mockup_protocol
@@ -1091,7 +1090,7 @@ async function addEndpoint(options) {
   saveConfig(config, x => { print(`endpoint '${endpoint}' for network ${network} registered.`) });
 }
 
-function setEndpoint(options) {
+export function setEndpoint(options) {
   const endpoint = options.endpoint;
 
   const config = getConfig();
@@ -1307,7 +1306,7 @@ async function importPrivatekey(options) {
   importAccount("privatekey", options);
 }
 
-async function getKeysFrom(sk) {
+export async function getKeysFrom(sk) {
   const signer = new signer.InMemorySigner(sk);
   const pk = await tezos.signer.publicKey();
   const pkh = await tezos.signer.publicKeyHash();
@@ -1410,7 +1409,7 @@ async function switchAccount(options) {
     .catch(console.error);
 }
 
-function setAccount(options) {
+export function setAccount(options) {
   const value = options.account;
 
   const account = getAccount(value);
@@ -1519,7 +1518,7 @@ async function printContract(options) {
   print(script)
 }
 
-async function transfer(options) {
+export async function transfer(options) {
   const amount_raw = options.vamount;
   const from_raw = options.from;
   const to_raw = options.to;
@@ -2039,7 +2038,7 @@ function fetch_sandbox_exec_address_from_network(network) {
   }
 }
 
-async function deploy(options) {
+export async function deploy(options) {
   const config = getConfig();
 
   const originate = options.originate;
@@ -2605,7 +2604,7 @@ async function callTransfer(options, contract_address, arg) {
   }
 }
 
-async function exec_batch(transferParams, options) {
+export async function exec_batch(transferParams, options) {
   const verbose = options.verbose === undefined ? false : options.verbose;
 
   const config = getConfig();
@@ -2663,7 +2662,7 @@ async function exec_batch(transferParams, options) {
   }
 }
 
-async function runGetter(options) {
+export async function runGetter(options) {
   const getterid = options.getterid;
   const contractid = options.contract;
   const json = options.json;
@@ -2750,7 +2749,7 @@ async function get_view_return_type(contract_address, viewid) {
   throw new Error(`Error: view "${viewid}" not found.`)
 }
 
-async function runView(options) {
+export async function runView(options) {
   const viewid = options.viewid;
   const contractid = options.contract;
   const json = options.json;
@@ -3005,7 +3004,7 @@ function simplifyMicheline(data) {
   }
 }
 
-function extract_trace_interp(text) {
+export function extract_trace_interp(text) {
   if (isNull(text)) {
     return {}
   }
@@ -3027,7 +3026,7 @@ function extract_trace_interp(text) {
   };
 }
 
-function extract_fail_interp(input) {
+export function extract_fail_interp(input) {
   const failRegex = /script reached FAILWITH instruction\nwith([\s\S]+)\nFatal error:/;
 
   const failMatch = input.match(failRegex);
@@ -3054,7 +3053,7 @@ function handle_fail(e) {
   }
 }
 
-async function interp(options) {
+export async function interp(options) {
   let stdout;
   try {
     stdout = await run_internal(options);
@@ -3080,7 +3079,7 @@ async function isContractExists(contract_address) {
   return res !== undefined;
 }
 
-async function getContractScript(contract_address) {
+export async function getContractScript(contract_address) {
   const uri = '/chains/main/blocks/head/context/contracts/' + contract_address + '/script';
   const res = await rpcGet(uri);
   return res;
@@ -3100,27 +3099,27 @@ async function getParamTypeEntrypoint(entry, contract_address) {
   }
 }
 
-async function getStorageType(contract_address) {
+export async function getStorageType(contract_address) {
   const s = await getContractScript(contract_address);
   const p = s.code.find(x => x.prim === "storage");
   const t = p.args[0];
   return t;
 }
 
-async function getParameterType(contract_address) {
+export async function getParameterType(contract_address) {
   const s = await getContractScript(contract_address);
   const p = s.code.find(x => x.prim === "parameter");
   const t = p.args[0];
   return t;
 }
 
-async function exprMichelineFromArg(arg, type) {
+export async function exprMichelineFromArg(arg, type) {
   objValues = {};
   const res = await computeArg(arg, type);
   return res;
 }
 
-function taquitoExecuteSchema(data, type) {
+export function taquitoExecuteSchema(data, type) {
   const schema = new encoder.Schema(type);
   const r = schema.Execute(data);
   return r;
@@ -3134,7 +3133,7 @@ function isEmptyObject(obj) {
   }
 }
 
-async function callContract(options) {
+export async function callContract(options) {
   const input = options.contract;
   const args = options.arg !== undefined && !isEmptyObject(options.arg) ? options.arg : (options.iargs !== undefined ? JSON.parse(options.iargs) : { prim: "Unit" });
   var argJsonMichelson = options.argJsonMichelson;
@@ -3185,13 +3184,13 @@ async function callContract(options) {
   return res;
 }
 
-async function setNow(options) {
+export async function setNow(options) {
   const vdate = options.date;
 
   return await callContract({ ...options, entry: "_set_now", args: { "": vdate } });
 }
 
-function setMockupNow(options) {
+export function setMockupNow(options) {
   if (!isMockupMode()) {
     throw (new Error("Mode mockup is required for setMockupNow."))
   }
@@ -3225,14 +3224,14 @@ function setMockupNow(options) {
   print("Set mockup now: " + v)
 }
 
-function getMockupNow() {
+export function getMockupNow() {
   const input = loadJS(context_mockup_path);
   const d = new Date(input.context.shell_header.timestamp)
   d.setSeconds(d.getSeconds() + 1)
   return d
 }
 
-function setMockupLevel(options) {
+export function setMockupLevel(options) {
   if (!isMockupMode()) {
     throw (new Error("Mode mockup is required for setMockupLevel."))
   }
@@ -3245,12 +3244,12 @@ function setMockupLevel(options) {
   print("Set mockup level: " + value)
 }
 
-function getMockupLevel() {
+export function getMockupLevel() {
   const input = loadJS(context_mockup_path);
   return input.context.shell_header.level
 }
 
-function setMockupChainId(options) {
+export function setMockupChainId(options) {
   if (!isMockupMode()) {
     throw (new Error("Mode mockup is required for setMockupChainId."))
   }
@@ -3263,7 +3262,7 @@ function setMockupChainId(options) {
   print("Set mockup chain_id: " + value)
 }
 
-async function mockupBake(options) {
+export async function mockupBake(options) {
   if (!isMockupMode()) {
     throw (new Error("Mode mockup is required for mockupBake."))
   }
@@ -3489,7 +3488,7 @@ async function print_generate_binding_dapp_ts(options) {
   await print_generate_binding_ts_gen(options, binderTs.Target.Dapp);
 }
 
-async function generate_contract_interface(options, is_michelson) {
+export async function generate_contract_interface(options, is_michelson) {
   let obj;
   if (is_michelson) {
     obj = {
@@ -3585,7 +3584,7 @@ async function showContract(options) {
   }
 }
 
-async function getEntries(input, rjson) {
+export async function getEntries(input, rjson) {
   const contract = getContractFromIdOrAddress(input);
 
   var contract_address = input;
@@ -3760,24 +3759,27 @@ async function showScript(options) {
     const config = getConfig();
     const tezos_endpoint = config.tezos.endpoint;
     const url = tezos_endpoint + '/chains/main/blocks/head/context/contracts/' + contract_address + '/script';
-    var request = require('request');
-    request(url, function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        const j = JSON.parse(body);
-        if (json) {
-          print(JSON.stringify(j.code, 0, 2));
-        } else {
-          print(codec.emitMicheline(j.code))
-        }
-      } else {
-        print(`Error: ${response.statusCode}`)
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        print(`Error: ${response.status}`);
+        return;
       }
-    })
+  
+      const data = await response.json();
+  
+      if (json) {
+        print(JSON.stringify(data.code, null, 2));
+      } else {
+        print(codec.emitMicheline(data.code));
+      }
+    } catch (error) {
+      print(`Error: ${error.message}`);
+    }
   }
-  return;
 }
 
-async function getTezosContract(input) {
+export async function getTezosContract(input) {
   const contract_address = getContractAddress(input);
 
   let contract;
@@ -3790,7 +3792,7 @@ async function getTezosContract(input) {
   return contract;
 }
 
-async function getRawStorage(contract_address) {
+export async function getRawStorage(contract_address) {
   const uri = "/chains/main/blocks/head/context/contracts/" + contract_address + "/storage";
   const storage = await rpcGet(uri);
   return storage;
@@ -3802,7 +3804,7 @@ async function getRawScript(contract_address) {
   return script;
 }
 
-async function getStorage(input) {
+export async function getStorage(input) {
   const contract_address = getContractAddress(input);
   const data = await getRawStorage(contract_address);
   const s = await getContractScript(contract_address);
@@ -3813,7 +3815,7 @@ async function getStorage(input) {
   return r;
 }
 
-async function getBalance(options) {
+export async function getBalance(options) {
   const alias = options.alias;
 
   var pkh = null;
@@ -3844,7 +3846,7 @@ async function getBalance(options) {
   return balance;
 }
 
-function getAddress(options) {
+export function getAddress(options) {
   const alias = options.alias;
 
   var address = null;
@@ -3860,7 +3862,7 @@ function getAddress(options) {
   return address;
 }
 
-function getAccountExt(options) {
+export function getAccountExt(options) {
   const alias = options.alias;
   const account = getAccountFromIdOrAddr(alias);
   if (account !== undefined) {
@@ -3886,7 +3888,7 @@ async function getBalanceFor(options) {
   print(`${balance.toNumber() / 1000000} ꜩ`);
 }
 
-function packTyped(options) {
+export function packTyped(options) {
   const data = options.data;
   const typ = options.typ;
 
@@ -3894,7 +3896,7 @@ function packTyped(options) {
   return packedBytes;
 }
 
-function pack(options) {
+export function pack(options) {
   var value = options.value;
   let data;
   let typ;
@@ -3929,21 +3931,21 @@ function pack(options) {
   });
 }
 
-function blake2b(options) {
+export function blake2b(options) {
   const blake = require('blakejs');
   const value = options.value;
   const blakeHash = blake.blake2b(taquitoUtils.hex2buf(value), null, 32);
   return taquitoUtils.buf2hex(blakeHash);
 }
 
-function keccak(options) {
+export function keccak(options) {
   const keccak = require('keccak');
   const value = options.value;
   const hash = keccak('keccak256').update(value, "hex");
   return hash.digest('hex')
 }
 
-async function sign(options) {
+export async function sign(options) {
   const value = options.value;
   const as = options.as;
 
@@ -3951,7 +3953,7 @@ async function sign(options) {
   return await signer.signer.sign(value);
 }
 
-async function signFromSk(options) {
+export async function signFromSk(options) {
   const value = options.value;
   const sk = options.sk;
 
@@ -3959,7 +3961,7 @@ async function signFromSk(options) {
   return await s.sign(value);
 }
 
-function setQuiet(v) {
+export function setQuiet(v) {
   settings_quiet = v;
 }
 
@@ -3969,7 +3971,7 @@ function commandNotFound(options) {
   return 1;
 }
 
-async function getValueFromBigMap(id, data, type, type_value) {
+export async function getValueFromBigMap(id, data, type, type_value) {
   const input = packTyped({ data: data, typ: type });
   const expr = taquitoUtils.encodeExpr(input);
   try {
@@ -4046,7 +4048,7 @@ function initLogData(kind, input) {
   return data;
 }
 
-function extractUpdatedStorage(input) {
+export function extractUpdatedStorage(input) {
   // const rx = /.*\Updated storage: (.*).*/g;
   /*
   ** lib_client/operation_result.ml file around 555 line
@@ -4191,7 +4193,9 @@ function extractFailData(input) {
   }
 }
 
-exports.extract = extractFailData
+export function extract(input) {
+  extractFailData(input)
+}
 
 function addLogAs(data, source) {
   const account = getAccountFromIdOrAddr(source)
@@ -4269,7 +4273,7 @@ function process_internal_transactions(input) {
   return transactions
 }
 
-function buildLogTransaction(input) {
+export function buildLogTransaction(input) {
   let data = initLogData('transaction', input);
 
   const now = getMockupNow();
@@ -4713,7 +4717,7 @@ function extract_global_address(input) {
   return null
 }
 
-async function registerGlobalConstant(options) {
+export async function registerGlobalConstant(options) {
   const value = options.value;
   const force = options.force;
 
@@ -4761,7 +4765,7 @@ function getNetwork(inetwork) {
   return network
 }
 
-async function importContract(options) {
+export async function importContract(options) {
   const value = options.value;
   const name = options.name;
   const network = getNetwork(options.network);
@@ -4787,7 +4791,7 @@ async function removeContracts(options) {
   saveFile(contracts_path, obj, x => { print(`Contracts of ${network} removed from completium: ${count}.`) });
 }
 
-function build_json_type(obj) {
+export function build_json_type(obj) {
   if (obj.annots && obj.annots.length > 0) {
     const annot = remove_prefix(obj.annots[0]);
     let res = {};
@@ -4864,7 +4868,7 @@ async function decompile(options) {
   print(output)
 }
 
-async function exec(options) {
+export async function exec(options) {
   try {
     switch (options.command) {
       case "init":
@@ -5087,59 +5091,3 @@ async function exec(options) {
   }
   return 0;
 }
-
-exports.deploy = deploy;
-exports.callContract = callContract;
-exports.runGetter = runGetter;
-exports.runView = runView;
-exports.getStorage = getStorage;
-exports.getTezosContract = getTezosContract;
-exports.getBalance = getBalance;
-exports.retrieveBalanceFor = retrieveBalanceFor;
-exports.exec = exec;
-exports.setAccount = setAccount;
-exports.setEndpoint = setEndpoint;
-exports.getAddress = getAddress;
-exports.getAccountExt = getAccountExt;
-exports.blake2b = blake2b;
-exports.keccak = keccak;
-exports.sign = sign;
-exports.signFromSk = signFromSk;
-exports.pack = pack;
-exports.packTyped = packTyped;
-exports.setNow = setNow;
-exports.transfer = transfer;
-exports.getEntries = getEntries;
-exports.expr_micheline_to_json = expr_micheline_to_json;
-exports.json_micheline_to_expr = json_micheline_to_expr;
-exports.setQuiet = setQuiet;
-exports.getValueFromBigMap = getValueFromBigMap;
-exports.getConfig = getConfig;
-exports.exprMichelineFromArg = exprMichelineFromArg;
-exports.setMockupNow = setMockupNow;
-exports.getMockupNow = getMockupNow;
-exports.setMockupLevel = setMockupLevel;
-exports.getMockupLevel = getMockupLevel;
-exports.getChainId = getChainId;
-exports.setMockupChainId = setMockupChainId;
-exports.mockupBake = mockupBake;
-exports.taquitoExecuteSchema = taquitoExecuteSchema;
-exports.generate_contract_interface = generate_contract_interface;
-exports.getRawStorage = getRawStorage
-exports.exec_batch = exec_batch
-exports.getKeysFrom = getKeysFrom
-exports.registerGlobalConstant = registerGlobalConstant
-exports.mockupInit = mockupInit
-exports.importContract = importContract
-exports.rpcGet = rpcGet
-exports.getContractScript = getContractScript
-exports.getStorageType = getStorageType
-exports.getParameterType = getParameterType
-exports.build_json_type = build_json_type
-
-exports.extractUpdatedStorage = extractUpdatedStorage
-exports.buildLogTransaction = buildLogTransaction
-exports.get_sandbox_exec_address = get_sandbox_exec_address
-exports.interp = interp
-exports.extract_fail_interp = extract_fail_interp
-exports.extract_trace_interp = extract_trace_interp

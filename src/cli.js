@@ -7,7 +7,7 @@
 
 import arg from 'arg';
 // import inquirer from 'inquirer';
-import { exec } from './main';
+import { exec } from './main.js';
 
 function parseCommand(args) {
   const length = args.length;
