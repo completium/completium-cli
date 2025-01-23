@@ -1,12 +1,11 @@
 /*!
  * completium-cli <https://github.com/completium/completium-cli>
  *
- * Copyright (c) 2021-2024, edukera, SAS.
+ * Copyright (c) 2021-2025, edukera, SAS.
  * Released under the MIT License.
  */
 
 import arg from 'arg';
-// import inquirer from 'inquirer';
 import { exec } from './main.js';
 
 function parseCommand(args) {
@@ -388,18 +387,6 @@ function parseCommand(args) {
     opt_now: options['--now'],
     opt_level: options['--level'],
   }
-}
-
-async function promptForMissingOptions(options) {
-
-  // const questions = [];
-
-  // const answers = await inquirer.prompt(questions);
-  // return {
-  //   ...options,
-  //   template: options.template || answers.template,
-  //   git: options.git || answers.git,
-  // };
 }
 
 export async function cli(args) {

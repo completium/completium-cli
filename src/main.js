@@ -1,7 +1,7 @@
 /*!
  * completium-cli <https://github.com/completium/completium-cli>
  *
- * Copyright (c) 2021-2024, edukera, SAS.
+ * Copyright (c) 2021-2025, edukera, SAS.
  * Released under the MIT License.
  */
 

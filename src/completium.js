@@ -1,16 +1,13 @@
 /*!
  * completium-cli <https://github.com/completium/completium-cli>
  *
- * Copyright (c) 2021-2024, edukera, SAS.
+ * Copyright (c) 2021-2025, edukera, SAS.
  * Released under the MIT License.
  */
 
-// import { deploy, callContract, getStorage } from './main';
-
-const Main = require('./main');
-const assert = require('assert');
-
-const BigNumber = require('bignumber.js').BigNumber;
+import * as Main from './main.js'
+import assert from 'node:assert';
+import { BigNumber } from 'bignumber.js'
 
 function computeCost(op) {
   if (op.results !== undefined) {
@@ -303,10 +300,6 @@ export async function generateContractInterface(path, options) {
 export async function exec_batch(ts, options) {
   const obj = options ? options : {};
   return await Main.exec_batch(ts, obj);
-}
-
-export async function getRawStorage(contract_address) {
-  return Main.getRawStorage(contract_address);
 }
 
 export async function getRawStorage(contract_address) {
