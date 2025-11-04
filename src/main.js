@@ -29,7 +29,7 @@ import blakejs from 'blakejs'
 import keccakLib from 'keccak'
 import archetype from '@completium/archetype';
 
-const version = '1.0.27'
+const version = '1.0.28'
 
 const homedir = os.homedir();
 const completium_dir = homedir + '/.completium'
@@ -3129,6 +3129,7 @@ export async function callContract(options) {
   var argJsonMichelson = options.argJsonMichelson;
   var argMichelson = options.argMichelson;
   var entry = options.entry === undefined ? 'default' : options.entry;
+  var arg;
 
   const contract = getContractFromIdOrAddress(input);
 
