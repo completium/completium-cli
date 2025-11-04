@@ -52,10 +52,9 @@ const context_mockup_path = completium_dir + "/mockup/mockup/context.json";
 
 const tezos_client_dir = homedir + '/.tezos-client'
 
-// const default_mockup_protocol = 'ProxfordYmVfjWnRcgjWH36fW6PArwqykTFzotUxRs6gmTcZDuH'
-const default_mockup_protocol = 'PsParisCZo7KAh1Z1smVd9ZMZ1HHn5gkzbM94V3PLCpknFWhUAi'
+const default_mockup_protocol = 'PtSeouLouXkxhg39oWzjxDWaCydNfR3RxCUrNe4Q9Ro8BTehcbh'
 
-const import_endpoint = 'https://ghostnet.ecadinfra.com'; // used for import faucet
+const import_endpoint = 'https://shadownet.tezos.ecadinfra.com'; // used for import faucet
 
 ///////////
 // TOOLS //
@@ -601,7 +600,7 @@ function help(options) {
   print("")
   print("  show endpoint");
   print("  switch endpoint");
-  print("  add endpoint (main|ghost|sandbox) <ENDPOINT_URL>");
+  print("  add endpoint (main|shadow|ghost|sandbox) <ENDPOINT_URL>");
   print("  set endpoint <ENDPOINT_URL>");
   print("  remove endpoint <ENDPOINT_URL>");
   print("")
@@ -680,28 +679,41 @@ async function initCompletium(options) {
     },
     tezos: {
       force_tezos_client: false,
-      network: 'ghost',
-      endpoint: 'https://ghostnet.ecadinfra.com',
+      network: 'shadow',
+      endpoint: 'https://shadownet.tezos.ecadinfra.com',
       list: [
         {
           network: 'main',
           bcd_url: "https://better-call.dev/mainnet/${address}",
           tzstat_url: "https://tzstats.com",
           endpoints: [
+            'https://mainnet.tezos.ecadinfra.com',
             'https://mainnet.api.tez.ie',
             'https://mainnet.smartpy.io',
             'https://mainnet.tezos.marigold.dev',
             'https://mainnet-tezos.giganode.io',
-            'https://rpc.tzbeta.net'
+            'https://rpc.tzbeta.net',
+            'https://rpc.tzkt.io/mainnet'
           ],
           sandbox_exec_address: "KT19wkxScvCZghXQbpZNaP2AwTJ63gBhdofE"
+        },
+        {
+          network: 'shadow',
+          bcd_url: "https://better-call.dev/shadownet/${address}",
+          tzstat_url: "https://tzstats.com",
+          endpoints: [
+            'https://shadownet.tezos.ecadinfra.com',
+            'https://rpc.shadownet.teztnets.com',
+            'https://rpc.tzkt.io/shadownet'
+          ],
+          sandbox_exec_address: "KT1MS3bjqJHYkg4mEiRgVmfXGoGUHAdXUuLL"
         },
         {
           network: 'ghost',
           bcd_url: "https://better-call.dev/ghostnet/${address}",
           tzstat_url: "https://tzstats.com",
           endpoints: [
-            'https://ghostnet.ecadinfra.com',
+            'https://ghostnet.tezos.ecadinfra.com',
             'https://ghostnet.smartpy.io',
             'https://ghostnet.tezos.marigold.dev'
           ],
@@ -950,6 +962,13 @@ async function deploy_contract(contract_name, script) {
     "--burn-cap", "20", "--force", "--no-print-source"]);
 
   const path_contracts = mockup_path + "/contracts";
+
+  // Check if the contracts file exists, if not return null
+  if (!fs.existsSync(path_contracts)) {
+    console.warn(`Warning: contracts file not found at ${path_contracts}`);
+    return null;
+  }
+
   const inputContracts = fs.readFileSync(path_contracts, 'utf8');
   const cobj = JSON.parse(inputContracts);
   const o = cobj.find(x => { return (x.name === contract_name) });
@@ -958,6 +977,12 @@ async function deploy_contract(contract_name, script) {
 }
 
 export async function mockupInit(options) {
+  // Check if completium is initialized, if not initialize it first
+  if (!fs.existsSync(config_path) || !fs.existsSync(accounts_path)) {
+    print("Completium not initialized, initializing now...");
+    await initCompletium(options);
+  }
+
   setEndpoint({ endpoint: "mockup" })
 
   const protocol = options.protocol ? options.protocol : default_mockup_protocol
@@ -971,6 +996,13 @@ export async function mockupInit(options) {
   ], {});
 
   print(stdout);
+
+  // Create the contracts file if it doesn't exist
+  const path_contracts = mockup_path + "/contracts";
+  if (!fs.existsSync(path_contracts)) {
+    fs.writeFileSync(path_contracts, JSON.stringify([]), 'utf8');
+  }
+
   print("Importing account ...");
 
   const importAccount = async (name, key) => {
