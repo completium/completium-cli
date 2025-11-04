@@ -29,7 +29,7 @@ import blakejs from 'blakejs'
 import keccakLib from 'keccak'
 import archetype from '@completium/archetype';
 
-const version = '1.0.28'
+const version = '1.0.29'
 
 const homedir = os.homedir();
 const completium_dir = homedir + '/.completium'
@@ -706,7 +706,7 @@ async function initCompletium(options) {
             'https://rpc.shadownet.teztnets.com',
             'https://rpc.tzkt.io/shadownet'
           ],
-          sandbox_exec_address: "KT1MS3bjqJHYkg4mEiRgVmfXGoGUHAdXUuLL"
+          sandbox_exec_address: "KT1L4USzpYoYV8rmJKCaXdHM1FXRctSdvg5J"
         },
         {
           network: 'ghost',
